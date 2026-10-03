@@ -1,0 +1,184 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: "Segoe UI", Arial, sans-serif;
+  --background: #ffffff;
+  --foreground: #111111;
+
+  /* Theme tokens - default Red/White */
+  --school-primary: #E0000B;
+  --school-primary-hover: #b91c1c;
+  --school-primary-light: #fef2f2;
+  --school-primary-border: #fecaca;
+  --school-accent: #ef4444;
+}
+
+/* Color Theme Presets */
+.theme-red {
+  --school-primary: #E0000B;
+  --school-primary-hover: #b91c1c;
+  --school-primary-light: #fef2f2;
+  --school-primary-border: #fecaca;
+  --school-accent: #ef4444;
+}
+
+.theme-green {
+  --school-primary: #059669;
+  --school-primary-hover: #047857;
+  --school-primary-light: #ecfdf5;
+  --school-primary-border: #a7f3d0;
+  --school-accent: #10b981;
+}
+
+.theme-blue {
+  --school-primary: #2563eb;
+  --school-primary-hover: #1d4ed8;
+  --school-primary-light: #eff6ff;
+  --school-primary-border: #bfdbfe;
+  --school-accent: #3b82f6;
+}
+
+.theme-amber {
+  --school-primary: #d97706;
+  --school-primary-hover: #b45309;
+  --school-primary-light: #fffbeb;
+  --school-primary-border: #fde68a;
+  --school-accent: #f59e0b;
+}
+
+.theme-purple {
+  --school-primary: #7c3aed;
+  --school-primary-hover: #6d28d9;
+  --school-primary-light: #f5f3ff;
+  --school-primary-border: #ddd6fe;
+  --school-accent: #8b5cf6;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  overflow-x: hidden;
+}
+
+::selection {
+  background-color: var(--school-primary);
+  color: #ffffff;
+}
+
+/* Dynamic theme helper classes */
+.bg-school-primary {
+  background-color: var(--school-primary);
+}
+.hover\:bg-school-primary-hover:hover {
+  background-color: var(--school-primary-hover);
+}
+.text-school-primary {
+  color: var(--school-primary);
+}
+.border-school-primary {
+  border-color: var(--school-primary);
+}
+.bg-school-primary-light {
+  background-color: var(--school-primary-light);
+}
+.border-school-primary-border {
+  border-color: var(--school-primary-border);
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f4f4f5;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
+}
+
+/* Subtle grid background for SaaS header accents */
+.bg-grid-pattern {
+  background-size: 32px 32px;
+  background-image: linear-gradient(to right, rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+}
+
+/* Global Print Stylesheet */
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  aside,
+  header,
+  nav,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  .print\:border-0 {
+    border: none !important;
+  }
+
+  .print\:p-0 {
+    padding: 0 !important;
+  }
+
+  .print\:shadow-none {
+    box-shadow: none !important;
+  }
+
+  article,
+  .printable-document,
+  .break-inside-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}
+
+
+
+/* Acadivo shared product foundation. */
+body { font-family: "Segoe UI", Arial, sans-serif; }
+:focus-visible { outline: 2px solid #E0000B; outline-offset: 3px; }
+.portal-shell { --school-primary: #E0000B; --school-primary-hover: #be0009; --school-primary-light: #fff1f2; }
+.portal-content { scrollbar-gutter: stable; }
+.portal-content h1 { font-size: clamp(1.35rem, 2vw, 1.8rem); font-weight: 650; letter-spacing: -.025em; }
+.portal-content h2, .portal-content h3 { letter-spacing: -.015em; }
+.portal-content .rounded-2xl { border-radius: 10px; }
+.portal-content .rounded-xl { border-radius: 8px; }
+.portal-content .shadow-lg, .portal-content .shadow-md, .portal-content .shadow-xl { box-shadow: 0 1px 3px rgb(0 0 0 / .04); }
+.portal-content .font-black, .portal-content .font-extrabold { font-weight: 650; }
+.portal-content table { font-variant-numeric: tabular-nums; }
+.portal-content th { font-weight: 600; }
+.portal-content input, .portal-content select, .portal-content textarea { font-size: 13px; }
+.portal-content button:disabled { cursor: not-allowed; }
+.portal-content div.bg-zinc-900, .portal-content div.bg-zinc-950,
+.portal-content div.bg-gradient-to-r { background: white; background-image: none; color: #111111; border-color: #e4e4e7; }
+.portal-content div.bg-zinc-900 h1, .portal-content div.bg-zinc-950 h1,
+.portal-content div.bg-gradient-to-r h1 { color: #111111; }
+.portal-content div.bg-zinc-900 p, .portal-content div.bg-zinc-950 p,
+.portal-content div.bg-gradient-to-r p { color: #71717a; }
+.portal-content .blur-3xl { display: none; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }
+@media print { .portal-shell { height: auto; overflow: visible; display: block; } .portal-shell > aside { display: none; } .portal-shell > div { margin-left: 0; } .portal-content { overflow: visible; padding: 0; } }
+
+/* Full-length product capture only; normal portal scrolling is unchanged. */
+html[data-screenshot-full="true"] .portal-shell { height: auto; min-height: 100vh; overflow: visible; }
+html[data-screenshot-full="true"] #workspace-content { flex: none; overflow: visible; }

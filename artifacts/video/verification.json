@@ -1,0 +1,16 @@
+{
+  "checks": {
+    "duration84": true,
+    "1080p30": true,
+    "audioAAC": true,
+    "fullDecode": true,
+    "noBlackFrames": true,
+    "nonSilentAudio": true,
+    "sceneCount": true,
+    "voiceTiming": true
+  },
+  "bytes": 20255199,
+  "mediaInfo": "Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'D:\\CRM\\school-crm\\artifacts\\video\\acadivo-product-demo.mp4':\n  Metadata:\n    major_brand     : isom\n    minor_version   : 512\n    compatible_brands: isomiso2avc1mp41\n    encoder         : Lavf61.7.100\n  Duration: 00:01:24.00, start: 0.000000, bitrate: 1929 kb/s\n  Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(progressive), 1920x1080, 1791 kb/s, 30 fps, 30 tbr, 15360 tbn (default)\n      Metadata:\n        handler_name    : VideoHandler\n        vendor_id       : [0][0][0][0]\n        encoder         : Lavc61.19.100 libx264\n  Stream #0:1[0x2](und): Audio: aac (LC) (mp4a / 0x6134706D), 48000 Hz, stereo, fltp, 134 kb/s (default)\n      Metadata:\n        handler_name    : SoundHandler\n        vendor_id       : [0][0][0][0]\nAt least one output file must be specified\n",
+  "voice": "Microsoft David Desktop; scene-aligned narration",
+  "manualReview": "Review final-review.jpg and browser playback separately."
+}

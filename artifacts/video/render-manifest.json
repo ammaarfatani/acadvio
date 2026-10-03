@@ -1,0 +1,190 @@
+{
+  "duration": 84,
+  "size": [
+    1920,
+    1080
+  ],
+  "fps": 30,
+  "scenes": [
+    {
+      "duration": 5,
+      "title": "Opening",
+      "caption": "ACADIVO \u00b7 School Management, Simplified.",
+      "voiceover": "Acadivo. School management, simplified.",
+      "transition": "Red rule leads into the next scene.",
+      "start": 0,
+      "voiceDuration": 4.488979591836735,
+      "voiceSpeed": 1.068804664723032,
+      "assets": [
+        "public\\product-showcase\\school-admin.jpg"
+      ]
+    },
+    {
+      "duration": 6,
+      "title": "The problem",
+      "caption": "One Platform. Every Department.",
+      "voiceover": "Bring admissions, teaching, examinations and finance into one connected workspace.",
+      "transition": "Aligned fragments resolve into a dashboard.",
+      "start": 5,
+      "voiceDuration": 6.098367346938775,
+      "voiceSpeed": 1.1727629513343798,
+      "assets": [
+        "artifacts\\video\\admissions.jpg",
+        "artifacts\\video\\teacher-attendance.jpg",
+        "artifacts\\video\\exam-results.jpg",
+        "public\\product-showcase\\finance.jpg"
+      ]
+    },
+    {
+      "duration": 7,
+      "title": "Platform oversight",
+      "caption": "Platform oversight \u00b7 Schools, subscriptions, verification",
+      "voiceover": "Platform owners manage schools, subscriptions and payment verification.",
+      "transition": "Match cut from platform sidebar to school sidebar.",
+      "start": 11,
+      "voiceDuration": 5.403492063492063,
+      "voiceSpeed": 1,
+      "assets": [
+        "artifacts\\video\\super-admin.jpg",
+        "artifacts\\video\\super-admin-payments.jpg"
+      ]
+    },
+    {
+      "duration": 8,
+      "title": "School administration",
+      "caption": "One school. One organized workspace.",
+      "voiceover": "Manage students, staff, classes and daily school operations from one place.",
+      "transition": "Short lateral slide following the selected navigation row.",
+      "start": 18,
+      "voiceDuration": 5.863492063492063,
+      "voiceSpeed": 1,
+      "assets": [
+        "public\\product-showcase\\school-admin.jpg",
+        "artifacts\\video\\students.jpg",
+        "artifacts\\video\\classes.jpg"
+      ]
+    },
+    {
+      "duration": 7,
+      "title": "Front desk",
+      "caption": "Admissions \u2192 Student records",
+      "voiceover": "Keep admission inquiries, student records and front desk work connected.",
+      "transition": "Button highlight expands into teacher view.",
+      "start": 26,
+      "voiceDuration": 4.99859410430839,
+      "voiceSpeed": 1,
+      "assets": [
+        "public\\product-showcase\\receptionist.jpg",
+        "artifacts\\video\\admissions.jpg",
+        "artifacts\\video\\students.jpg"
+      ]
+    },
+    {
+      "duration": 8,
+      "title": "Teaching",
+      "caption": "Assigned classes. Clear responsibilities.",
+      "voiceover": "Teachers see assigned classes, their timetable and the attendance tasks that matter.",
+      "transition": "Timetable columns align with exam schedule.",
+      "start": 33,
+      "voiceDuration": 5.428616780045352,
+      "voiceSpeed": 1,
+      "assets": [
+        "public\\product-showcase\\teacher-full.jpg",
+        "artifacts\\video\\teacher-timetable.jpg",
+        "artifacts\\video\\teacher-attendance.jpg"
+      ]
+    },
+    {
+      "duration": 9,
+      "title": "Examination workflow",
+      "caption": "Exams \u2192 Marks \u2192 Results \u2192 Certificates",
+      "voiceover": "Connect exam schedules, marks review, results and certificates in one examination workflow.",
+      "transition": "Clean vertical wipe to finance.",
+      "start": 41,
+      "voiceDuration": 6.688072562358276,
+      "voiceSpeed": 1,
+      "assets": [
+        "artifacts\\video\\exam-schedules.jpg",
+        "artifacts\\video\\exam-marks.jpg",
+        "artifacts\\video\\exam-results.jpg",
+        "artifacts\\video\\exam-certificates.jpg"
+      ]
+    },
+    {
+      "duration": 8,
+      "title": "Finance",
+      "caption": "Fees, receipts and balances",
+      "voiceover": "Track fee challans, collections, receipts and outstanding balances from recorded transactions.",
+      "transition": "Red accent line joins role labels.",
+      "start": 50,
+      "voiceDuration": 6.813242630385488,
+      "voiceSpeed": 1,
+      "assets": [
+        "public\\product-showcase\\finance.jpg",
+        "artifacts\\video\\finance-challans.jpg",
+        "artifacts\\video\\finance-reports.jpg"
+      ]
+    },
+    {
+      "duration": 6,
+      "title": "Roles & permissions",
+      "caption": "Everyone gets the right access.",
+      "voiceover": "Every department gets a dedicated workspace, with access defined by role and permissions.",
+      "transition": "Six views merge into insights.",
+      "start": 58,
+      "voiceDuration": 6.308390022675737,
+      "voiceSpeed": 1.2131519274376417,
+      "assets": [
+        "artifacts\\video\\super-admin.jpg",
+        "public\\product-showcase\\school-admin.jpg",
+        "public\\product-showcase\\teacher.jpg",
+        "public\\product-showcase\\receptionist.jpg",
+        "public\\product-showcase\\examination.jpg",
+        "public\\product-showcase\\finance.jpg"
+      ]
+    },
+    {
+      "duration": 7,
+      "title": "Reports",
+      "caption": "Real records. Clearer decisions.",
+      "voiceover": "Turn actual school records into clear reports and useful insights.",
+      "transition": "Three concise match cuts.",
+      "start": 64,
+      "voiceDuration": 4.708616780045351,
+      "voiceSpeed": 1,
+      "assets": [
+        "public\\product-showcase\\school-admin-insights.jpg",
+        "artifacts\\video\\finance-reports.jpg"
+      ]
+    },
+    {
+      "duration": 6,
+      "title": "Product montage",
+      "caption": "Connected school operations",
+      "voiceover": "One connected system for the people running your school.",
+      "transition": "UI recedes into the logo.",
+      "start": 71,
+      "voiceDuration": 3.6136961451247167,
+      "voiceSpeed": 1,
+      "assets": [
+        "public\\product-showcase\\school-admin.jpg",
+        "artifacts\\video\\students.jpg",
+        "artifacts\\video\\teacher-attendance.jpg",
+        "artifacts\\video\\exam-results.jpg",
+        "public\\product-showcase\\finance.jpg",
+        "public\\product-showcase\\receptionist.jpg"
+      ]
+    },
+    {
+      "duration": 7,
+      "title": "Closing",
+      "caption": "One School. One Powerful Platform. \u00b7 Manage your school smarter. \u00b7 Try Free Now",
+      "voiceover": "Acadivo. One school. One powerful platform. Manage your school smarter.",
+      "transition": "Soft fade to white.",
+      "start": 77,
+      "voiceDuration": 7.698684807256236,
+      "voiceSpeed": 1.2417233560090704,
+      "assets": []
+    }
+  ]
+}

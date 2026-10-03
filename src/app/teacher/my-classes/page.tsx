@@ -1,0 +1,243 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Users, GraduationCap, Clock, Award, ShieldCheck, DoorOpen, CheckCircle2, ChevronRight, X } from "lucide-react";
+import { teacherApi } from "@/lib/teacherApi";
+import Link from "next/link";
+
+interface ClassItem {
+  classId: string;
+  className: string;
+  classCode?: string;
+  sectionId: string;
+  sectionName: string;
+  roomNumber?: string;
+  capacity?: number;
+  academicSessionName?: string;
+  isClassTeacher: boolean;
+  subjects: Array<{ _id: string; name: string; code: string }>;
+  studentCount: number;
+}
+
+export default function TeacherMyClassesPage() {
+  const [classes, setClasses] = useState<ClassItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedClass, setSelectedClass] = useState<ClassItem | null>(null);
+
+  useEffect(() => {
+    async function fetchClasses() {
+      try {
+        const res = await teacherApi.getTeacherClasses();
+        setClasses(res.data || []);
+      } catch (err) {
+        console.error("Failed to load teacher classes:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchClasses();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="h-10 bg-zinc-200 rounded-lg w-48 animate-pulse" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-48 bg-zinc-200 rounded-2xl animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 pb-12">
+      {/* Header */}
+      <div className="bg-white border border-zinc-200 p-6 rounded-2xl shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-xl font-black text-zinc-950 flex items-center gap-2">
+            <Users className="w-5 h-5 text-red-600" />
+            My Assigned Classes & Sections
+          </h1>
+          <p className="text-xs text-zinc-500 mt-0.5">
+            Manage student rosters, assigned subjects, and class teacher responsibilities
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold px-3 py-1.5 bg-zinc-100 border border-zinc-200 rounded-xl text-zinc-700">
+            Total Sections: {classes.length}
+          </span>
+        </div>
+      </div>
+
+      {classes.length === 0 ? (
+        <div className="bg-white border border-zinc-200 rounded-2xl p-12 text-center space-y-3">
+          <Users className="w-10 h-10 text-zinc-300 mx-auto" />
+          <h3 className="text-base font-bold text-zinc-900">No Classes Assigned</h3>
+          <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+            You are not currently assigned as Class Teacher or Subject Teacher for any section in the active session.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {classes.map((cls) => (
+            <div
+              key={`${cls.classId}-${cls.sectionId}`}
+              className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-xs hover:border-zinc-400 transition-all flex flex-col justify-between space-y-5"
+            >
+              <div className="space-y-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h2 className="text-lg font-black text-zinc-950 flex items-center gap-2">
+                      {cls.className} — {cls.sectionName}
+                    </h2>
+                    <span className="text-xs text-zinc-500 font-medium">
+                      Session: {cls.academicSessionName || "Current Session"}
+                    </span>
+                  </div>
+
+                  {cls.isClassTeacher ? (
+                    <span className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1 shrink-0">
+                      <ShieldCheck className="w-3 h-3" /> Class Teacher
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-zinc-100 text-zinc-600 border border-zinc-200 shrink-0">
+                      Subject Teacher
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="bg-zinc-50 p-3 rounded-xl border border-zinc-100">
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase block">Enrolled Students</span>
+                    <span className="text-base font-black text-zinc-900">{cls.studentCount} Students</span>
+                  </div>
+
+                  <div className="bg-zinc-50 p-3 rounded-xl border border-zinc-100">
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase block">Room / Capacity</span>
+                    <span className="text-base font-black text-zinc-900">
+                      {cls.roomNumber || "N/A"} <span className="text-xs text-zinc-500 font-normal">({cls.capacity || 40})</span>
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold text-zinc-400 uppercase block mb-1.5">Assigned Subjects</span>
+                  {cls.subjects.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {cls.subjects.map((sub) => (
+                        <span key={sub._id} className="text-xs font-semibold bg-red-50 text-red-700 border border-red-100 px-2.5 py-1 rounded-lg">
+                          {sub.name}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-zinc-400 italic">No direct subjects assigned</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-zinc-100 flex items-center justify-between gap-2">
+                {cls.isClassTeacher ? (
+                  <Link
+                    href={`/teacher/attendance?classId=${cls.classId}&sectionId=${cls.sectionId}`}
+                    className="text-xs font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Mark Daily Attendance
+                  </Link>
+                ) : (
+                  <span className="text-[11px] text-zinc-400 font-medium">Subject Attendance only</span>
+                )}
+
+                <button
+                  onClick={() => setSelectedClass(cls)}
+                  className="px-3 py-1.5 text-xs font-bold bg-zinc-950 text-white rounded-xl hover:bg-zinc-800 transition-colors flex items-center gap-1"
+                >
+                  View Details <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Detail Modal */}
+      {selectedClass && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-xl w-full p-6 space-y-6 shadow-2xl relative border border-zinc-200">
+            <button
+              onClick={() => setSelectedClass(null)}
+              className="absolute top-4 right-4 p-1 rounded-lg text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="text-lg font-black text-zinc-950">
+                  {selectedClass.className} — {selectedClass.sectionName}
+                </h3>
+                {selectedClass.isClassTeacher && (
+                  <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded uppercase">
+                    Class Teacher
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-zinc-500">
+                Academic Session: {selectedClass.academicSessionName || "Current Session"}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 text-xs">
+              <div className="bg-zinc-50 p-3 rounded-xl border border-zinc-100 text-center">
+                <span className="text-[10px] text-zinc-400 uppercase font-bold block">Students</span>
+                <span className="text-lg font-black text-zinc-900">{selectedClass.studentCount}</span>
+              </div>
+              <div className="bg-zinc-50 p-3 rounded-xl border border-zinc-100 text-center">
+                <span className="text-[10px] text-zinc-400 uppercase font-bold block">Room</span>
+                <span className="text-lg font-black text-zinc-900">{selectedClass.roomNumber || "N/A"}</span>
+              </div>
+              <div className="bg-zinc-50 p-3 rounded-xl border border-zinc-100 text-center">
+                <span className="text-[10px] text-zinc-400 uppercase font-bold block">Capacity</span>
+                <span className="text-lg font-black text-zinc-900">{selectedClass.capacity || 40}</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">Assigned Subjects Taught</h4>
+              {selectedClass.subjects.length > 0 ? (
+                <div className="divide-y border rounded-xl overflow-hidden text-xs">
+                  {selectedClass.subjects.map((sub) => (
+                    <div key={sub._id} className="p-3 flex justify-between items-center bg-white">
+                      <span className="font-bold text-zinc-900">{sub.name}</span>
+                      <span className="font-mono text-zinc-500">{sub.code || "CORE"}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-zinc-500 italic">No specific subject assigned for this section.</p>
+              )}
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Link
+                href={`/teacher/students?classId=${selectedClass.classId}&sectionId=${selectedClass.sectionId}`}
+                className="flex-1 py-2.5 text-center text-xs font-bold bg-zinc-950 text-white rounded-xl hover:bg-zinc-800"
+              >
+                View Class Students Directory
+              </Link>
+              <button
+                onClick={() => setSelectedClass(null)}
+                className="px-4 py-2.5 text-xs font-bold border border-zinc-300 text-zinc-700 rounded-xl hover:bg-zinc-50"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

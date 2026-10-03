@@ -1,0 +1,13 @@
+"use client";
+import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
+export default function SubscriptionAccessPage() {
+  const { user, refreshUser } = useAuth();
+  const router = useRouter();
+  const [error, setError] = useState("");
+  const expired = user?.school?.status === "TRIAL_EXPIRED";
+  const base = user?.school?.slug ? "/"+user.school.slug+"/admin" : "/school-admin";
+  return <section className="mx-auto max-w-2xl rounded-2xl border border-zinc-200 bg-white p-6 sm:p-10"><h1 className="text-2xl font-black">{expired ? "Your Free Trial Has Ended" : "School Subscription"}</h1><p className="mt-4 text-sm text-zinc-600">{expired ? "Your free trial has ended. Upgrade your plan to continue using your School CRM." : "Choose a subscription to activate your school CRM access."}</p><p className="mt-3 text-sm text-zinc-600">Your existing school account and CRM records remain saved. Upgrade using this account; you do not need to register another school.</p><div className="mt-6 flex flex-wrap gap-3"><Link href="/pricing" className="rounded-lg bg-red-600 px-5 py-3 text-sm font-bold text-white">Upgrade Your Plan</Link><Link href={base+"/payments"} className="rounded-lg border px-5 py-3 text-sm font-semibold">View Payment Status</Link><button className="rounded-lg border px-5 py-3 text-sm font-semibold" onClick={async () => { try { const current = await refreshUser(); if (current?.school?.status === "ACTIVE") router.replace(base); } catch (e: any) { setError(e.message); } }}>Check Approval</button></div>{error && <p role="alert" className="mt-4 text-sm text-red-700">{error}</p>}</section>;
+}

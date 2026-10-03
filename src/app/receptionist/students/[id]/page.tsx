@@ -1,0 +1,249 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import {
+  GraduationCap,
+  ArrowLeft,
+  User,
+  Phone,
+  Mail,
+  MapPin,
+  Calendar,
+  Building2,
+  ShieldCheck,
+  AlertCircle,
+  Users,
+} from "lucide-react";
+import { receptionistApi } from "@/lib/receptionistApi";
+import { useAuth } from "@/lib/auth-context";
+
+export default function ReceptionistStudentDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const { user } = useAuth();
+  const base = user?.school?.slug ? `/${user.school.slug}/staff` : "/receptionist";
+  const studentId = params?.id as string;
+
+  const [student, setStudent] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!studentId) return;
+    setLoading(true);
+    setError("");
+
+    receptionistApi
+      .getStudentById(studentId)
+      .then((res) => setStudent(res?.data || null))
+      .catch((err: any) => setError(err?.message || "Unable to load student record."))
+      .finally(() => setLoading(false));
+  }, [studentId]);
+
+  if (loading) {
+    return (
+      <div className="p-12 text-center text-xs text-zinc-500 bg-white border border-zinc-200 rounded-2xl">
+        Loading student record…
+      </div>
+    );
+  }
+
+  if (error || !student) {
+    return (
+      <div className="space-y-4">
+        <Link
+          href={`${base}/students`}
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-600 hover:text-zinc-950"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back to Students Directory</span>
+        </Link>
+        <div className="p-6 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-800">
+          {error || "Student record could not be found."}
+        </div>
+      </div>
+    );
+  }
+
+  const pInfo = student.parentInfo || {};
+  const eContact = student.emergencyContact || {};
+
+  return (
+    <div className="space-y-6 pb-12 max-w-5xl">
+      {/* Back button */}
+      <div>
+        <Link
+          href={`${base}/students`}
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-600 hover:text-zinc-950 transition-colors"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back to Students Directory</span>
+        </Link>
+      </div>
+
+      {/* Main Student Header Card */}
+      <div className="bg-white border border-zinc-200 p-6 rounded-2xl shadow-xs space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-zinc-100 pb-6">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-school-primary text-white font-black text-2xl flex items-center justify-center shadow-xs shrink-0">
+              {student.name.charAt(0).toUpperCase()}
+            </div>
+            <div className="space-y-1">
+              <h1 className="text-xl sm:text-2xl font-black text-zinc-950">{student.name}</h1>
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="bg-zinc-100 text-zinc-800 font-bold px-2 py-0.5 rounded">
+                  {student.className} {student.sectionName ? `· Section ${student.sectionName}` : ""}
+                </span>
+                <span className="font-mono text-zinc-500">Roll: #{student.rollNumber || "—"}</span>
+                <span className="font-mono text-zinc-500">Adm: {student.admissionNumber || "—"}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="shrink-0">
+            <span
+              className={`px-3 py-1 rounded-full font-bold text-xs ${
+                student.status === "ACTIVE"
+                  ? "bg-emerald-100 text-emerald-800"
+                  : "bg-zinc-100 text-zinc-600"
+              }`}
+            >
+              {student.status}
+            </span>
+          </div>
+        </div>
+
+        {/* 3-Column Information Sections */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
+          {/* Col 1: Basic Information */}
+          <div className="space-y-4">
+            <h2 className="font-bold text-zinc-950 uppercase tracking-wider text-[11px] border-b border-zinc-100 pb-2 flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5 text-school-primary" />
+              Student Information
+            </h2>
+
+            <div className="space-y-2.5">
+              <div>
+                <span className="text-[10px] font-bold uppercase text-zinc-400">Gender</span>
+                <p className="font-semibold text-zinc-900">{student.gender || "—"}</p>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold uppercase text-zinc-400">Date of Birth</span>
+                <p className="font-semibold text-zinc-900">
+                  {student.dob ? new Date(student.dob).toLocaleDateString() : "—"}
+                </p>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold uppercase text-zinc-400">Contact Phone</span>
+                <p className="font-semibold text-zinc-900 font-mono">{student.phone || "—"}</p>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold uppercase text-zinc-400">Admission Date</span>
+                <p className="font-semibold text-zinc-900">
+                  {student.admissionDate
+                    ? new Date(student.admissionDate).toLocaleDateString()
+                    : "—"}
+                </p>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold uppercase text-zinc-400">Current Session</span>
+                <p className="font-semibold text-zinc-900">
+                  {student.academicSessionName || student.academicSessionId?.name || "Active Session"}
+                </p>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold uppercase text-zinc-400">Residential Address</span>
+                <p className="font-semibold text-zinc-900">{student.address || "—"}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Col 2: Parent / Guardian Information */}
+          <div className="space-y-4">
+            <h2 className="font-bold text-zinc-950 uppercase tracking-wider text-[11px] border-b border-zinc-100 pb-2 flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5 text-blue-600" />
+              Parent & Guardian Details
+            </h2>
+
+            <div className="space-y-2.5">
+              <div>
+                <span className="text-[10px] font-bold uppercase text-zinc-400">Father's Name</span>
+                <p className="font-semibold text-zinc-900">{pInfo.fatherName || "—"}</p>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold uppercase text-zinc-400">Father's Phone</span>
+                <p className="font-semibold text-zinc-900 font-mono">{pInfo.fatherPhone || "—"}</p>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold uppercase text-zinc-400">Father's CNIC</span>
+                <p className="font-semibold text-zinc-900 font-mono">{pInfo.fatherCnic || "—"}</p>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold uppercase text-zinc-400">Mother's Name</span>
+                <p className="font-semibold text-zinc-900">{pInfo.motherName || "—"}</p>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold uppercase text-zinc-400">Guardian Name & Relation</span>
+                <p className="font-semibold text-zinc-900">
+                  {pInfo.guardianName || pInfo.fatherName || "—"} ({pInfo.guardianRelation || "Father"})
+                </p>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold uppercase text-zinc-400">Guardian Phone & Email</span>
+                <p className="font-semibold text-zinc-900 font-mono">
+                  {pInfo.guardianPhone || pInfo.fatherPhone || "—"}
+                </p>
+                {pInfo.guardianEmail && (
+                  <p className="text-zinc-500 font-mono text-[11px]">{pInfo.guardianEmail}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Col 3: Emergency & Front Desk Reference */}
+          <div className="space-y-4">
+            <h2 className="font-bold text-zinc-950 uppercase tracking-wider text-[11px] border-b border-zinc-100 pb-2 flex items-center gap-1.5">
+              <Phone className="w-3.5 h-3.5 text-emerald-600" />
+              Emergency & Reception Reference
+            </h2>
+
+            <div className="space-y-2.5">
+              <div className="p-3 bg-zinc-50 border border-zinc-200 rounded-xl space-y-1">
+                <span className="text-[10px] font-bold uppercase text-zinc-500">
+                  Emergency Contact Person
+                </span>
+                <p className="font-bold text-zinc-900">{eContact.name || pInfo.guardianName || "—"}</p>
+                <p className="font-semibold text-zinc-700 font-mono flex items-center gap-1">
+                  <Phone className="w-3 h-3 text-zinc-400" />
+                  {eContact.phone || pInfo.guardianPhone || "—"}
+                </p>
+                <p className="text-[11px] text-zinc-500">Relation: {eContact.relation || "Guardian"}</p>
+              </div>
+
+              <div className="pt-2">
+                <Link
+                  href={`${base}/requests`}
+                  className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl font-bold transition-colors"
+                >
+                  <span>Log Front Desk Request</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

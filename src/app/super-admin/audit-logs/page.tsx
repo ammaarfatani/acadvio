@@ -1,0 +1,110 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { ShieldAlert, Clock, RefreshCw, Search, ShieldCheck } from "lucide-react";
+import { superAdminApi } from "@/lib/superAdminApi";
+
+export default function AuditLogsPage() {
+  const [logs, setLogs] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  const fetchLogs = async () => {
+    setLoading(true);
+    try {
+      const res = await superAdminApi.getAuditLogs();
+      if (res?.data) setLogs(res.data);
+    } catch (e) { console.error("Unable to load audit logs:", e); setLogs([]); } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLogs();
+  }, []);
+
+  const filteredLogs = logs.filter((l) => {
+    const term = search.toLowerCase();
+    return (
+      l.action.toLowerCase().includes(term) ||
+      l.actorName.toLowerCase().includes(term) ||
+      l.actorEmail.toLowerCase().includes(term) ||
+      (l.schoolName && l.schoolName.toLowerCase().includes(term))
+    );
+  });
+
+  return (
+    <div className="space-y-6 pb-12">
+      
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200 pb-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">
+            Platform Security Audit Logs
+          </h1>
+          <p className="text-xs text-zinc-500">Immutable record of administrative actions, school approvals, and system state changes</p>
+        </div>
+        <button
+          onClick={fetchLogs}
+          className="p-2.5 bg-white border border-zinc-200 text-zinc-700 hover:text-zinc-950 rounded-xl hover:bg-zinc-50 shadow-xs"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+        </button>
+      </div>
+
+      {/* Search Bar */}
+      <div className="bg-white border border-zinc-200 p-4 rounded-2xl shadow-xs">
+        <div className="relative w-full sm:w-96">
+          <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-2.5" />
+          <input
+            type="text"
+            placeholder="Search action, actor, or school name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-red-600/20 focus:border-red-600"
+          />
+        </div>
+      </div>
+
+      {/* Audit Logs Table */}
+      <div className="bg-white border border-zinc-200 rounded-2xl shadow-xs overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-zinc-950 text-white uppercase text-[10px] font-semibold tracking-wider">
+              <tr>
+                <th className="p-3.5">Timestamp</th>
+                <th className="p-3.5">Actor (Operator)</th>
+                <th className="p-3.5">Action Code</th>
+                <th className="p-3.5">Target School</th>
+                <th className="p-3.5">Details</th>
+                <th className="p-3.5 font-mono">IP Address</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-200 text-zinc-800">
+              {filteredLogs.map((log) => (
+                <tr key={log._id} className="hover:bg-zinc-50 font-sans">
+                  <td className="p-3.5 font-mono text-zinc-500">
+                    {new Date(log.createdAt).toLocaleString()}
+                  </td>
+                  <td className="p-3.5">
+                    <div className="font-bold text-zinc-950">{log.actorName}</div>
+                    <div className="text-[10px] text-zinc-500 font-mono">{log.actorEmail}</div>
+                  </td>
+                  <td className="p-3.5">
+                    <span className="bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded font-mono font-bold text-[10px]">
+                      {log.action}
+                    </span>
+                  </td>
+                  <td className="p-3.5 font-semibold text-zinc-900">{log.schoolName || "Global Platform"}</td>
+                  <td className="p-3.5 text-zinc-600 max-w-xs leading-relaxed">{log.details || "N/A"}</td>
+                  <td className="p-3.5 font-mono text-zinc-500">{log.ipAddress || "127.0.0.1"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  );
+}

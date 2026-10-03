@@ -1,0 +1,252 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import {
+  Bell,
+  Clock,
+  Calendar,
+  FileText,
+  UserPlus,
+  AlertCircle,
+  CheckCircle2,
+  ArrowRight,
+  Phone,
+} from "lucide-react";
+import { receptionistApi } from "@/lib/receptionistApi";
+import { useAuth } from "@/lib/auth-context";
+
+export default function ReceptionistNotificationsPage() {
+  const { user } = useAuth();
+  const base = user?.school?.slug ? `/${user.school.slug}/staff` : "/receptionist";
+
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const loadNotifications = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await receptionistApi.getNotifications();
+      setData(res?.data || null);
+    } catch (err: any) {
+      setError(err?.message || "Unable to load receptionist notifications.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadNotifications();
+  }, []);
+
+  const pendingFollowUps = data?.pendingFollowUps || [];
+  const todayAppointments = data?.todayAppointments || [];
+  const pendingRequests = data?.pendingRequests || [];
+  const announcements = data?.announcements || [];
+
+  return (
+    <div className="space-y-6 pb-12 max-w-5xl">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200 pb-4">
+        <div>
+          <h1 className="text-2xl font-black text-zinc-950 flex items-center gap-2">
+            <Bell className="h-6 w-6 text-school-primary" />
+            Front Desk Notifications & Reminders
+          </h1>
+          <p className="text-xs text-zinc-500">
+            Automated alerts for admission inquiry follow-ups, scheduled visitor appointments, pending requests, and administrative notices.
+          </p>
+        </div>
+
+        <button
+          onClick={loadNotifications}
+          className="px-3.5 py-2 border border-zinc-200 bg-white hover:bg-zinc-50 rounded-xl text-xs font-bold text-zinc-800"
+        >
+          Refresh Alerts
+        </button>
+      </div>
+
+      {error && (
+        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs font-semibold text-red-800">
+          {error}
+        </p>
+      )}
+
+      {loading ? (
+        <div className="p-12 text-center text-xs text-zinc-500 bg-white border border-zinc-200 rounded-2xl">
+          Loading alerts and notifications…
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* SECTION 1: ADMISSION FOLLOW-UP REMINDERS */}
+          <div className="bg-white border border-zinc-200 rounded-2xl p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+              <h2 className="font-bold text-sm text-zinc-950 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600" />
+                Admission Inquiry Follow-up Due ({pendingFollowUps.length})
+              </h2>
+              <Link
+                href={`${base}/admissions`}
+                className="text-xs font-bold text-school-primary hover:underline flex items-center gap-1"
+              >
+                <span>Go to Register</span>
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+
+            {pendingFollowUps.length === 0 ? (
+              <p className="text-xs text-zinc-500 py-3">No pending follow-ups due today.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                {pendingFollowUps.map((item: any) => (
+                  <div
+                    key={item._id}
+                    className="p-3.5 bg-amber-50/50 border border-amber-200/70 rounded-xl space-y-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-zinc-950">{item.studentName}</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-900">
+                        {item.status}
+                      </span>
+                    </div>
+
+                    <div className="text-[11px] text-zinc-600 space-y-1">
+                      <p>
+                        Guardian: <strong>{item.guardianName}</strong>
+                      </p>
+                      <p className="font-mono flex items-center gap-1">
+                        <Phone className="w-3 h-3 text-zinc-400" />
+                        {item.guardianPhone}
+                      </p>
+                      <p>Class: {item.applyingClassName}</p>
+                    </div>
+
+                    {item.followUpDate && (
+                      <div className="text-[10px] text-amber-800 font-semibold pt-1 border-t border-amber-100 flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        Follow-up scheduled: {new Date(item.followUpDate).toLocaleDateString()}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* SECTION 2: TODAY'S APPOINTMENTS */}
+          <div className="bg-white border border-zinc-200 rounded-2xl p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+              <h2 className="font-bold text-sm text-zinc-950 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-purple-600" />
+                Scheduled Meetings Today ({todayAppointments.length})
+              </h2>
+              <Link
+                href={`${base}/appointments`}
+                className="text-xs font-bold text-school-primary hover:underline flex items-center gap-1"
+              >
+                <span>View Desk</span>
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+
+            {todayAppointments.length === 0 ? (
+              <p className="text-xs text-zinc-500 py-3">No appointments scheduled for today.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                {todayAppointments.map((app: any) => (
+                  <div
+                    key={app._id}
+                    className="p-3.5 bg-purple-50/50 border border-purple-200/70 rounded-xl space-y-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-zinc-950">{app.visitorName}</span>
+                      <span className="font-mono font-bold text-[11px] text-purple-900 bg-purple-100 px-2 py-0.5 rounded">
+                        {app.timeSlot}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-zinc-700">
+                      Meeting with: <strong>{app.personToMeet}</strong> ({app.department})
+                    </p>
+                    <p className="text-[11px] text-zinc-500">Purpose: {app.purpose}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* SECTION 3: PENDING REQUESTS */}
+          <div className="bg-white border border-zinc-200 rounded-2xl p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+              <h2 className="font-bold text-sm text-zinc-950 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-orange-600" />
+                Pending Front-Desk Requests ({pendingRequests.length})
+              </h2>
+              <Link
+                href={`${base}/requests`}
+                className="text-xs font-bold text-school-primary hover:underline flex items-center gap-1"
+              >
+                <span>View Requests</span>
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+
+            {pendingRequests.length === 0 ? (
+              <p className="text-xs text-zinc-500 py-3">No pending front-desk requests.</p>
+            ) : (
+              <div className="divide-y divide-zinc-100 text-xs">
+                {pendingRequests.map((r: any) => (
+                  <div key={r._id} className="py-2.5 flex items-center justify-between gap-3">
+                    <div>
+                      <span className="font-mono font-bold text-zinc-900 mr-2">
+                        {r.requestNumber}
+                      </span>
+                      <span className="font-semibold text-zinc-800">{r.requesterName}</span>
+                      <p className="text-[11px] text-zinc-500 truncate max-w-lg mt-0.5">
+                        {r.details}
+                      </p>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-zinc-100 text-zinc-700">
+                        {r.assignedDepartment}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* SECTION 4: SCHOOL CIRCULARS & NOTICES */}
+          <div className="bg-white border border-zinc-200 rounded-2xl p-5 shadow-xs space-y-4">
+            <h2 className="font-bold text-sm text-zinc-950 flex items-center gap-2 border-b border-zinc-100 pb-3">
+              <Clock className="w-4 h-4 text-school-primary" />
+              General Institutional Circulars
+            </h2>
+
+            {announcements.length === 0 ? (
+              <p className="text-xs text-zinc-500 py-3">No circulars posted.</p>
+            ) : (
+              <div className="space-y-3 text-xs">
+                {announcements.map((a: any) => (
+                  <div key={a._id} className="p-3.5 bg-zinc-50 border border-zinc-200 rounded-xl space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold text-zinc-950 text-xs">{a.title}</h3>
+                      <span className="text-[10px] font-mono text-zinc-400">
+                        {new Date(a.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-zinc-600 leading-relaxed">{a.content}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
