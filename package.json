@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "tsx src/server/utils/seed.ts"
+    "seed": "tsx src/server/utils/seed.ts",
+    "backend": "tsx src/server/index.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

@@ -24,7 +24,7 @@ const startServer = async () => {
     const app = createApp();
 
     const PORT = parseInt(env.PORT, 10) || 5000;
-    app.listen(PORT, () => {
+    app.listen(PORT, "0.0.0.0", () => {
       console.log(`=======================================================`);
       console.log(`🚀 Acadivo SaaS Backend API Server Running`);
       console.log(`🌐 Port: ${PORT}`);
