@@ -1,0 +1,17 @@
+"use client";
+
+
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { schoolAdminApi } from "@/lib/schoolAdminApi";
+import { useAuth } from "@/lib/auth-context";
+
+const money = (value: number) => `PKR ${Number(value || 0).toLocaleString()}`;
+export default function ReportsPage() {
+  const { user } = useAuth(); const portalBase = user?.school?.slug ? `/${user.school.slug}/admin` : "/school-admin";
+  const [summary, setSummary] = useState<any>(null); const [loading, setLoading] = useState(true); const [error, setError] = useState("");
+  useEffect(() => { schoolAdminApi.getReportsSummary().then((res: any) => setSummary(res?.data)).catch((e: any) => setError(e?.message || "Unable to load school reports.")).finally(() => setLoading(false)); }, []);
+  const cards = [["Active students", summary?.students || 0], ["Active teachers", summary?.teachers || 0], ["Classes", summary?.classes || 0], ["Exams", summary?.exams || 0], ["Attendance", `${summary?.attendance?.attendancePercent || 0}%`], ["Present", summary?.attendance?.present || 0], ["Absent", summary?.attendance?.absent || 0], ["Late", summary?.attendance?.late || 0], ["Fees collected", money(summary?.finance?.collectedFeesPKR)], ["Pending fees", money(summary?.finance?.pendingFeesPKR)], ["Overdue fees", money(summary?.finance?.overdueFeesPKR)], ["Expenses", money(summary?.finance?.totalExpensesPKR)]];
+  return <div className="mx-auto max-w-7xl space-y-6 pb-12"><header><h1 className="text-2xl font-black">Reports</h1><p className="mt-1 text-sm text-zinc-500">Live summaries from records belonging to this school.</p></header>{error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}{loading ? <p role="status" className="rounded-xl bg-white p-6 text-sm text-zinc-500">Loading school reports…</p> : <><section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{cards.map(([label,value]) => <article key={String(label)} className="rounded-2xl border border-zinc-200 bg-white p-5"><p className="text-sm text-zinc-500">{label}</p><p className="mt-2 text-2xl font-bold">{String(value)}</p></article>)}</section><section className="rounded-2xl border border-zinc-200 bg-white p-5"><h2 className="font-bold">Academic sessions</h2>{summary?.sessions?.length ? <div className="mt-3 flex flex-wrap gap-2">{summary.sessions.map((session: any) => <span key={session._id} className="rounded-full bg-zinc-100 px-3 py-1 text-sm">{session.name}{session.isCurrent ? " · Current" : ""}</span>)}</div> : <p className="mt-2 text-sm text-zinc-500">No academic sessions configured.</p>}</section><nav className="flex flex-wrap gap-2" aria-label="Detailed reports">{[["Student attendance","attendance/students"],["Teacher attendance","attendance/teachers"],["Fees & finance","finance"],["Examinations","examinations/exams"],["Students","students"],["Teachers","teachers"]].map(([label,path]) => <Link key={path} href={`${portalBase}/${path}`} className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-zinc-50">{label}</Link>)}</nav></>}</div>;
+}

@@ -1,0 +1,111 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ShieldCheck, Lock, User, Building2, ArrowRight, Eye, EyeOff } from "lucide-react";
+import Image from "next/image";
+import PublicLogo from "@/components/PublicLogo";
+import { useAuth } from "@/lib/auth-context";
+
+export default function LoginPage() {
+  const router = useRouter();
+  const { setUser } = useAuth();
+  const [schoolSlug, setSchoolSlug] = useState<string | null>(null);
+  const [schoolDomain, setSchoolDomain] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loginMessage, setLoginMessage] = useState<string | null>(null);
+  const [feedbackIsError, setFeedbackIsError] = useState(false);
+
+  useEffect(() => {
+    setSchoolSlug(new URLSearchParams(window.location.search).get("schoolSlug"));
+    const reason = new URLSearchParams(window.location.search).get("reason");
+    const messages: Record<string, string> = {
+      session: "Please sign in to access that portal.",
+      expired: "Your session expired. Please sign in again.",
+      pending: "Your school is still awaiting approval. You will receive an email once approval is complete.",
+      portal: "A portal is not currently configured for your role. Please contact your school administrator.",
+    };
+    if (reason && messages[reason]) {
+      setLoginMessage(messages[reason]);
+      setFeedbackIsError(true);
+    }
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setLoginMessage(null);
+    setFeedbackIsError(false);
+
+    try {
+      const { authApi } = await import("@/lib/api");
+      const response = await authApi.login({
+        email,
+        password,
+        ...(schoolSlug ? { schoolSlug } : schoolDomain ? { schoolCode: schoolDomain } : {}),
+      });
+      setUser((await authApi.getMe()).data);
+      const destinations: Record<string, string> = {
+        SUPER_ADMIN: "/super-admin",
+        SCHOOL_ADMIN: "/school-admin",
+        TEACHER: "/teacher",
+        FINANCE: "/finance",
+        EXAM_STAFF: "/exam-staff",
+        RECEPTIONIST: "/receptionist",
+        PARENT: "/parent",
+      };
+      const scopedPortal: Record<string, string> = { PARENT: "parent", SCHOOL_ADMIN: "admin", TEACHER: "teacher", FINANCE: "finance", RECEPTIONIST: "staff", EXAM_STAFF: "exam-staff" };
+      const destination = schoolSlug && scopedPortal[response.data.user.userType]
+        ? `/${schoolSlug}/${scopedPortal[response.data.user.userType]}`
+        : destinations[response.data.user.userType];
+      const returnTo = new URLSearchParams(window.location.search).get("next");
+      let paymentReturn: string | null = null;
+      if (returnTo && response.data.user.userType === "SCHOOL_ADMIN") {
+        try { const target = new URL(returnTo, window.location.origin); if (target.origin === window.location.origin && target.pathname === "/payment") paymentReturn = target.pathname+target.search; } catch { /* Use the normal role portal. */ }
+      }
+      if (paymentReturn || destination) router.replace(paymentReturn || destination);
+      else {
+        setFeedbackIsError(true);
+        setLoginMessage("A portal is not currently configured for your role. Please contact your school administrator.");
+      }
+    } catch (err: any) {
+      setFeedbackIsError(true);
+      setLoginMessage(err.message || "Unable to sign in. Please check your credentials and try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const field = "login-field w-full py-3 pl-10 pr-4 text-sm";
+  return <div className="login-experience">
+    <div className="login-screen">
+      <section className="login-form-column" aria-labelledby="login-heading">
+        <div className="login-brand-row"><Link href="/" aria-label="Acadivo home"><PublicLogo className="w-36"/></Link><span>School management</span></div>
+        <div className="login-form-content">
+          <p className="login-eyebrow">YOUR SCHOOL WORKSPACE</p>
+          <h1 id="login-heading">{schoolSlug ? "School portal sign in" : "Good to see you again."}</h1>
+          <p className="login-description">{schoolSlug ? `Sign in to ${schoolSlug.replace(/-/g, " ")} with your school account.` : "One school. Connected people, learning and daily operations. Sign in to your workspace."}</p>
+          <form onSubmit={handleSubmit} className="mt-7 space-y-5" aria-busy={isSubmitting}>
+            {!schoolSlug && <div><label htmlFor="school-code" className="login-label">School code <span>(optional)</span></label><div className="relative mt-2"><Building2 size={17} className="login-field-icon" aria-hidden="true"/><input id="school-code" autoComplete="organization" type="text" value={schoolDomain} onChange={event=>setSchoolDomain(event.target.value)} placeholder="Your school identifier" className={field}/></div></div>}
+            <div><label htmlFor="login-email" className="login-label">Account email</label><div className="relative mt-2"><User size={17} className="login-field-icon" aria-hidden="true"/><input id="login-email" type="email" autoComplete="username" required value={email} onChange={event=>setEmail(event.target.value)} placeholder="you@school.edu" className={field}/></div></div>
+            <div><div className="flex items-center justify-between gap-3"><label htmlFor="login-password" className="login-label">Password</label><Link href="/forgot-password" className="login-recovery">Forgot password?</Link></div><div className="relative mt-2"><Lock size={17} className="login-field-icon" aria-hidden="true"/><input id="login-password" type={showPassword ? "text" : "password"} autoComplete="current-password" required value={password} onChange={event=>setPassword(event.target.value)} placeholder="Enter your password" className={field+" pr-12"}/><button type="button" aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword} onClick={()=>setShowPassword(!showPassword)} className="login-password-toggle">{showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}</button></div></div>
+            {loginMessage && <div role="alert" className={`login-feedback ${feedbackIsError ? "login-feedback-error" : "login-feedback-success"}`}>{loginMessage}</div>}
+            <button type="submit" disabled={isSubmitting} className="login-submit">{isSubmitting ? "Signing in…" : "Sign in to your workspace"}{!isSubmitting && <ArrowRight size={17} aria-hidden="true"/>}</button>
+          </form>
+          <p className="login-access-note"><ShieldCheck size={16} aria-hidden="true"/><span>Your account opens the portal assigned by your school.</span></p>
+          <div className="login-trial-row"><p>New to Acadivo?</p><Link href="/free-trial">Request your 14-day trial <ArrowRight size={15} aria-hidden="true"/></Link></div>
+        </div>
+        <p className="login-support">Need help signing in? Contact your school administrator or <Link href="/contact">AKTech support</Link>.</p>
+      </section>
+      <aside className="login-visual-column" aria-label="About the Acadivo workspace">
+        <div className="login-visual-top"><span>BUILT AROUND YOUR SCHOOL</span><Link href="/demo">Explore Acadivo <ArrowRight size={15} aria-hidden="true"/></Link></div>
+        <div className="login-photo"><Image src="/brand-editorial/classroom.webp" alt="A teacher and students working together in a classroom" fill priority sizes="(max-width: 767px) 100vw, (max-width: 1100px) 50vw, 700px"/><span>Quilia / Unsplash</span></div>
+        <div className="login-editorial-copy"><span className="login-editorial-rule" aria-hidden="true"/><h2>A school day has<br/>many moving parts.</h2><p>Keep the important ones connected. Student records, teaching, attendance, fees and examinations — in your school’s own workspace.</p><div className="login-module-index"><span>01 / PEOPLE</span><span>02 / LEARNING</span><span>03 / OPERATIONS</span></div></div>
+      </aside>
+    </div>
+  </div>;
+}

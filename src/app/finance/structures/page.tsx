@@ -1,5 +1,8 @@
 "use client";
 
+
+
+import {Presence} from "@/components/Motion";
 import { useEffect, useState } from "react";
 import { CreditCard, Plus, CheckCircle2, X } from "lucide-react";
 import { financeApi } from "@/lib/financeApi";
@@ -198,7 +201,7 @@ export default function FeeStructuresPage() {
       )}
 
       {/* Create Modal */}
-      {showModal && (
+      <Presence show={Boolean(showModal)} kind="modal">{showModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-zinc-200 pb-3">
@@ -332,7 +335,7 @@ export default function FeeStructuresPage() {
             </form>
           </div>
         </div>
-      )}
+      )}</Presence>
     </div>
   );
 }

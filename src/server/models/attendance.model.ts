@@ -1,3 +1,4 @@
+import { branchScoped } from "../utils/branchScope";
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IStudentAttendance extends Document {
@@ -47,6 +48,7 @@ const StudentAttendanceSchema = new Schema<IStudentAttendance>(
 
 StudentAttendanceSchema.index({ schoolId: 1, classId: 1, sectionId: 1, date: 1 }, { unique: true });
 
+StudentAttendanceSchema.plugin(branchScoped);
 export const StudentAttendance =
   mongoose.models.StudentAttendance ||
   mongoose.model<IStudentAttendance>("StudentAttendance", StudentAttendanceSchema);
@@ -90,6 +92,7 @@ const TeacherAttendanceSchema = new Schema<ITeacherAttendance>(
 
 TeacherAttendanceSchema.index({ schoolId: 1, date: 1 }, { unique: true });
 
+TeacherAttendanceSchema.plugin(branchScoped);
 export const TeacherAttendance =
   mongoose.models.TeacherAttendance ||
   mongoose.model<ITeacherAttendance>("TeacherAttendance", TeacherAttendanceSchema);

@@ -1,0 +1,9 @@
+{
+  "verifiedAt": "2026-10-07T03:38:07.282Z",
+  "checks": 553,
+  "parentLogins": 50,
+  "teacherLogins": 10,
+  "childIsolation": true,
+  "realHttp": true,
+  "syntheticDataset": true
+}

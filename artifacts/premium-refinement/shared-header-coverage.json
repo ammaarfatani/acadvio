@@ -1,0 +1,42 @@
+[
+  {
+    "file": "src/components/StaffAdminWorkspace.tsx",
+    "additionalHeaders": 0
+  },
+  {
+    "file": "src/components/StaffAttendanceWorkspace.tsx",
+    "additionalHeaders": 0
+  },
+  {
+    "file": "src/components/ExamSchedulesWorkspace.tsx",
+    "additionalHeaders": 0
+  },
+  {
+    "file": "src/components/WorkspaceNotifications.tsx",
+    "additionalHeaders": 0
+  },
+  {
+    "file": "src/components/ParentResources.tsx",
+    "additionalHeaders": 1
+  },
+  {
+    "file": "src/components/SubscriptionPayments.tsx",
+    "additionalHeaders": 1
+  },
+  {
+    "file": "src/components/ParentRecords.tsx",
+    "additionalHeaders": 1
+  },
+  {
+    "file": "src/components/FeeVerification.tsx",
+    "additionalHeaders": 1
+  },
+  {
+    "file": "src/components/ParentDocuments.tsx",
+    "additionalHeaders": 1
+  },
+  {
+    "file": "src/components/NoticeBoard.tsx",
+    "additionalHeaders": 1
+  }
+]

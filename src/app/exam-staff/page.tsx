@@ -1,4 +1,7 @@
 "use client";
+import {PageHeading} from "@/components/ProductUI";
+
+
 import WorkspaceAnalytics from "@/components/WorkspaceAnalytics";
 
 import { useEffect, useState } from "react";
@@ -45,20 +48,9 @@ export default function ExamStaffDashboard() {
   }, []);
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="ui-dashboard ui-dashboard--exam-staff space-y-6 pb-12">
       {/* Top Header & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200 pb-4">
-        <div>
-          <h1 className="text-2xl font-black text-zinc-950 flex items-center gap-2">
-            <Calendar className="h-6 w-6 text-school-primary" />
-            Examination Department Overview
-          </h1>
-          <p className="text-xs text-zinc-500">
-            Monitor examination schedules, marks verification, merit position ranking, and result publications across academic classes.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
+      <PageHeading eyebrow="Examination workspace" title="Examinations & results" description="Schedules, marks verification and published results across your classes." actions={<div className="flex flex-wrap items-center gap-2 shrink-0">
           <button
             onClick={loadData}
             disabled={loading}
@@ -74,8 +66,7 @@ export default function ExamStaffDashboard() {
             <Plus className="h-4 w-4" />
             Create Exam Schedule
           </Link>
-        </div>
-      </div>
+        </div>}/>
 
       {error && (
         <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs font-semibold text-red-800">

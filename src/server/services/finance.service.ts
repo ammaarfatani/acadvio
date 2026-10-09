@@ -148,6 +148,7 @@ export class FinanceService {
       }
     } catch (txnErr: any) {
       if (txnErr?.statusCode) throw txnErr;
+      if (txnErr?.code !== 20 && !/Transaction numbers are only allowed|replica set|does not support transactions/i.test(txnErr?.message || "")) throw txnErr;
 
       // 2. Fallback for standalone MongoDB (no replica set)
       const challan = await FeeChallan.findOne({ _id: challanId, schoolId });

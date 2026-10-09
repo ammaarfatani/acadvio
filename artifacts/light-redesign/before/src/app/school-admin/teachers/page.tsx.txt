@@ -1,0 +1,377 @@
+"use client";
+
+
+
+import { FormEvent, useCallback, useEffect, useState } from "react";
+import { Briefcase, Plus, Search, X, Eye, Edit } from "lucide-react";
+import Link from "next/link";
+import {apiFetch} from "@/lib/api";
+import {Text,Select} from "@/components/WorkforceUI";
+import { schoolAdminApi } from "@/lib/schoolAdminApi";
+import { TeacherHistoryModal } from "@/components/TeacherHistoryModal";
+
+type AssignmentDraft = { academicSessionId: string; classId: string; sectionId: string; subjectId: string; sections: any[]; subjects: any[] };
+const newAssignment = (academicSessionId = ""): AssignmentDraft => ({ academicSessionId, classId: "", sectionId: "", subjectId: "", sections: [], subjects: [] });
+
+import { BulkImportModal } from "@/components/BulkImportModal";
+
+export default function TeachersPage() {
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [teachers, setTeachers] = useState<any[]>([]);
+  const [departments,setDepartments]=useState<any[]>([]);const [employmentForm,setEmploymentForm]=useState({department:"",joiningDate:"",salary:""});
+  const [classes, setClasses] = useState<any[]>([]);
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [search, setSearch] = useState("");const [statusFilter,setStatusFilter]=useState(""),[departmentFilter,setDepartmentFilter]=useState(""),[page,setPage]=useState(1);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<any>(null);
+  const [viewHistoryId, setViewHistoryId] = useState<string | null>(null);
+  const [assignments, setAssignments] = useState<AssignmentDraft[]>([]);
+  const [form, setForm] = useState({ name: "", email: "", password: "", qualification: "", employeeId: "", phone: "" });
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const [teacherRes, classRes, sessionRes] = await Promise.all([
+        schoolAdminApi.getTeachers(),
+        schoolAdminApi.getClasses(),
+        schoolAdminApi.getAcademicSessions(),
+      ]);
+      setTeachers(teacherRes?.data || []);
+      try{setDepartments((await apiFetch("/workforce/departments/initialize",{method:"POST",body:"{}"})).data);}catch{}
+      setClasses(classRes?.data || []);
+      setSessions(sessionRes?.data || []);
+    } catch (e: any) {
+      setError(e?.message || "Unable to load teachers.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const reset = () => {
+    setEditing(null);setEmploymentForm({department:"",joiningDate:"",salary:""});
+    setForm({ name: "", email: "", password: "", qualification: "", employeeId: "", phone: "" });
+    setAssignments([]);
+    setModalOpen(false);
+  };
+
+  const updateAssignment = async (index: number, key: keyof AssignmentDraft, value: string) => {
+    setAssignments((rows) =>
+      rows.map((row, rowIndex) =>
+        rowIndex === index
+          ? { ...row, [key]: value, ...(key === "classId" ? { sectionId: "", subjectId: "", sections: [], subjects: [] } : {}) }
+          : row
+      )
+    );
+    if (key === "classId" && value) {
+      try {
+        const [sectionRes, subjectRes] = await Promise.all([schoolAdminApi.getSections(value), schoolAdminApi.getSubjects(value)]);
+        setAssignments((rows) =>
+          rows.map((row, rowIndex) => (rowIndex === index ? { ...row, sections: sectionRes?.data || [], subjects: subjectRes?.data || [] } : row))
+        );
+      } catch (e: any) {
+        setError(e?.message || "Could not load assignments for this class.");
+      }
+    }
+  };
+
+  const openEdit = (teacher: any) => {
+    setEditing(teacher);
+    setForm({
+      name: teacher.name || "",
+      email: teacher.email || "",
+      password: "",
+      qualification: teacher.profile?.qualification || "",
+      employeeId: teacher.profile?.employeeId || "",
+      phone: teacher.profile?.phone || "",
+    });
+    setAssignments(
+      (teacher.classAssignments || [])
+        .map((a: any) => ({
+          academicSessionId: a.academicSessionId?._id || "",
+          classId: a.classId?._id || "",
+          sectionId: a.sectionId?._id || "",
+          subjectId: a.subjectId?._id || "",
+          sections: a.sectionId ? [a.sectionId] : [],
+          subjects: a.subjectId ? [a.subjectId] : [],
+        }))
+    );
+    setModalOpen(true);
+  };
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    setNotice("");
+    const cleanAssignments = assignments.filter((a) => a.academicSessionId && a.classId && a.sectionId).map(({academicSessionId,classId,sectionId})=>({academicSessionId,classId,sectionId}));
+    try {
+      if (editing) {
+        await schoolAdminApi.updateTeacher(editing._id, {
+          name: form.name,
+          qualification: form.qualification,
+          employeeId: form.employeeId || undefined,
+          phone: form.phone || undefined,
+          classAssignments: cleanAssignments,
+        });
+        setNotice("Teacher and assigned classes updated.");
+      } else {
+        await schoolAdminApi.createTeacher({ ...form,...(employmentForm.department?{department:employmentForm.department,joiningDate:employmentForm.joiningDate||undefined,salary:employmentForm.salary===""?undefined:Number(employmentForm.salary)}:{}), classAssignments: cleanAssignments });
+        setNotice("Teacher account and assigned classes created.");
+      }
+      reset();
+      await load();
+    } catch (e: any) {
+      setError(e?.message || "Unable to save teacher.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function toggleStatus(teacher: any) {
+    const nextStatus = teacher.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+    if (!window.confirm(`${nextStatus === "INACTIVE" ? "Deactivate" : "Activate"} ${teacher.name}?`)) return;
+    try {
+      await schoolAdminApi.updateTeacher(teacher._id, { status: nextStatus });
+      setNotice(`Teacher ${nextStatus.toLowerCase()}.`);
+      await load();
+    } catch (e: any) {
+      setError(e?.message || "Unable to update teacher status.");
+    }
+  }
+
+  const filtered = teachers.filter((t) => (!statusFilter||t.status===statusFilter)&&(!departmentFilter||t.employment?.department===departmentFilter)&& `${t.name} ${t.email} ${t.profile?.employeeId || ""}`.toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <div className="mx-auto max-w-7xl space-y-6 pb-12 text-zinc-900 font-sans">
+      {bulkOpen && <BulkImportModal entity="teachers" onClose={() => setBulkOpen(false)} onImported={load} />}
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-zinc-200 pb-5">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-school-primary">Faculty Directory</p>
+          <h1 className="mt-1 text-3xl font-black tracking-tight">Teachers & Assigned Classes</h1>
+          <p className="mt-1 text-sm text-zinc-500">Manage teacher accounts, contact information and assigned classes.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => setBulkOpen(true)} className="rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-xs font-bold text-zinc-800">Bulk Upload</button>
+          <Link href="/school-admin/teachers/leave-requests" className="rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-xs font-bold text-zinc-800 hover:bg-zinc-50 shadow-xs">
+            Leave Requests
+          </Link>
+          <button
+            onClick={() => {
+              setEditing(null);
+              setForm({ name: "", email: "", password: "", qualification: "", employeeId: "", phone: "" });
+              setAssignments([]);
+              setModalOpen(true);
+            }}
+            className="inline-flex items-center gap-2 rounded-xl bg-school-primary px-4 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-school-primary-hover"
+          >
+            <Plus size={16} /> Add New Teacher
+          </button>
+        </div>
+      </header>
+
+      {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+      {notice && <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs">
+        <div className="relative min-w-64 flex-1">
+          <Search className="absolute left-3 top-2.5 text-zinc-400" size={16} />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search name, email, or employee ID"
+            className="w-full rounded-xl border border-zinc-200 bg-zinc-50 py-2 pl-9 pr-3 text-xs outline-none focus:border-school-primary"
+          />
+        </div>
+        <label className="grid gap-1 text-xs font-semibold">Status<select className="rounded-lg border p-2" value={statusFilter} onChange={e=>{setStatusFilter(e.target.value);setPage(1);}}><option value="">All statuses</option>{["ACTIVE","INACTIVE","DEACTIVATED"].map(s=><option key={s}>{s}</option>)}</select></label><label className="grid gap-1 text-xs font-semibold">Department<select className="rounded-lg border p-2" value={departmentFilter} onChange={e=>{setDepartmentFilter(e.target.value);setPage(1);}}><option value="">All departments</option>{Array.from(new Set(teachers.map(t=>t.employment?.department).filter(Boolean))).map(d=><option key={d}>{d}</option>)}</select></label><span className="text-xs font-bold text-zinc-500">{filtered.length} Teachers Registered</span>
+      </div>
+
+      {loading ? (
+        <p role="status" className="rounded-2xl border bg-white p-8 text-sm text-zinc-500 animate-pulse">
+          Loading teachers list…
+        </p>
+      ) : filtered.length ? (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {filtered.slice((Math.min(page,Math.max(1,Math.ceil(filtered.length/18)))-1)*18,Math.min(page,Math.max(1,Math.ceil(filtered.length/18)))*18).map((teacher) => (
+            <article key={teacher._id} className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs hover:border-zinc-300 transition-all flex flex-col justify-between">
+              <div className="space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="grid h-11 w-11 place-items-center rounded-xl bg-red-50 font-bold text-red-600 border border-red-100">
+                      {teacher.name?.split(/\s+/).map((x: string) => x[0]).slice(0, 2).join("").toUpperCase()}
+                    </span>
+                    <div>
+                      <h2 className="font-bold text-zinc-950 text-sm">{teacher.name}</h2>
+                      <p className="text-xs text-zinc-500 font-mono">{teacher.email}</p>
+                    </div>
+                  </div>
+                  <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                    teacher.status === "ACTIVE" ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-zinc-100 text-zinc-600"
+                  }`}>
+                    {teacher.status}
+                  </span>
+                </div>
+
+                <div className="space-y-1 text-xs">
+                  <p><span className="text-zinc-500 font-medium">Department:</span> <strong>{teacher.employment?.department||"Not configured"}</strong></p><p><span className="text-zinc-500 font-medium">Joining date:</span> <strong>{teacher.employment?.joiningDate||"Not recorded"}</strong></p><p><span className="text-zinc-500 font-medium">Qualification:</span> <strong className="text-zinc-900">{teacher.profile?.qualification || "Not provided"}</strong></p>
+                  <p><span className="text-zinc-500 font-medium">Employee ID:</span> <strong className="text-zinc-900 font-mono">{teacher.profile?.employeeId || teacher.employment?.employeeId || "—"}</strong></p>
+                  <p><span className="text-zinc-500 font-medium">Phone:</span> <strong className="text-zinc-900 font-mono">{teacher.profile?.phone || teacher.employment?.phone || "—"}</strong></p>
+                </div>
+
+                <div className="border-t border-zinc-100 pt-3 space-y-1.5">
+                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Assigned Classes</h3>
+                  {teacher.classAssignments?.length ? (
+                    <ul className="space-y-1 text-xs">
+                      {teacher.classAssignments.map((a: any) => (
+                        <li key={a._id} className="flex flex-wrap justify-between gap-x-2 bg-zinc-50 p-2 rounded-lg text-zinc-800">
+                          <span className="font-bold">{a.classId?.name} · {a.sectionId?.name}</span>
+                          <span className="text-[10px] text-zinc-500 font-mono">{a.academicSessionId?.name}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-xs text-zinc-400 italic">No assigned classes yet.</p>
+                  )}
+                  {teacher.assignments?.length>0&&<details className="mt-3 rounded-lg border border-zinc-100 bg-zinc-50 p-3 text-xs text-zinc-600"><summary className="cursor-pointer font-medium">Subject duties: {Array.from(new Set(teacher.assignments.map((a:any)=>a.subjectId?.name).filter(Boolean))).join(", ")} · {teacher.assignments.length} allocations</summary><ul className="mt-3 max-h-40 space-y-2 overflow-y-auto">{teacher.assignments.map((a:any)=><li key={a._id}>{[a.subjectId?.name,a.classId?.name,a.sectionId?.name].filter(Boolean).join(" · ")}</li>)}</ul></details>}
+                </div>
+              </div>
+
+              <div className="mt-5 border-t border-zinc-100 pt-3 flex items-center justify-between gap-2">
+                <button
+                  onClick={() => setViewHistoryId(teacher._id)}
+                  className="px-3 py-1.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white text-xs font-bold transition-colors flex items-center gap-1"
+                >
+                  <Eye className="w-3.5 h-3.5" /> Full History
+                </button>
+
+                <div className="flex items-center gap-1.5">
+                  <button onClick={() => openEdit(teacher)} className="rounded-xl border border-zinc-200 px-3 py-1.5 text-xs font-bold text-zinc-700 hover:bg-zinc-50 flex items-center gap-1">
+                    <Edit className="w-3.5 h-3.5" /> Edit
+                  </button>
+                  <button onClick={() => void toggleStatus(teacher)} className="rounded-xl border border-zinc-200 px-2.5 py-1.5 text-xs font-bold text-zinc-600 hover:bg-zinc-50">
+                    {teacher.status === "ACTIVE" ? "Deactivate" : "Activate"}
+                  </button>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-12 text-center">
+          <Briefcase className="mx-auto text-zinc-400 w-8 h-8" />
+          <h2 className="mt-3 font-bold text-zinc-900">No teachers found</h2>
+          <p className="mt-1 text-sm text-zinc-500">Add a teacher account, then connect it to subjects and classes.</p>
+        </div>
+      )}
+
+      {/* EDIT MODAL */}
+      {filtered.length>18&&<div className="flex items-center justify-end gap-3 text-sm"><button disabled={page<=1} onClick={()=>setPage(Math.max(1,page-1))} className="rounded-lg border px-3 py-2">Previous</button><span>Page {Math.min(page,Math.ceil(filtered.length/18))} of {Math.ceil(filtered.length/18)}</span><button disabled={page>=Math.ceil(filtered.length/18)} onClick={()=>setPage(page+1)} className="rounded-lg border px-3 py-2">Next</button></div>}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-zinc-950/50 p-3 sm:p-6">
+          <form onSubmit={save} className="my-auto max-h-[95vh] w-full max-w-3xl space-y-5 overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xl sm:p-7">
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-xl font-black">{editing ? "Edit Teacher Account" : "Add New Teacher"}</h2>
+                <p className="mt-1 text-xs text-zinc-500">Account credentials, contact information and assigned classes.</p>
+              </div>
+              <button type="button" onClick={reset} aria-label="Close teacher form">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 text-xs">
+              <label className="grid gap-1 font-semibold text-zinc-700">
+                Full Name *
+                <input required placeholder="Enter full name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="rounded-lg border border-zinc-200 px-3 py-2 text-xs font-medium" />
+              </label>
+              <label className="grid gap-1 font-semibold text-zinc-700">
+                Work Email *
+                <input required type="email" disabled={Boolean(editing)} placeholder="Enter work email address" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="rounded-lg border border-zinc-200 px-3 py-2 text-xs font-mono disabled:bg-zinc-100" />
+              </label>
+              {!editing && (
+                <label className="grid gap-1 font-semibold text-zinc-700">
+                  Temporary Password *
+                  <input required minLength={8} type="password" placeholder="Create a password (at least 8 characters)" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="rounded-lg border border-zinc-200 px-3 py-2 text-xs font-mono" />
+                </label>
+              )}
+              <label className="grid gap-1 font-semibold text-zinc-700">
+                Qualification
+                <input value={form.qualification} onChange={(e) => setForm({ ...form, qualification: e.target.value })} placeholder="e.g. M.Sc Mathematics, B.Ed" className="rounded-lg border border-zinc-200 px-3 py-2 text-xs font-medium" />
+              </label>
+              <label className="grid gap-1 font-semibold text-zinc-700">
+                Employee ID
+                <input value={form.employeeId} onChange={(e) => setForm({ ...form, employeeId: e.target.value })} placeholder="EMP-T-101" className="rounded-lg border border-zinc-200 px-3 py-2 text-xs font-mono" />
+              </label>
+              <label className="grid gap-1 font-semibold text-zinc-700">
+                Phone Number
+                <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+92 300 1234567" className="rounded-lg border border-zinc-200 px-3 py-2 text-xs font-mono" />
+              </label>
+            </div>
+
+            {!editing&&<section className="grid gap-3 rounded-xl border bg-zinc-50 p-4 sm:grid-cols-3"><Select label="Department" value={employmentForm.department} required={departments.length>0} options={departments.map(d=>d.name)} onChange={(department:string)=>setEmploymentForm({...employmentForm,department})}/><Text label="Joining date" required={!!employmentForm.department} type="date" value={employmentForm.joiningDate} onChange={(joiningDate:string)=>setEmploymentForm({...employmentForm,joiningDate})}/><Text label="Monthly salary (PKR, optional)" required={false} type="number" min="0" placeholder="Enter monthly salary" value={employmentForm.salary} onChange={(salary:string)=>setEmploymentForm({...employmentForm,salary})}/>{!departments.length&&<p className="text-xs text-zinc-500 sm:col-span-3">Set up departments in Staff & roles to include employment details here.</p>}</section>}
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-xs uppercase tracking-wider text-zinc-700">Assigned Classes</h3>
+                  <p className="text-[11px] text-zinc-500">Choose a session, class and section. Subject allocations remain in Subjects.</p>
+                </div>
+                <button type="button" onClick={() => setAssignments((rows) => [...rows, newAssignment(sessions.find((s) => s.isCurrent)?._id || "")])} className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-bold text-zinc-800 hover:bg-zinc-50">
+                  + Assign Class
+                </button>
+              </div>
+              {assignments.map((a, index) => (
+                <div key={index} className="grid gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 sm:grid-cols-2 lg:grid-cols-4 text-xs">
+                  <label className="grid gap-1">Academic session<select required value={a.academicSessionId} onChange={(e) => void updateAssignment(index, "academicSessionId", e.target.value)} className="rounded-lg border bg-white px-2 py-2">
+                    <option value="">Select Session</option>
+                    {sessions.map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}
+                  </select></label>
+                  <label className="grid gap-1">Class<select required value={a.classId} onChange={(e) => void updateAssignment(index, "classId", e.target.value)} className="rounded-lg border bg-white px-2 py-2 font-bold">
+                    <option value="">Select Class</option>
+                    {classes.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
+                  </select></label>
+                  <label className="grid gap-1">Section<select required value={a.sectionId} onChange={(e) => void updateAssignment(index, "sectionId", e.target.value)} className="rounded-lg border bg-white px-2 py-2">
+                    <option value="">Select Section</option>
+                    {a.sections.map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}
+                  </select></label>
+                  <div className="flex gap-2">
+                    
+                    <button type="button" onClick={() => setAssignments((rows) => rows.filter((_, i) => i !== index))} className="rounded-lg border border-zinc-200 bg-white px-2 text-zinc-500 hover:text-red-600">
+                      <X size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </section>
+
+            <div className="flex justify-end gap-2 border-t border-zinc-100 pt-4">
+              <button type="button" onClick={reset} className="rounded-xl border border-zinc-200 px-4 py-2 text-xs font-semibold">
+                Cancel
+              </button>
+              <button disabled={saving} className="rounded-xl bg-school-primary px-5 py-2 text-xs font-bold text-white hover:bg-school-primary-hover disabled:opacity-50 shadow-xs">
+                {saving ? "Saving…" : editing ? "Save Changes" : "Create Teacher Account"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* TEACHER HISTORY MODAL */}
+      {viewHistoryId && (
+        <TeacherHistoryModal
+          teacherId={viewHistoryId}
+          isOpen={!!viewHistoryId}
+          onClose={() => setViewHistoryId(null)}
+        />
+      )}
+    </div>
+  );
+}

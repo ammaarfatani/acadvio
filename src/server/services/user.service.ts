@@ -1,3 +1,9 @@
+import mongoose from "mongoose";
+import {StaffEmployment,StaffDepartment} from "../models/workforce.model";
+import { ClientSession } from "mongoose";
+import { School } from "../models/school.model";
+import { hasFeature } from "../../lib/plan-features";
+import { withoutBranchScope } from "../utils/branchScope";
 import { User } from "../models/user.model";
 import { Role } from "../models/role.model";
 import { LoginActivity } from "../models/loginActivity.model";
@@ -8,15 +14,22 @@ import { CreateUserInput } from "../validators/user.validator";
 
 export class UserService {
   static async getSchoolUsers(schoolId: string) {
-    return User.find({ schoolId }).populate("roleId").select("-passwordHash -refreshTokenHash").sort({ createdAt: -1 });
+    return User.find({ schoolId }).populate("roleId").select("-passwordHash -refreshTokenHash -resetPasswordToken -resetPasswordExpires -emailVerificationToken -emailVerificationExpires").sort({ createdAt: -1 });
   }
 
-  static async createStaffUser(schoolId: string, input: CreateUserInput) {
+  static async createStaffUser(schoolId: string, input: CreateUserInput, session?: ClientSession) {
+    if(input.department&&!session){const transaction=await mongoose.startSession();let result:any;try{await transaction.withTransaction(async()=>{result=await this.createStaffUser(schoolId,input,transaction);});return result;}finally{await transaction.endSession();}}
+    if(input.department&&!await StaffDepartment.exists({schoolId,name:input.department}).session(session||null))throw {statusCode:400,message:"Select a configured department from this branch."};
+
+    if (input.userType === UserType.SCHOOL_ADMIN) throw { statusCode: 403, message: "Create branch administrators through organization management." };
+    const school = await School.findById(schoolId);
+    if (![UserType.TEACHER, UserType.PARENT].includes(input.userType) && !hasFeature(school?.status === "TRIAL" ? "FREE_TRIAL" : school?.plan, "STAFF_ROLES")) throw { statusCode: 403, message: "Staff departments require Professional or Enterprise." };
     if (input.userType === UserType.TEACHER) {
       await SubscriptionEntitlementService.checkCapacityLimit(schoolId, "teachers");
     }
+    if(input.salary!==undefined&&!hasFeature(school?.status==="TRIAL"?"FREE_TRIAL":school?.plan,"FINANCE"))throw {statusCode:403,message:"Your subscription does not include salary management."};
     // 1. Check if email already exists
-    const existing = await User.findOne({ email: input.email.toLowerCase() });
+    const existing = await withoutBranchScope(() => User.findOne({ email: input.email.toLowerCase() }).exec());
     if (existing) {
       throw { statusCode: 400, message: "A user with this email address already exists." };
     }
@@ -42,7 +55,7 @@ export class UserService {
 
     // 3. Create User
     const passwordHash = await hashPassword(input.password);
-    const user = await User.create({
+    const [user] = await User.create([{
       schoolId,
       roleId: role._id,
       userType: input.userType,
@@ -51,8 +64,10 @@ export class UserService {
       passwordHash,
       status: UserStatus.ACTIVE,
       isEmailVerified: true,
-    });
+      isOrganizationOwner: false,
+    }], { session });
 
+    if(input.department)await StaffEmployment.create([{schoolId,userId:user._id,employeeId:input.employeeId||String(user._id),department:input.department,phone:input.phone,designation:input.userType.replaceAll("_"," "),joiningDate:input.joiningDate||new Date().toISOString().slice(0,10),status:"ACTIVE",salaryHistory:input.salary===undefined?[]:[{effectiveDate:input.joiningDate||new Date().toISOString().slice(0,10),amount:input.salary,basis:"MONTHLY"}]}],session?{session}:{});
     return {
       id: user._id,
       name: user.name,

@@ -45,7 +45,7 @@ export class SchoolAdminController {
       const schoolId = req.user?.schoolId;
       if (!schoolId) throw { statusCode: 400, message: "No school tenant context." };
       const student = await SchoolAdminService.createStudent(schoolId, req.body);
-      return sendSuccess(res, student, "Student admitted successfully.", 201);
+      return sendSuccess(res, {...student.toObject(),primaryParent:student.$locals.primaryParent}, "Student admitted successfully.", 201);
     } catch (error) {
       next(error);
     }

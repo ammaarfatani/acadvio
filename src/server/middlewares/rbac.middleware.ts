@@ -1,3 +1,4 @@
+import { hasFeature, permissionFeature } from "../../lib/plan-features";
 import { Request, Response, NextFunction } from "express";
 import { UserType } from "../constants/roles.constant";
 import { sendError } from "../utils/response.util";
@@ -48,6 +49,8 @@ export const requirePermission = (permissionCode: string) => {
       return next();
     }
 
+    const feature = permissionFeature(permissionCode);
+    if (feature && !hasFeature(req.user.plan, feature)) return sendError(res, "Your subscription does not include this feature.", 403);
     const hasPerm = req.user.permissions && req.user.permissions.includes(permissionCode);
     if (!hasPerm) {
       return sendError(

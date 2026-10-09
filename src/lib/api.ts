@@ -10,6 +10,8 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}, retr
 
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
+    const branch = sessionStorage.getItem("acadivo:branch");
+    if (branch && !endpoint.startsWith("/auth/login") && !endpoint.startsWith("/public/")) headers["X-Acadivo-Branch"] = branch;
   }
 
   const response = await fetch(`${API_BASE}${endpoint}`, {
@@ -20,7 +22,7 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}, retr
 
   if (response.status === 401 && !retriedAfterRefresh && !endpoint.startsWith("/auth/login") && !endpoint.startsWith("/auth/refresh")) {
     try {
-      const refreshResponse = await fetch(`${API_BASE}/auth/refresh`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" } });
+      const refreshResponse = await fetch(`${API_BASE}/auth/refresh-token`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" } });
       const refreshData = await refreshResponse.json();
       const refreshedToken = refreshData.data?.accessToken;
       if (refreshResponse.ok && refreshedToken && typeof window !== "undefined") {
@@ -64,6 +66,7 @@ export const authApi = {
       body: JSON.stringify(credentials),
     });
     if (data.data?.accessToken && typeof window !== "undefined") {
+      sessionStorage.removeItem("acadivo:branch");
       localStorage.setItem("acadivo_access_token", data.data.accessToken);
     }
     return data;
@@ -89,3 +92,10 @@ export const authApi = {
 };
 
 
+
+export async function privateFile(endpoint:string){
+ const make=()=>fetch(`${API_BASE}${endpoint}`,{credentials:"include",headers:{Authorization:`Bearer ${localStorage.getItem("acadivo_access_token")||""}`,...(sessionStorage.getItem("acadivo:branch")?{"X-Acadivo-Branch":sessionStorage.getItem("acadivo:branch")!}:{})}});
+ let response=await make();if(response.status===401){const refreshed=await apiFetch("/auth/refresh-token",{method:"POST",body:"{}"});localStorage.setItem("acadivo_access_token",refreshed.data.accessToken);response=await make();}
+ if(!response.ok){const error=await response.json().catch(()=>({}));throw new Error(error.message||"File unavailable.");}return response.blob();
+}
+export async function downloadPrivate(endpoint:string,name:string){const url=URL.createObjectURL(await privateFile(endpoint));const anchor=document.createElement("a");anchor.href=url;anchor.download=name;anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}

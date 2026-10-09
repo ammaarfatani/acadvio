@@ -1,0 +1,7 @@
+PASS: 1,001 real MongoDB student inserts, transactions, replay prevention, tenant isolation and pagination
+PASS: missing fields, invalid dates/email/class/section, cross-tenant references, duplicate IDs and error report; manual student API preserved
+PASS: teacher user/profile/assignment imports, password protection and real login hash, duplicate accounts, post-preview revalidation, manual teacher API and role restrictions
+PASS: transaction rollback leaves no orphan teacher login; audit records persisted
+PASS: expiry and subscription capacity checks
+PASS: expired worker lease recovery preserves committed rows and serializes competing school imports
+All bulk import integration checks passed. Production school records were never used or changed.

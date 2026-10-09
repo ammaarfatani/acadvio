@@ -1,5 +1,8 @@
 "use client";
 
+
+
+import {Presence} from "@/components/Motion";
 import { useEffect, useState } from "react";
 import { Users, GraduationCap, Clock, Award, ShieldCheck, DoorOpen, CheckCircle2, ChevronRight, X } from "lucide-react";
 import { teacherApi } from "@/lib/teacherApi";
@@ -164,7 +167,7 @@ export default function TeacherMyClassesPage() {
       )}
 
       {/* Detail Modal */}
-      {selectedClass && (
+      <Presence show={Boolean(selectedClass)} kind="modal">{selectedClass && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-xl w-full p-6 space-y-6 shadow-2xl relative border border-zinc-200">
             <button
@@ -237,7 +240,7 @@ export default function TeacherMyClassesPage() {
             </div>
           </div>
         </div>
-      )}
+      )}</Presence>
     </div>
   );
 }

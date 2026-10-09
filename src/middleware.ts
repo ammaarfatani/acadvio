@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const reserved = new Set(["about", "contact", "demo", "features", "free-trial", "login", "pricing", "payment", "super-admin", "school-admin", "teacher", "finance", "exam-staff", "receptionist", "api"]);
+const reserved = new Set(["about", "contact", "demo", "features", "free-trial", "login", "pricing", "payment", "super-admin", "school-admin", "teacher", "finance", "exam-staff", "receptionist", "parent", "api"]);
 
 export function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
@@ -14,7 +14,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.rewrite(destination);
   }
 
-  const aliases: Record<string, string> = { admin: "school-admin", teacher: "teacher", staff: "receptionist", receptionist: "receptionist", finance: "finance", "exam-staff": "exam-staff" };
+  const aliases: Record<string, string> = { parent: "parent", admin: "school-admin", teacher: "teacher", staff: "receptionist", receptionist: "receptionist", finance: "finance", "exam-staff": "exam-staff" };
   const target = aliases[portal];
   if (!target) return NextResponse.next();
   const destination = request.nextUrl.clone();

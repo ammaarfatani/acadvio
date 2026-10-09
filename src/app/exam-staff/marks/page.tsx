@@ -1,5 +1,7 @@
 "use client";
 
+
+
 import { useEffect, useState } from "react";
 import {
   FileCheck2,
@@ -29,7 +31,7 @@ export default function MarksEntryDeskPage() {
 
   const [maxMarks, setMaxMarks] = useState<number>(100);
   const [passingMarks, setPassingMarks] = useState<number>(33);
-  const [marksRecords, setMarksRecords] = useState<Record<string, { obtainedMarks: number; remarks: string; isAbsent: boolean }>>({});
+  const [marksRecords, setMarksRecords] = useState<Record<string, { obtainedMarks: number | ""; remarks: string; isAbsent: boolean }>>({});
 
   const [existingMarksDoc, setExistingMarksDoc] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -93,21 +95,21 @@ export default function MarksEntryDeskPage() {
       if (existingDoc) {
         setMaxMarks(existingDoc.maxMarks || 100);
         setPassingMarks(existingDoc.passingMarks || 33);
-        const map: Record<string, { obtainedMarks: number; remarks: string; isAbsent: boolean }> = {};
+        const map: Record<string, { obtainedMarks: number | ""; remarks: string; isAbsent: boolean }> = {};
 
         studentList.forEach((s: any) => {
           const matched = (existingDoc.records || []).find((r: any) => String(r.studentId) === String(s._id));
           map[s._id] = {
-            obtainedMarks: matched ? Number(matched.obtainedMarks || 0) : 0,
+            obtainedMarks: matched ? Number(matched.obtainedMarks) : "",
             remarks: matched ? matched.remarks || "" : "",
             isAbsent: matched ? Boolean(matched.isAbsent) : false,
           };
         });
         setMarksRecords(map);
       } else {
-        const map: Record<string, { obtainedMarks: number; remarks: string; isAbsent: boolean }> = {};
+        const map: Record<string, { obtainedMarks: number | ""; remarks: string; isAbsent: boolean }> = {};
         studentList.forEach((s: any) => {
-          map[s._id] = { obtainedMarks: 0, remarks: "", isAbsent: false };
+          map[s._id] = { obtainedMarks: "", remarks: "", isAbsent: false };
         });
         setMarksRecords(map);
       }
@@ -140,7 +142,7 @@ export default function MarksEntryDeskPage() {
     for (const s of students) {
       const rec = marksRecords[s._id];
       if (rec) {
-        if (rec.obtainedMarks < 0 || rec.obtainedMarks > maxMarks) {
+        if (rec.obtainedMarks!=="" && (rec.obtainedMarks < 0 || rec.obtainedMarks > maxMarks)) {
           setError(`Invalid marks for ${s.name}: Marks must be between 0 and ${maxMarks}.`);
           return;
         }
@@ -151,7 +153,7 @@ export default function MarksEntryDeskPage() {
     setError("");
     try {
       const targetSubject = subjects.find((sub) => sub._id === selectedSubjectId);
-      const recordsToSave = students.map((s) => ({
+      const recordsToSave = students.filter(s=>marksRecords[s._id]?.isAbsent || marksRecords[s._id]?.obtainedMarks!=="" && marksRecords[s._id]?.obtainedMarks!==undefined).map((s) => ({
         studentId: s._id,
         studentName: s.name,
         rollNumber: s.rollNumber,
@@ -160,6 +162,7 @@ export default function MarksEntryDeskPage() {
         isAbsent: Boolean(marksRecords[s._id]?.isAbsent),
       }));
 
+      if(!recordsToSave.length){setError("Enter at least one score or mark a student absent. Blank scores remain pending.");return;}
       await examStaffApi.saveMarks({
         examId: selectedExamId,
         classId: selectedClassId,
@@ -357,7 +360,7 @@ export default function MarksEntryDeskPage() {
                 </thead>
                 <tbody className="divide-y divide-zinc-200">
                   {students.map((s) => {
-                    const rec = marksRecords[s._id] || { obtainedMarks: 0, remarks: "", isAbsent: false };
+                    const rec = marksRecords[s._id] || { obtainedMarks: "", remarks: "", isAbsent: false };
                     return (
                       <tr key={s._id} className={rec.isAbsent ? "bg-red-50/50" : "hover:bg-zinc-50"}>
                         <td className="p-3.5 font-mono font-bold text-zinc-900">{s.rollNumber}</td>
@@ -377,8 +380,9 @@ export default function MarksEntryDeskPage() {
                             min="0"
                             max={maxMarks}
                             disabled={rec.isAbsent}
-                            value={rec.isAbsent ? 0 : rec.obtainedMarks}
-                            onChange={(e) => handleRecordChange(s._id, "obtainedMarks", Math.min(maxMarks, Math.max(0, Number(e.target.value))))}
+                            placeholder="Pending"
+                            value={rec.isAbsent ? "" : rec.obtainedMarks}
+                            onChange={(e) => handleRecordChange(s._id, "obtainedMarks", e.target.value===""?"":Number(e.target.value))}
                             className="w-full border border-zinc-300 rounded-lg p-2 font-mono font-bold text-zinc-900 focus:outline-none text-xs disabled:opacity-40"
                           />
                         </td>

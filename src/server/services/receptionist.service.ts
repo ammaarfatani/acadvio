@@ -64,7 +64,7 @@ export class ReceptionistService {
         $or: [
           { targetRoles: { $exists: false } },
           { targetRoles: { $size: 0 } },
-          { targetRoles: "RECEPTIONIST" },
+          { targetRoles: { $in: ["RECEPTIONIST", "ADMISSION", "ALL_SCHOOL"] } },
         ],
       })
         .sort({ createdAt: -1 })
@@ -683,7 +683,7 @@ export class ReceptionistService {
         $or: [
           { targetRoles: { $exists: false } },
           { targetRoles: { $size: 0 } },
-          { targetRoles: "RECEPTIONIST" },
+          { targetRoles: { $in: ["RECEPTIONIST", "ADMISSION", "ALL_SCHOOL"] } },
         ],
       })
         .sort({ createdAt: -1 })

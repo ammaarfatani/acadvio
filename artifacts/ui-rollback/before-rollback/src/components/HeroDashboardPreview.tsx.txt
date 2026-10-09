@@ -1,0 +1,4 @@
+export function HeroDashboardPreview() {
+ return <figure className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm"><div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-50 px-4 py-3"><span className="text-xs font-medium text-zinc-600">Acadivo / School admin</span><span className="text-[10px] font-medium uppercase tracking-wider text-brand-600">Product preview</span></div><img src="/product-showcase/school-admin.jpg" width={1280} height={800} alt="Actual Acadivo school admin dashboard with school records and dedicated navigation" className="h-auto w-full" fetchPriority="high"/><figcaption className="border-t border-zinc-100 px-4 py-3 text-xs leading-5 text-zinc-500">A real school workspace. Your dashboard uses your own school’s records.</figcaption></figure>;
+}
+

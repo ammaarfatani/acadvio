@@ -1,3 +1,4 @@
+import { branchScoped } from "../utils/branchScope";
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IFrontDeskRequest extends Document {
@@ -59,6 +60,7 @@ const FrontDeskRequestSchema = new Schema<IFrontDeskRequest>(
 FrontDeskRequestSchema.index({ schoolId: 1, requestNumber: 1 }, { unique: true });
 FrontDeskRequestSchema.index({ schoolId: 1, status: 1, createdAt: -1 });
 
+FrontDeskRequestSchema.plugin(branchScoped);
 export const FrontDeskRequest =
   mongoose.models.FrontDeskRequest ||
   mongoose.model<IFrontDeskRequest>("FrontDeskRequest", FrontDeskRequestSchema);

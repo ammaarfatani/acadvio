@@ -1,3 +1,6 @@
+import {randomBytes} from "crypto";
+import { PLAN_FEATURE_LABELS, PLAN_FEATURES } from "../../lib/plan-features";
+import mongoose from "mongoose";
 import { platformAnalytics } from "./platformAnalytics.service";
 import { School } from "../models/school.model";
 import { Student } from "../models/student.model";
@@ -7,7 +10,7 @@ import { AcademicSession } from "../models/academicSession.model";
 import { AuditLog } from "../models/auditLog.model";
 import { Plan } from "../models/plan.model";
 import { UserStatus, UserType } from "../constants/roles.constant";
-import { SubscriptionStatus, SubscriptionPlan, PLAN_PRICING_PKR } from "../constants/subscription.constant";
+import { SubscriptionStatus, SubscriptionPlan, PLAN_PRICING_PKR, STANDARD_TRIAL_DAYS } from "../constants/subscription.constant";
 import { hashPassword } from "../utils/password.util";
 import { sendEmailNotification } from "../utils/email.util";
 import { env } from "../config/env";
@@ -28,139 +31,42 @@ export class SuperAdminService {
   }
 
   static async approveSchool(schoolId: string, actor: any = { name: "Super Admin", email: "admin@acadivo.com" }) {
-    const school = await School.findById(schoolId);
-    if (!school) {
-      throw { statusCode: 404, message: "School not found." };
-    }
-
-    if (school.status !== SubscriptionStatus.PENDING_APPROVAL || school.trialStartedAt || school.registrationType === "paid") throw { statusCode: 409, message: "This school cannot start another trial. Paid accounts require payment verification." };
-    school.plan = SubscriptionPlan.FREE_TRIAL;
-    const now = new Date();
-    const fourteenDaysLater = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
-
-    // 1. Update School Status to TRIAL
-    school.status = SubscriptionStatus.TRIAL;
-    school.trialStartedAt = now;
-    school.trialEndsAt = fourteenDaysLater;
-    await school.save();
-
-    // 2. Activate School Admin User
-    await User.updateMany(
-      { schoolId: school._id, status: UserStatus.PENDING_APPROVAL },
-      { $set: { status: UserStatus.ACTIVE } }
-    );
-
-    // 3. Create / Update Subscription record to TRIAL
-    let subscription = await Subscription.findOne({ schoolId: school._id });
-    if (subscription) {
-      subscription.status = SubscriptionStatus.TRIAL;
-      subscription.plan = SubscriptionPlan.FREE_TRIAL;
-      subscription.price = 0;
-      subscription.trialStartedAt = now;
-      subscription.trialEndsAt = fourteenDaysLater;
-      await subscription.save();
-    } else {
-      subscription = await Subscription.create({
-        schoolId: school._id,
-        plan: SubscriptionPlan.FREE_TRIAL,
-        status: SubscriptionStatus.TRIAL,
-        price: 0,
-        trialStartedAt: now,
-        trialEndsAt: fourteenDaysLater,
+    const session = await mongoose.startSession();
+    let school: any;
+    try {
+      await session.withTransaction(async () => {
+        const now = new Date(), trialEndsAt = new Date(now.getTime() + STANDARD_TRIAL_DAYS * 86400000);
+        school = await School.findOneAndUpdate({ _id: schoolId, status: SubscriptionStatus.PENDING_APPROVAL, registrationType: { $ne: "paid" }, trialStartedAt: null }, { $set: { status: SubscriptionStatus.TRIAL, plan: SubscriptionPlan.FREE_TRIAL, trialStartedAt: now, trialEndsAt } }, { new: true, runValidators: true, session });
+        if (!school) throw { statusCode: 409, message: "This application was already reviewed or requires payment verification. Refresh and retry." };
+        const admin = await User.findOne({ schoolId: school._id, userType: UserType.SCHOOL_ADMIN }).session(session);
+        if (!admin) throw { statusCode: 409, message: "No registered school administrator exists. Approval was not applied." };
+        await User.updateMany({ schoolId: school._id, status: UserStatus.PENDING_APPROVAL }, { $set: { status: UserStatus.ACTIVE }, $unset: { refreshTokenHash: 1 } }, { session });
+        await Subscription.findOneAndUpdate({ schoolId: school._id }, { $set: { plan: SubscriptionPlan.FREE_TRIAL, status: SubscriptionStatus.TRIAL, price: 0, trialStartedAt: now, trialEndsAt } }, { upsert: true, runValidators: true, session });
+        if (!await AcademicSession.exists({ schoolId: school._id }).session(session)) {
+          const year = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+          await AcademicSession.create([{ schoolId: school._id, name: `${year}-${year + 1}`, startDate: new Date(year, 7, 1), endDate: new Date(year + 1, 5, 30), isCurrent: true }], { session });
+        }
+        await AuditLog.create([{ actorName: actor.name || "Super Admin", actorEmail: actor.email, actorRole: "SUPER_ADMIN", action: "SCHOOL_APPROVED", schoolName: school.name, schoolId: school._id, resource: `School:${school._id}`, details: "Free trial request approved; 14-day trial started and pending users activated." }], { session });
       });
-    }
-
-    // 4. Create default Academic Session
-    const existingSession = await AcademicSession.findOne({ schoolId: school._id });
-    if (!existingSession) {
-      const startYear = now.getFullYear();
-      await AcademicSession.create({
-        schoolId: school._id,
-        name: `${startYear}–${startYear + 1}`,
-        startDate: new Date(startYear, 7, 1),
-        endDate: new Date(startYear + 1, 5, 30),
-        isCurrent: true,
-      });
-    }
-
-    // 5. Audit Log
-    await this.logAudit({
-      actorName: actor.name || "Super Admin",
-      actorEmail: actor.email || "admin@acadivo.com",
-      actorRole: "SUPER_ADMIN",
-      action: "SCHOOL_APPROVED",
-      schoolName: school.name,
-      schoolId: school._id,
-      resource: `School:${school._id}`,
-      details: "14-Day Free Trial activated and Admin account enabled.",
-    });
-
-    console.log("[APPROVAL] School approved successfully");
-
-    const schoolAdmin = await User.findOne({
-      schoolId: school._id,
-      userType: UserType.SCHOOL_ADMIN,
-    }).select("email name");
-    const approvalSubject = "School Registration Approved";
-
-    if (schoolAdmin?.email) {
-      console.log("[EMAIL] Approval email function called");
-      try {
-        await sendEmailNotification({
-          to: schoolAdmin.email,
-          subject: approvalSubject,
-          text: `Hello ${schoolAdmin.name || "School Admin"}, your school registration has been approved. Your 14-day trial is now active. Sign in to your school portal: ${env.FRONTEND_URL}/${school.slug || school.code}/login`,
-        });
-      } catch (error: any) {
-        console.error("[EMAIL] Approval email sending failed");
-        console.error(`[EMAIL] To: ${schoolAdmin.email}`);
-        console.error(`[EMAIL] Error: ${error?.message || String(error)}`);
-        if (error?.code) console.error(`[EMAIL] Error code: ${error.code}`);
-        if (error?.response) console.error(`[EMAIL] SMTP response: ${error.response}`);
-      }
-    } else {
-      console.error("[EMAIL] Approval email sending failed");
-      console.error("[EMAIL] To: unavailable (no school admin email found)");
-      console.error("[EMAIL] Error: No registered school admin email is associated with this school");
-    }
-
-    return {
-      schoolId: school._id,
-      schoolName: school.name,
-      status: school.status,
-      trialStartedAt: school.trialStartedAt,
-      trialEndsAt: school.trialEndsAt,
-      message: `School '${school.name}' approved. 14-Day Free Trial activated.`,
-    };
+    } finally { await session.endSession(); }
+    // Only the winning manual approval sends mail, after the transaction commits.
+    const admin = await User.findOne({ schoolId: school._id, userType: UserType.SCHOOL_ADMIN }).select("email name");
+    if (admin?.email) await sendEmailNotification({ to: admin.email, subject: "School Registration Approved", text: `Hello ${admin.name || "School Admin"}, your school registration has been approved. Your 14-day trial is now active. Sign in to your school portal: ${env.FRONTEND_URL}/${school.slug || school.code}/login` }).catch(() => console.error("[EMAIL] School approval notification failed."));
+    return { schoolId: school._id, schoolName: school.name, status: school.status, trialStartedAt: school.trialStartedAt, trialEndsAt: school.trialEndsAt, message: `School '${school.name}' approved. 14-Day Free Trial activated.` };
   }
 
   static async rejectSchool(schoolId: string, reason?: string, actor: any = { name: "Super Admin", email: "admin@acadivo.com" }) {
-    const school = await School.findById(schoolId);
-    if (!school) {
-      throw { statusCode: 404, message: "School not found." };
-    }
-
-    school.status = SubscriptionStatus.SUSPENDED;
-    await school.save();
-
-    await User.updateMany({ schoolId: school._id }, { $set: { status: UserStatus.DEACTIVATED } });
-    await Subscription.updateOne({ schoolId: school._id }, { $set: { status: SubscriptionStatus.SUSPENDED } });
-
-    await this.logAudit({
-      actorName: actor.name || "Super Admin",
-      actorEmail: actor.email || "admin@acadivo.com",
-      actorRole: "SUPER_ADMIN",
-      action: "SCHOOL_REJECTED",
-      schoolName: school.name,
-      schoolId: school._id,
-      resource: `School:${school._id}`,
-      details: `Reason: ${reason || "Not specified"}`,
-    });
-
-    return {
-      schoolId: school._id,
-      message: `School '${school.name}' registration rejected.`,
-    };
+    if (!reason?.trim()) throw { statusCode: 400, message: "A rejection reason is required." };
+    const session = await mongoose.startSession();
+    let school: any;
+    try { await session.withTransaction(async () => {
+      school = await School.findOneAndUpdate({ _id: schoolId, status: SubscriptionStatus.PENDING_APPROVAL }, { $set: { status: SubscriptionStatus.SUSPENDED } }, { new: true, runValidators: true, session });
+      if (!school) throw { statusCode: 409, message: "This application was already reviewed. Refresh and retry." };
+      await User.updateMany({ schoolId: school._id }, { $set: { status: UserStatus.DEACTIVATED }, $unset: { refreshTokenHash: 1 } }, { session });
+      await Subscription.updateOne({ schoolId: school._id }, { $set: { status: SubscriptionStatus.SUSPENDED } }, { session });
+      await AuditLog.create([{ actorName: actor.name || "Super Admin", actorEmail: actor.email, actorRole: "SUPER_ADMIN", action: "SCHOOL_REJECTED", schoolName: school.name, schoolId: school._id, resource: `School:${school._id}`, details: `Reason: ${reason.trim()}` }], { session });
+    }); } finally { await session.endSession(); }
+    return { schoolId: school._id, message: `School '${school.name}' registration rejected.` };
   }
 
   static async extendTrial(schoolId: string, days: number = 7, actor: any = { name: "Super Admin", email: "admin@acadivo.com" }) {
@@ -206,8 +112,9 @@ export class SuperAdminService {
       throw { statusCode: 404, message: "User account not found." };
     }
 
-    const tempPassword = newPassword || `Acadivo${Math.floor(100000 + Math.random() * 900000)}!`;
+    const tempPassword = newPassword || randomBytes(24).toString("base64url");
     user.passwordHash = await hashPassword(tempPassword);
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
     user.refreshTokenHash = undefined;
     await user.save();
 
@@ -253,7 +160,9 @@ export class SuperAdminService {
   }
 
   static async getPendingSchools() {
-    return School.find({ status: SubscriptionStatus.PENDING_APPROVAL, isDemo: { $ne: true } }).sort({ createdAt: -1 });
+    const schools = await School.find({ status: SubscriptionStatus.PENDING_APPROVAL, isDemo: { $ne: true } }).sort({ createdAt: -1 }).lean();
+    const admins = await User.find({ schoolId: { $in: schools.map(s => s._id) }, userType: UserType.SCHOOL_ADMIN }).select("schoolId name email").lean();
+    return schools.map(school => { const admin = admins.find(user => String(user.schoolId) === String(school._id)); return { ...school, adminName: admin?.name, adminEmail: admin?.email }; });
   }
 
   static async getAllSchools() {
@@ -341,10 +250,11 @@ export class SuperAdminService {
     const dbPlans = await Plan.find();
     if (dbPlans.length === 0) {
       await Plan.insertMany(defaultPlans);
-      return Plan.find();
+      const created = await Plan.find();
+      return created.map((p:any)=>({...p.toObject(),features:PLAN_FEATURE_LABELS[p.code]||[],enabledFeatures:PLAN_FEATURES[p.code]||[]}));
     }
 
-    return dbPlans;
+    return dbPlans.map((p:any)=>({...(typeof p.toObject === "function" ? p.toObject() : p),features:PLAN_FEATURE_LABELS[p.code]||[],enabledFeatures:PLAN_FEATURES[p.code]||[]}));
   }
 
   static async getPlatformAnalytics(period = "month") {

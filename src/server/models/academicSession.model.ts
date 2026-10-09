@@ -1,3 +1,4 @@
+import { branchScoped } from "../utils/branchScope";
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IAcademicSession extends Document {
@@ -6,6 +7,7 @@ export interface IAcademicSession extends Document {
   startDate: Date;
   endDate: Date;
   isCurrent: boolean;
+  isArchived?:boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -17,12 +19,14 @@ const AcademicSessionSchema = new Schema<IAcademicSession>(
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
     isCurrent: { type: Boolean, default: false },
+    isArchived:{type:Boolean,default:false},
   },
   { timestamps: true }
 );
 
-AcademicSessionSchema.index({ schoolId: 1, name: 1 }, { unique: true });
+AcademicSessionSchema.index({ schoolId: 1, branchId: 1, name: 1 }, { unique: true });
 
+AcademicSessionSchema.plugin(branchScoped);
 export const AcademicSession =
   mongoose.models.AcademicSession ||
   mongoose.model<IAcademicSession>("AcademicSession", AcademicSessionSchema);

@@ -1,0 +1,42 @@
+[
+  {
+    "path": "/product-showcase/examination.jpg",
+    "status": 200,
+    "bytes": 84803
+  },
+  {
+    "path": "/product-showcase/finance.jpg",
+    "status": 200,
+    "bytes": 64808
+  },
+  {
+    "path": "/product-showcase/receptionist.jpg",
+    "status": 200,
+    "bytes": 54868
+  },
+  {
+    "path": "/product-showcase/school-admin-insights.jpg",
+    "status": 200,
+    "bytes": 64025
+  },
+  {
+    "path": "/product-showcase/school-admin.jpg",
+    "status": 200,
+    "bytes": 74246
+  },
+  {
+    "path": "/product-showcase/teacher-full.jpg",
+    "status": 200,
+    "bytes": 111666
+  },
+  {
+    "path": "/product-showcase/teacher.jpg",
+    "status": 200,
+    "bytes": 66819
+  },
+  {
+    "path": "/logo.png",
+    "status": 200,
+    "bytes": 20771
+  }
+]

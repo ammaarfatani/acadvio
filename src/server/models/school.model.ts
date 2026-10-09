@@ -2,6 +2,11 @@ import mongoose, { Schema, Document } from "mongoose";
 import { SubscriptionStatus, SubscriptionPlan } from "../constants/subscription.constant";
 
 export interface ISchool extends Document {
+  workforceRevision?: number;
+  academicRevision?: number;
+  attendanceMode?: "MANUAL" | "BIOMETRIC";
+  attendanceSetupCompletedAt?: Date;
+  attendancePolicy?: any;
   name: string;
   code: string;
   slug?: string;
@@ -18,7 +23,6 @@ export interface ISchool extends Document {
   trialEndsAt?: Date;
   logoUrl?: string;
   domain?: string;
-  theme?: string;
   currency?: string;
   dateFormat?: string;
   bankDetails?: {
@@ -26,6 +30,9 @@ export interface ISchool extends Document {
     accountTitle: string;
     accountNumber: string;
     iban?: string;
+    branch?: string;
+    instructions?: string;
+    enabled?: boolean;
   };
   createdAt: Date;
   updatedAt: Date;
@@ -33,6 +40,11 @@ export interface ISchool extends Document {
 
 const SchoolSchema = new Schema<ISchool>(
   {
+    workforceRevision: {type:Number,default:0},
+    academicRevision: {type:Number,default:0},
+    attendanceMode: {type:String,enum:["MANUAL","BIOMETRIC"]},
+    attendanceSetupCompletedAt: Date,
+    attendancePolicy: Schema.Types.Mixed,
     name: { type: String, required: true, trim: true },
     code: { type: String, required: true, unique: true, lowercase: true, trim: true },
     slug: { type: String, lowercase: true, trim: true, sparse: true, unique: true, match: /^[a-z0-9]+(?:-[a-z0-9]+)*$/ },
@@ -57,7 +69,6 @@ const SchoolSchema = new Schema<ISchool>(
     trialEndsAt: { type: Date },
     logoUrl: { type: String },
     domain: { type: String },
-    theme: { type: String, enum: ["theme-red", "theme-green", "theme-blue", "theme-amber", "theme-purple"], default: "theme-red" },
     currency: { type: String, enum: ["PKR"], default: "PKR" },
     dateFormat: { type: String, enum: ["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"], default: "DD/MM/YYYY" },
     bankDetails: {
@@ -65,6 +76,7 @@ const SchoolSchema = new Schema<ISchool>(
       accountTitle: { type: String },
       accountNumber: { type: String },
       iban: { type: String },
+      branch: String, instructions: String, enabled: { type: Boolean, default: false },
     },
   },
   { timestamps: true }

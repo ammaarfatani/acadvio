@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./product.css";
+import "./marketing.css";
+import "./motion.css";
 import { AppChrome } from "@/components/AppChrome";
 import { AuthProvider } from "@/lib/auth-context";
 

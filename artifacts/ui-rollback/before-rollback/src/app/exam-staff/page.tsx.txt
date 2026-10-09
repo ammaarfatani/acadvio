@@ -1,0 +1,251 @@
+"use client";
+import ModuleFrame from "@/components/ModuleFrame";
+
+import WorkspaceAnalytics from "@/components/WorkspaceAnalytics";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import {
+  Calendar,
+  Users,
+  FileCheck2,
+  Trophy,
+  Award,
+  Plus,
+  RefreshCw,
+  Clock,
+  CheckCircle2,
+  BarChart3,
+  FileSpreadsheet,
+} from "lucide-react";
+import { examStaffApi } from "@/lib/examStaffApi";
+import { useAuth } from "@/lib/auth-context";
+
+export default function ExamStaffDashboard() {
+  const { user } = useAuth();
+  const base = user?.school?.slug ? `/${user.school.slug}/exam-staff` : "/exam-staff";
+
+  const [metrics, setMetrics] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const loadData = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await examStaffApi.getDashboard();
+      setMetrics(res?.data || null);
+    } catch (err: any) {
+      setError(err?.message || "Unable to load examination dashboard statistics.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadData();
+  }, []);
+
+  return (
+    <div className="dashboard-workspace space-y-6 pb-12">
+      {/* Top Header & Actions */}
+      <ModuleFrame><div className="workspace-hero flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-zinc-950 flex items-center gap-2">
+            <Calendar className="h-6 w-6 text-school-primary" />
+            Examination Department Overview
+          </h1>
+          <p className="text-xs text-zinc-500">
+            Monitor examination schedules, marks verification, merit position ranking, and result publications across academic classes.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <button
+            onClick={loadData}
+            disabled={loading}
+            className="p-2 border border-zinc-300 rounded-xl hover:bg-zinc-100 text-zinc-700 transition-colors"
+            title="Refresh Data"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          </button>
+          <Link
+            href={`${base}/exams`}
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold bg-school-primary text-white rounded-xl shadow-xs hover:opacity-90 transition-opacity"
+          >
+            <Plus className="h-4 w-4" />
+            Create Exam Schedule
+          </Link>
+        </div>
+      </div></ModuleFrame>
+
+      {error && (
+        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs font-semibold text-red-800">
+          {error}
+        </p>
+      )}
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white border border-zinc-200 p-4 rounded-2xl shadow-xs space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-zinc-500 uppercase">Total Exams</span>
+            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+              <Calendar className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-black text-zinc-950">
+            {loading ? "…" : metrics?.totalExams || 0}
+          </p>
+          <div className="flex items-center justify-between text-[11px] text-zinc-500 font-medium">
+            <span>Active/Upcoming:</span>
+            <strong className="text-blue-600 font-bold">{metrics?.upcomingExams || 0}</strong>
+          </div>
+        </div>
+
+        <div className="bg-white border border-zinc-200 p-4 rounded-2xl shadow-xs space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-zinc-500 uppercase">Exam Candidates</span>
+            <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+              <Users className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-black text-zinc-950">
+            {loading ? "…" : metrics?.candidateCount || 0}
+          </p>
+          <div className="flex items-center justify-between text-[11px] text-zinc-500 font-medium">
+            <span>Enrolled Students:</span>
+            <strong className="text-purple-600 font-bold">{metrics?.candidateCount || 0}</strong>
+          </div>
+        </div>
+
+        <div className="bg-white border border-zinc-200 p-4 rounded-2xl shadow-xs space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-zinc-500 uppercase">Marks Entries</span>
+            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+              <FileCheck2 className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-black text-zinc-950">
+            {loading ? "…" : metrics?.marksEntriesCount || 0}
+          </p>
+          <div className="flex items-center justify-between text-[11px] text-zinc-500 font-medium">
+            <span>Recorded Batches:</span>
+            <strong className="text-amber-600 font-bold">{metrics?.marksEntriesCount || 0}</strong>
+          </div>
+        </div>
+
+        <div className="bg-white border border-zinc-200 p-4 rounded-2xl shadow-xs space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-zinc-500 uppercase">Results Published</span>
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <Trophy className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-black text-emerald-700">
+            {loading ? "…" : metrics?.publishedResultsCount || 0}
+          </p>
+          <div className="flex items-center justify-between text-[11px] text-zinc-500 font-medium">
+            <span>Processed Exams:</span>
+            <strong className="text-emerald-700 font-bold">{metrics?.completedExams || 0}</strong>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Action Navigation Grid */}
+      <div className="bg-white border border-zinc-200 p-5 rounded-2xl shadow-xs space-y-4">
+        <h2 className="text-xs font-bold uppercase text-zinc-700 tracking-wider">
+          Examination Quick Action Workflows
+        </h2>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <Link
+            href={`${base}/exams`}
+            className="p-3.5 border border-zinc-200 rounded-xl hover:bg-zinc-50 transition-colors flex items-center gap-3 group"
+          >
+            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+              <Calendar className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="font-bold text-xs text-zinc-950">Exams & Datesheets</h3>
+              <p className="text-[10px] text-zinc-500">Configure schedules and subjects</p>
+            </div>
+          </Link>
+
+          <Link
+            href={`${base}/marks`}
+            className="p-3.5 border border-zinc-200 rounded-xl hover:bg-zinc-50 transition-colors flex items-center gap-3 group"
+          >
+            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 group-hover:bg-amber-600 group-hover:text-white transition-colors">
+              <FileCheck2 className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="font-bold text-xs text-zinc-950">Marks Entry & Review</h3>
+              <p className="text-[10px] text-zinc-500">Verify and record student marks</p>
+            </div>
+          </Link>
+
+          <Link
+            href={`${base}/results`}
+            className="p-3.5 border border-zinc-200 rounded-xl hover:bg-zinc-50 transition-colors flex items-center gap-3 group"
+          >
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+              <Trophy className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="font-bold text-xs text-zinc-950">Merit Position Ranking</h3>
+              <p className="text-[10px] text-zinc-500">Process results and publish ranks</p>
+            </div>
+          </Link>
+
+          <Link
+            href={`${base}/reports`}
+            className="p-3.5 border border-zinc-200 rounded-xl hover:bg-zinc-50 transition-colors flex items-center gap-3 group"
+          >
+            <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+              <FileSpreadsheet className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="font-bold text-xs text-zinc-950">Marksheets & Tabulation</h3>
+              <p className="text-[10px] text-zinc-500">Print cards and result sheets</p>
+            </div>
+          </Link>
+        </div>
+      </div>
+
+      {/* Recent Audit Logs & Activity */}
+      <div className="bg-white border border-zinc-200 p-5 rounded-2xl shadow-xs space-y-4">
+        <h2 className="text-xs font-bold uppercase text-zinc-700 tracking-wider flex items-center gap-2">
+          <Clock className="h-4 w-4 text-zinc-500" />
+          Recent Examination Activity Log
+        </h2>
+
+        {loading ? (
+          <p className="text-xs text-zinc-500 py-4 text-center">Loading audit log records…</p>
+        ) : Array.isArray(metrics?.recentLogs) && metrics.recentLogs.length > 0 ? (
+          <div className="divide-y divide-zinc-100 text-xs">
+            {metrics.recentLogs.map((log: any) => (
+              <div key={log._id} className="py-2.5 flex items-start justify-between gap-3">
+                <div className="space-y-0.5 min-w-0">
+                  <p className="font-bold text-zinc-900 truncate">{log.details}</p>
+                  <p className="text-[10px] text-zinc-500">
+                    By <span className="font-semibold text-zinc-700">{log.performedByName}</span> · Action: {log.action}
+                  </p>
+                </div>
+                <span className="text-[10px] font-mono text-zinc-400 shrink-0">
+                  {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-zinc-200 p-6 text-center text-xs text-zinc-500">
+            No recent examination logs recorded yet.
+          </div>
+        )}
+      </div>
+    <WorkspaceAnalytics/>
+</div>
+  );
+}
+

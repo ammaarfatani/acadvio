@@ -1,6 +1,7 @@
 const fs = require("node:fs"), ts = require("typescript"), assert = require("node:assert/strict");
 require.extensions[".ts"] = (module,file) => module._compile(ts.transpileModule(fs.readFileSync(file,"utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true } }).outputText,file);
 const mongoose = require("mongoose");
+mongoose.startSession = async () => ({ withTransaction: async callback => callback(), endSession: async () => {} });
 const { matches, apply } = require("./memory-db.cjs");
 const { School } = require("../src/server/models/school.model.ts");
 const { User } = require("../src/server/models/user.model.ts");
@@ -31,11 +32,14 @@ function query(record, userQuery = false) {
       return q;
     },
     select() { return q; },
+    exec() { return Promise.resolve(value); },
+    sort() { return q; },
     then(resolve,reject) { return Promise.resolve(value).then(resolve,reject); },
   };
   return q;
 }
 function create(Model, records, data) {
+  if (Array.isArray(data)) return data.map(item => create(Model, records, item));
   const doc = new Model(data), error = doc.validateSync();
   if (error) throw error;
   doc.save = async () => doc;
@@ -85,8 +89,12 @@ for (const Model of [School,User,Student,Subscription,AcademicSession]) for (con
   assert.equal(RegisterSchoolSchema.safeParse({ ...input, registrationType:"paid" }).success,false);
   const registered = await PublicService.registerSchoolApplication(input);
   const school = schools[0], admin = users[0], sub = subscriptions[0];
-  assert.equal(school.plan,"FREE_TRIAL"); assert.equal(school.status,"TRIAL"); assert.equal(sub.price,0); assert.equal(sub.plan,"FREE_TRIAL"); assert.equal(admin.status,"ACTIVE");
-  assert.equal(+school.trialEndsAt-+school.trialStartedAt,14*86400000); assert.equal(sessions.length,1);
+  assert.equal(school.plan,"FREE_TRIAL"); assert.equal(school.status,"PENDING_APPROVAL"); assert.equal(sub.price,0); assert.equal(sub.plan,"FREE_TRIAL"); assert.equal(admin.status,"PENDING_APPROVAL");
+  assert.equal(school.trialStartedAt,undefined); assert.equal(school.trialEndsAt,undefined); assert.equal(sessions.length,0);
+  // This suite covers existing approved-trial expiry; real approval transactions are covered separately.
+  school.status="TRIAL"; admin.status="ACTIVE"; sub.status="TRIAL";
+  school.trialStartedAt=new Date();school.trialEndsAt=new Date(+school.trialStartedAt+14*86400000);
+  sub.trialStartedAt=school.trialStartedAt;sub.trialEndsAt=school.trialEndsAt;sessions.push({schoolId:school._id,name:"Approved trial session"});
   students.push({ _id:new mongoose.Types.ObjectId(), schoolId:school._id, name:"Existing student" });
   const preserved = JSON.stringify({ students, sessions, adminId:admin._id, schoolId:school._id });
   school.trialEndsAt = new Date(Date.now()-1000); sub.trialEndsAt = school.trialEndsAt;

@@ -1,5 +1,7 @@
 "use client";
 
+
+
 import { useEffect, useState } from "react";
 import {
   Trophy,
@@ -225,7 +227,7 @@ export default function ExamResultsRankingPage() {
                 <p className="text-xs font-mono">Roll: {res.rollNumber} ({res.className})</p>
                 <div className="flex justify-between items-center text-xs pt-1 border-t border-black/10 font-bold">
                   <span>Marks: {res.totalObtainedMarks} / {res.totalMaxMarks}</span>
-                  <span className="text-sm font-black">{res.percentage}% ({res.overallGrade})</span>
+                  <span className="text-sm font-black">{res.percentage==null?"Pending":res.percentage+"%"} ({res.overallGrade})</span>
                 </div>
               </div>
             ))}
@@ -268,7 +270,7 @@ export default function ExamResultsRankingPage() {
                       {r.totalObtainedMarks} / {r.totalMaxMarks}
                     </td>
                     <td className="p-3.5 text-center font-mono font-black text-school-primary">
-                      {r.percentage}%
+                      {r.percentage==null?"Pending":r.percentage+"%"}
                     </td>
                     <td className="p-3.5 text-center font-black">
                       <span className="bg-zinc-100 text-zinc-800 px-2 py-0.5 rounded">{r.overallGrade}</span>

@@ -1,0 +1,10 @@
+const fs=require('fs'),path=require('path'),ts=require('typescript'),crypto=require('crypto'),assert=require('assert/strict');
+const before='artifacts/motion/before/';
+function walk(dir){return fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(dir,e.name)):[path.join(dir,e.name)]);}
+const protectedHashes=JSON.parse(fs.readFileSync('artifacts/light-redesign/protected-hashes.json','utf8'));
+for(const [file,digest] of Object.entries(protectedHashes))assert.equal(crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex'),digest,file);
+function apiCalls(source){const sf=ts.createSourceFile('source.tsx',source,99,true,ts.ScriptKind.TSX),calls=[];function visit(n){if(ts.isCallExpression(n)){const method=n.expression.getText(sf);if(method==='apiFetch'||/^(authApi|schoolAdminApi|superAdminApi|teacherApi|financeApi|examStaffApi|receptionistApi)\./.test(method))calls.push(n.getText(sf).replace(/\s+/g,' '));}ts.forEachChild(n,visit);}visit(sf);return calls.sort();}
+const changed=[];for(const f of walk('src').filter(f=>/\.tsx?$/.test(f))){const snapshot=before+f+'.txt';if(!fs.existsSync(snapshot))continue;const old=fs.readFileSync(snapshot,'utf8'),current=fs.readFileSync(f,'utf8');if(old!==current){changed.push(f);assert.deepEqual(apiCalls(current),apiCalls(old),'API call changed in '+f);}}
+const pages=walk('src/app').filter(f=>f.endsWith('page.tsx'));const roles=['SUPER_ADMIN','SCHOOL_ADMIN','TEACHER','FINANCE','EXAM_STAFF','RECEPTIONIST','PARENT'];
+const result={protectedBusinessFiles:Object.keys(protectedHashes).length,changedFiles:changed,sourcePagesReviewed:pages.length,roles,apiCallsPreserved:true,visualVerification:false};
+fs.writeFileSync('artifacts/motion/source-audit.json',JSON.stringify(result,null,2));console.log('PASS: '+pages.length+' route source files inventoried; seven shared role shells; '+Object.keys(protectedHashes).length+' business files unchanged; API call expressions preserved.');

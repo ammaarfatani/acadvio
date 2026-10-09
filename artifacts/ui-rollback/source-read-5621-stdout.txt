@@ -1,0 +1,261 @@
+"use client";
+import {useOptionalParent} from "@/lib/parent-context";
+import {AttendanceSetup} from "./StaffAttendanceWorkspace";
+import ChangePassword from "./ChangePassword";
+import BranchSwitcher from "./BranchSwitcher";
+import { routeFeature } from "@/lib/plan-features";
+
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { Bell, ChevronDown, ChevronRight, LayoutGrid, LogOut, Menu, Search, Settings, X, MessageSquare } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
+import { apiFetch, authApi } from "@/lib/api";
+import { portalNavigation, PortalRole } from "@/lib/portal-navigation";
+import PublicLogo from "./PublicLogo";
+import { ScreenshotPrivacy } from "./ScreenshotPrivacy";
+import SchoolLogo from "./SchoolLogo";
+import AcadivoAssistant from "./AcadivoAssistant";
+
+export default function PortalShell({ role, children }: {role: PortalRole; children: React.ReactNode}) {
+  const { user, clearSession, refreshUser } = useAuth();
+  const pathname = usePathname(), router = useRouter();
+  const config = portalNavigation[role];
+  const base = role !== "SUPER_ADMIN" && user?.school?.slug ? "/"+user.school.slug+"/"+config.scoped : config.root;
+  const [passwordOpen,setPasswordOpen]=useState(false);
+  const parent=useOptionalParent();const parentChild=parent?.selected;const notificationEndpoint="/workspace/notifications"+(role==="PARENT"&&parentChild?"?studentId="+parentChild:"");
+  const notificationScope=useRef(notificationEndpoint);notificationScope.current=notificationEndpoint;
+  useEffect(()=>{if(role==="PARENT"){setMenu(null);setNotifications(null);}},[parentChild,role]);
+  const [drawer,setDrawer] = useState(false), [menu,setMenu] = useState<"profile"|"notifications"|null>(null);
+  const [query,setQuery] = useState(""), [assistant,setAssistant] = useState(false);
+  const [notifications,setNotifications] = useState<any>(null), [notificationError,setNotificationError] = useState("");
+  const nav = useRef<HTMLElement>(null), main = useRef<HTMLElement>(null), header = useRef<HTMLDivElement>(null);
+  const storageKey = "acadivo:nav:"+user?.id+":"+role;
+  const billingOnly = role === "SCHOOL_ADMIN" && (user?.status === "PENDING_APPROVAL" || !!user?.school?.status && !["ACTIVE","TRIAL"].includes(user.school.status));
+  const needsAttendanceSetup = role === "SCHOOL_ADMIN" && !billingOnly && !!user?.school && !user.school.attendanceSetupCompletedAt && (user.isOrganizationOwner || user.branchId === user.school._id);
+  const groups = billingOnly ? [{label:"Subscription",items:[{label:"Subscription status",path:"/subscription"},{label:"Payment verification",path:"/payments"}]}] : config.groups.map(group => ({...group,items:group.items.filter(item => (!item.permission || user?.permissions?.includes(item.permission)) && (role === "SUPER_ADMIN" || !routeFeature(config.root+item.path) || !!user?.features?.includes(routeFeature(config.root+item.path)!)) && (item.path !== "/attendance/devices" || user?.school?.attendanceMode === "BIOMETRIC") && (!item.path.startsWith("/organization") || user?.isOrganizationOwner))}));
+  const links = groups.flatMap(group => group.items);
+  const current = links.filter(item => item.path && pathname.startsWith(base+item.path)).sort((a,b) => b.path.length-a.path.length)[0]?.label || "Overview";
+  useEffect(() => { if(nav.current) nav.current.scrollTop = Number(sessionStorage.getItem(storageKey) || 0); },[storageKey]);
+  useEffect(() => { setDrawer(false); setMenu(null); setQuery(""); main.current?.scrollTo({top:0}); },[pathname]);
+  useEffect(() => {
+    function close(event: MouseEvent) { if(header.current && !header.current.contains(event.target as Node)) {setMenu(null);setQuery("");} }
+    function escape(event: KeyboardEvent) {if(event.key === "Escape") {setDrawer(false);setMenu(null);setAssistant(false);setQuery("");}}
+    document.addEventListener("mousedown",close); document.addEventListener("keydown",escape);
+    return () => {document.removeEventListener("mousedown",close);document.removeEventListener("keydown",escape);};
+  },[]);
+  useEffect(() => { if(!drawer) return; const previous = document.body.style.overflow; document.body.style.overflow="hidden"; return () => {document.body.style.overflow=previous;}; },[drawer]);
+  useEffect(() => { if(!user?.id || billingOnly || role==="PARENT"&&!parentChild) return; let live=true; apiFetch(notificationEndpoint).then(response => {if(live)setNotifications(response.data);}).catch(() => {}); return () => {live=false;}; },[user?.id,billingOnly,notificationEndpoint,parentChild,role]);
+  async function openNotifications() {
+    if(menu === "notifications") {setMenu(null);return;}
+    setMenu("notifications");setNotificationError("");setNotifications(null);
+    try {const scope=notificationEndpoint;const result = await apiFetch(scope);if(notificationScope.current===scope)setNotifications(result.data);} catch(e:any) {setNotificationError(e.message);}
+  }
+  async function markRead(id:string) {
+    try {await apiFetch("/workspace/notifications/"+id+"/read",{method:"PATCH"});setNotifications((previous:any) => ({...previous,items:previous.items.map((item:any) => item.id === id ? {...item,isRead:true} : item),unreadCount:Math.max(0,previous.unreadCount-1)}));} catch(e:any) {setNotificationError(e.message);}
+  }
+  async function logout() {try {await authApi.logout();} finally {clearSession();router.replace(user?.school?.slug ? "/"+user.school.slug+"/login" : "/login");}}
+  const brand = <Link href={base} className="block px-6 py-5 border-b border-zinc-200"><PublicLogo className="w-32"/>{role !== "SUPER_ADMIN" && <div className="mt-4 flex items-center gap-2.5"><div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-zinc-200 bg-zinc-50 text-sm font-semibold"><SchoolLogo/></div><div className="min-w-0"><p className="truncate text-sm font-semibold text-zinc-900">{user?.school?.name || "Your school"}</p><p className="text-[11px] text-zinc-500">{config.title}</p></div></div>}{role === "SUPER_ADMIN" && <p className="mt-3 text-xs text-zinc-500">{config.title}</p>}</Link>;
+  const navigation = (mobile=false) => <nav ref={mobile ? undefined : nav} aria-label={config.title} onScroll={event => {if(!mobile)sessionStorage.setItem(storageKey,String(event.currentTarget.scrollTop));}} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4">{groups.map(group => group.items.length > 0 && <section key={group.label} className="mb-5"><h2 className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500">{group.label}</h2>{group.items.map(item => {const active=pathname===base+item.path;return <Link key={item.path} href={base+item.path} aria-current={active ? "page" : undefined} className={"mb-0.5 flex items-center gap-2.5 rounded-md px-3 py-2 text-[13px] font-medium transition-colors "+(active ? "bg-red-50 text-brand-600" : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950")}><LayoutGrid size={15} aria-hidden="true"/><span>{item.label}</span>{active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-brand-600"/>}</Link>;})}</section>)}</nav>;
+  const footer = role === "PARENT" ? null : <div className="shrink-0 border-t border-zinc-200 px-5 py-4"><button onClick={() => setAssistant(true)} disabled={billingOnly} className="flex w-full items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-medium hover:bg-zinc-50 disabled:opacity-40"><MessageSquare size={16}/><span>Acadivo AI</span><ChevronRight size={14} className="ml-auto"/></button></div>;
+  return <div className="portal-shell flex h-dvh overflow-hidden bg-[#f7f8fa] text-[#111111]">
+    <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-zinc-200 bg-white md:flex">{brand}{navigation()}{footer}</aside>
+    {drawer && <div className="fixed inset-0 z-50 flex md:hidden"><button className="absolute inset-0 bg-black/30" onClick={() => setDrawer(false)} aria-label="Close navigation"/><aside role="dialog" aria-modal="true" aria-label="Navigation" className="relative flex h-full w-72 max-w-[85vw] flex-col bg-white"><button className="absolute right-3 top-4 p-2" onClick={() => setDrawer(false)} aria-label="Close navigation"><X size={18}/></button>{brand}{navigation(true)}{footer}</aside></div>}
+    <div className="flex min-w-0 flex-1 flex-col md:ml-64">
+      <div ref={header} className="relative z-40 shrink-0 border-b border-zinc-200 bg-white">
+        <header className="flex h-16 items-center gap-3 px-4 lg:px-7">
+          <button onClick={() => setDrawer(true)} className="rounded-md p-2 hover:bg-zinc-100 md:hidden" aria-label="Open navigation"><Menu size={20}/></button>
+          <div className="hidden min-w-0 items-center gap-2 text-sm md:flex"><span className="text-zinc-500">Workspace</span><ChevronRight size={14} className="text-zinc-400"/><span className="truncate font-medium">{current}</span></div>
+          <div className="relative ml-auto hidden w-60 lg:block"><Search className="absolute left-3 top-2.5 text-zinc-400" size={16}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Find a page…" aria-label="Search navigation" className="h-9 w-full rounded-md border border-zinc-200 bg-zinc-50 pl-9 pr-3 text-xs"/>{query && <div className="absolute top-11 max-h-72 w-full overflow-auto rounded-lg border bg-white p-1 shadow-lg">{links.filter(item => item.label.toLowerCase().includes(query.toLowerCase())).map(item => <Link key={item.path} href={base+item.path} className="block rounded px-3 py-2 text-sm hover:bg-zinc-50">{item.label}</Link>)}{!links.some(item => item.label.toLowerCase().includes(query.toLowerCase())) && <p className="p-3 text-xs text-zinc-500">No matching pages.</p>}</div>}</div>
+          {!billingOnly && <BranchSwitcher/>}
+          {!billingOnly && role !== "PARENT" && <button onClick={() => setAssistant(true)} title="Open Acadivo AI" className="hidden rounded-md border px-3 py-2 text-xs font-medium hover:bg-zinc-50 sm:block">Ask Acadivo</button>}
+          {!billingOnly && <button onClick={() => void openNotifications()} disabled={role==="PARENT"&&!parentChild} aria-label="Notifications" aria-expanded={menu === "notifications"} className="relative rounded-md p-2 hover:bg-zinc-100"><Bell size={18}/>{notifications?.unreadCount > 0 && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-brand-600"/>}</button>}
+          <button onClick={() => setMenu(menu === "profile" ? null : "profile")} aria-label="Account menu" aria-expanded={menu === "profile"} className="flex min-w-0 items-center gap-2 border-l border-zinc-200 pl-3"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-zinc-100 text-xs font-semibold">{user?.name?.slice(0,2).toUpperCase()}</span><span className="hidden text-left sm:block"><span className="block max-w-36 truncate text-xs font-semibold">{user?.name}</span><span className="block text-[10px] text-zinc-500">{config.title}</span></span><ChevronDown size={14}/></button>
+        </header>
+        {menu === "profile" && <div className="absolute right-4 top-14 w-64 rounded-lg border border-zinc-200 bg-white p-2 shadow-lg"><div className="border-b px-3 py-3"><p className="text-sm font-semibold">{user?.name}</p><p className="break-all text-xs text-zinc-500">{user?.email}</p><p className="mt-1 text-xs text-zinc-500">{user?.school?.name || "Acadivo platform"}</p></div>{!billingOnly && <Link href={base+(links.some(item => item.path === "/profile") ? "/profile" : "/settings")} className="flex items-center gap-2 rounded px-3 py-2 text-sm hover:bg-zinc-50"><Settings size={15}/>Account & settings</Link>}<button onClick={()=>{setMenu(null);setPasswordOpen(true);}} className="block w-full rounded px-3 py-2 text-left text-sm hover:bg-zinc-50">Change password</button><button onClick={() => void logout()} className="flex w-full items-center gap-2 rounded px-3 py-2 text-sm text-red-700 hover:bg-red-50"><LogOut size={15}/>Sign out</button></div>}
+        {menu === "notifications" && <div className="absolute right-4 top-14 max-h-[70vh] w-[min(360px,calc(100vw-32px))] overflow-auto rounded-lg border border-zinc-200 bg-white p-4 shadow-lg"><h2 className="text-sm font-semibold">Notifications</h2>{notificationError ? <p role="alert" className="mt-3 text-xs text-red-700">{notificationError}</p> : !notifications ? <p className="mt-3 text-xs text-zinc-500">Loading notifications…</p> : notifications.items.length ? notifications.items.map((item:any) => <article key={item.id} className="border-b py-3 last:border-0"><p className="text-sm font-medium">{item.title}</p><p className="mt-1 text-xs leading-relaxed text-zinc-600">{item.content}</p><p className="mt-2 text-[10px] text-zinc-400">{new Date(item.createdAt).toLocaleString()}</p>{item.canMarkRead && !item.isRead && <button onClick={() => void markRead(item.id)} className="mt-2 text-xs font-medium text-brand-600">Mark as read</button>}</article>) : <p className="mt-4 text-xs text-zinc-500">No notifications available.</p>}</div>}
+      </div>
+      <main ref={main} id="workspace-content" className="portal-content min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 lg:p-8"><div className="mx-auto max-w-[1440px]">{user?.isOrganizationOwner && !user.branchId && <p className="mb-4 rounded-lg border bg-white px-4 py-3 text-xs text-zinc-600">Viewing all branches. Choose a specific branch before creating or editing campus records.</p>}{billingOnly && !pathname.endsWith("/payments") && !pathname.endsWith("/subscription") ? <p className="text-sm text-zinc-500">Opening subscription settings…</p> : needsAttendanceSetup ? <AttendanceSetup mandatory onComplete={()=>void refreshUser()}/> : children}</div></main>
+    </div>
+    {passwordOpen && <ChangePassword onClose={()=>setPasswordOpen(false)}/>}
+    <ScreenshotPrivacy/>
+    {assistant && !billingOnly && role !== "PARENT" && <AcadivoAssistant onClose={() => setAssistant(false)}/>}
+  </div>;
+}
+
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: "Segoe UI", Arial, sans-serif;
+  --background: #ffffff;
+  --foreground: #111111;
+
+  /* Default brand tokens - Red/White */
+  --school-primary: #E0000B;
+  --school-primary-hover: #b91c1c;
+  --school-primary-light: #fef2f2;
+  --school-primary-border: #fecaca;
+  --school-accent: #ef4444;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  overflow-x: hidden;
+}
+
+::selection {
+  background-color: var(--school-primary);
+  color: #ffffff;
+}
+
+/* Brand helper classes */
+.bg-school-primary {
+  background-color: var(--school-primary);
+}
+.hover\:bg-school-primary-hover:hover {
+  background-color: var(--school-primary-hover);
+}
+.text-school-primary {
+  color: var(--school-primary);
+}
+.border-school-primary {
+  border-color: var(--school-primary);
+}
+.bg-school-primary-light {
+  background-color: var(--school-primary-light);
+}
+.border-school-primary-border {
+  border-color: var(--school-primary-border);
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f4f4f5;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
+}
+
+/* Subtle grid background for SaaS header accents */
+.bg-grid-pattern {
+  background-size: 32px 32px;
+  background-image: linear-gradient(to right, rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+}
+
+/* Global Print Stylesheet */
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  aside,
+  header,
+  nav,
+  .print\:hidden {
+"use client";
+import OrganizationWorkspace from "@/components/OrganizationWorkspace";
+import WorkspaceAnalytics from "@/components/WorkspaceAnalytics";
+
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { BookOpen, CalendarDays, GraduationCap, Users } from "lucide-react";
+import { schoolAdminApi } from "@/lib/schoolAdminApi";
+import { useAuth } from "@/lib/auth-context";
+
+type DashboardData = { school: { name: string; status: string; plan: string }; metrics: Record<string, any> };
+const card = "rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm";
+export default function SchoolAdminDashboard() { const { user } = useAuth(); return user?.isOrganizationOwner ? <OrganizationWorkspace/> : <SingleSchoolDashboard/>; }
+function SingleSchoolDashboard() {
+  const { user } = useAuth(); const portalBase = user?.school?.slug ? `/${user.school.slug}/admin` : "/school-admin";
+  const [data, setData] = useState<DashboardData | null>(null); const [error, setError] = useState(""); const [loading, setLoading] = useState(true);
+  const load = useCallback(async () => { setLoading(true); try { const response = await schoolAdminApi.getDashboardMetrics(); setData(response.data); setError(""); } catch (e: any) { setError(e.message || "Could not load school dashboard."); } finally { setLoading(false); } }, []);
+  useEffect(() => { void load(); }, [load]);
+  const m = data?.metrics; const distribution = m?.studentDistribution || []; const maxClassCount = Math.max(1, ...distribution.map((row: any) => row.count));
+  const primaryCards = [["Students", m?.totalStudents ?? 0, Users, "students"], ["Teachers", m?.totalTeachers ?? 0, GraduationCap, "teachers"], ["Staff users", m?.totalStaff ?? 0, Users, "staff"], ["Classes", m?.totalClasses ?? 0, BookOpen, "academics/classes"]] as const;
+  const visibleCards = primaryCards.filter(([, , , path]) => path !== "staff" || user?.features?.includes("STAFF_ROLES"));
+  return <div className="mx-auto max-w-7xl space-y-7 pb-12 text-zinc-900">
+    <header className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[.16em] text-school-primary">{data?.school?.name || user?.school?.name || "School"}</p><h1 className="mt-1 text-3xl font-black tracking-tight">School overview</h1><p className="mt-1 text-sm text-zinc-500">A live view of today’s attendance and your school’s academic setup.</p></div><div className="flex items-center gap-3"><span className="hidden rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-600 sm:inline-flex sm:items-center sm:gap-2"><CalendarDays size={16} />{m?.currentSessionName || "No active session"}</span><button onClick={() => void load()} disabled={loading} className="rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold hover:bg-zinc-50 disabled:opacity-60">{loading ? "Refreshing…" : "Refresh"}</button></div></header>
+    {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+    {loading && !data ? <div role="status" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{visibleCards.map(([label]) => <div key={label} className={`${card} h-28 animate-pulse bg-zinc-100`} />)}</div> : <>
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{visibleCards.map(([label, value, Icon, path]) => <Link key={label} href={`${portalBase}/${path}`} className={`${card} group transition hover:-translate-y-0.5 hover:border-school-primary/40 hover:shadow-md`}><div className="flex items-center justify-between"><span className="grid h-10 w-10 place-items-center rounded-xl bg-school-primary/10 text-school-primary"><Icon size={19} /></span><span className="text-xs font-semibold text-zinc-400 group-hover:text-school-primary">View</span></div><p className="mt-4 text-sm text-zinc-500">{label}</p><p className="mt-1 text-3xl font-black">{value}</p></Link>)}</section>
+      {m && !m.totalStudents && !m.totalTeachers && !m.totalClasses && !m.totalSubjects ? <section className={`${card} border-dashed p-8`}><h2 className="text-xl font-bold">Your school isn’t configured yet</h2><p className="mt-1 text-sm text-zinc-500">Start with a session and class, then add teachers and students. Dashboard totals will update as records are created.</p><div className="mt-5 flex flex-wrap gap-2">{[["Create academic session","academics/sessions"],["Create class","academics/classes"],["Add teacher","teachers"],["Add student","students"]].map(([label,path]) => <Link key={path} href={`${portalBase}/${path}`} className="rounded-xl bg-school-primary px-4 py-2.5 text-sm font-bold text-white hover:opacity-90">{label}</Link>)}</div></section> : <>
+        <section className="grid gap-4 lg:grid-cols-2">
+          <article className={card}><div className="flex items-start justify-between"><div><h2 className="text-base font-bold">Student attendance today</h2><p className="mt-1 text-sm text-zinc-500">From submitted class registers</p></div><Link href={`${portalBase}/attendance/students`} className="text-sm font-semibold text-school-primary">View report</Link></div><div className="mt-5 flex items-end gap-3"><p className="text-4xl font-black">{m?.todayAttendancePercent ?? 0}%</p><p className="pb-1 text-sm text-zinc-500">{m?.studentsPresentToday || 0} present · {m?.studentsAbsentToday || 0} absent · {m?.studentsLateToday || 0} late</p></div><div className="mt-4 h-2.5 overflow-hidden rounded-full bg-zinc-100"><div className="h-full rounded-full bg-school-primary transition-all" style={{ width: `${Math.min(100, m?.todayAttendancePercent || 0)}%` }} /></div></article>
+          <article className={card}><div className="flex items-start justify-between"><div><h2 className="text-base font-bold">Teacher attendance today</h2><p className="mt-1 text-sm text-zinc-500">Actual teacher attendance records</p></div><Link href={`${portalBase}/attendance/teachers`} className="text-sm font-semibold text-school-primary">View report</Link></div><div className="mt-5 grid grid-cols-3 gap-3">{[["Present",m?.teachersPresentToday||0],["Absent",m?.teachersAbsentToday||0],["Records",m?.teachersWithAttendanceToday||0]].map(([label,value]) => <div key={String(label)} className="rounded-xl bg-zinc-50 p-3"><p className="text-xs text-zinc-500">{label}</p><p className="mt-1 text-2xl font-bold">{value}</p></div>)}</div></article>
+        </section>
+        <section className="grid gap-4 lg:grid-cols-2"><article className={card}><div className="flex items-center justify-between"><div><h2 className="font-bold">Students by class</h2><p className="mt-1 text-sm text-zinc-500">Active enrollment distribution</p></div><Link href={`${portalBase}/students`} className="text-sm font-semibold text-school-primary">Directory</Link></div>{distribution.length ? <div className="mt-5 space-y-4">{distribution.map((row: any) => <div key={row.className}><div className="mb-1.5 flex justify-between text-sm"><span>{row.className || "Unassigned class"}</span><span className="font-semibold">{row.count}</span></div><div className="h-2 overflow-hidden rounded-full bg-zinc-100"><div className="h-full rounded-full bg-school-primary" style={{ width: `${Math.max(2, (row.count / maxClassCount) * 100)}%` }} /></div></div>)}</div> : <p className="mt-5 rounded-xl border border-dashed border-zinc-200 p-6 text-center text-sm text-zinc-500">No data available yet.</p>}</article>
+          <article className={card}><div className="flex items-center justify-between"><div><h2 className="font-bold">Academic setup</h2><p className="mt-1 text-sm text-zinc-500">Current configuration for this school</p></div><span className="rounded-xl bg-school-primary/10 p-2 text-school-primary"><BookOpen size={18} /></span></div><dl className="mt-5 divide-y divide-zinc-100">{[["Active session",m?.currentSessionName || "Not set"],["Classes",m?.totalClasses || 0],["Sections",m?.totalSections || 0],["Subjects",m?.totalSubjects || 0],["Timetable entries",m?.timetableSlots || 0]].map(([label,value]) => <div key={String(label)} className="flex justify-between py-3 text-sm"><dt className="text-zinc-500">{label}</dt><dd className="font-semibold">{value}</dd></div>)}</dl></article></section>
+      </>}
+      <p className="text-xs text-zinc-400">Dashboard figures are calculated from records stored for this school.</p>
+    </>}
+  <WorkspaceAnalytics/>
+</div>;
+}
+
+src/components\WorkforceUI.tsx
+src/components\AcadivoAssistant.tsx
+src/components\TeacherHistoryModal.tsx
+src/components\StudentHistoryModal.tsx
+src/components\BulkImportModal.tsx
+src/components\DataChart.tsx
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+  darkMode: ["class"],
+  content: [
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+        red: { 50: "#fff1f2", 100: "#ffe4e6", 200: "#fecdd3", 300: "#fda4af", 400: "#fb7185", 500: "#ef3340", 600: "#E0000B", 700: "#be0009", 800: "#9f0008", 900: "#810007" },
+        brand: {
+          50: "#fef2f2",
+          100: "#fee2e2",
+          500: "#ef4444",
+          600: "#E0000B",
+          700: "#b91c1c",
+          800: "#991b1b",
+          900: "#7f1d1d",
+        },
+      },
+      fontFamily: {
+        sans: ["var(--font-sans)", "Inter", "sans-serif"],
+      },
+      boxShadow: {
+        subtle: "0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05)",
+        card: "0 4px 20px -2px rgba(0, 0, 0, 0.05)",
+        elevated: "0 10px 30px -5px rgba(0, 0, 0, 0.08)",
+      },
+    },
+  },
+  plugins: [],
+};
+export default config;
+

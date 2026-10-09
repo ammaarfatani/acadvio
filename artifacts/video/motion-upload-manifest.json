@@ -1,0 +1,146 @@
+﻿[
+    {
+        "path":  "D:/CRM/school-crm/artifacts/video/motion-style-reference.mp4",
+        "name":  "STYLE REFERENCE ONLY",
+        "mime":  "video/mp4",
+        "upload":  {
+                       "upload_url":  "https://storage.googleapis.com/mosaic-production-storage/",
+                       "upload_fields":  {
+                                             "key":  "mosaic-motion/user-uploads/fbb470cc-ccd3-473b-a335-a9d803df87c6/5de3a25d-caa7-496b-81fb-fb13d4533e0f/motion-style-reference.mp4",
+                                             "x-goog-date":  "20261003T140939Z",
+                                             "x-goog-credential":  "mosaic-production-runtime@framecut.iam.gserviceaccount.com/20261003/auto/storage/goog4_request",
+                                             "x-goog-algorithm":  "GOOG4-RSA-SHA256",
+                                             "policy":  "eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJtb3NhaWMtcHJvZHVjdGlvbi1zdG9yYWdlIn0seyJrZXkiOiJtb3NhaWMtbW90aW9uL3VzZXItdXBsb2Fkcy9mYmI0NzBjYy1jY2QzLTQ3M2ItYTMzNS1hOWQ4MDNkZjg3YzYvNWRlM2EyNWQtY2FhNy00OTZiLTgxZmItZmIxM2Q0NTMzZTBmL21vdGlvbi1zdHlsZS1yZWZlcmVuY2UubXA0In0sWyJjb250ZW50LWxlbmd0aC1yYW5nZSIsMSw1MzY4NzA5MTIwXSx7ImJ1Y2tldCI6Im1vc2FpYy1wcm9kdWN0aW9uLXN0b3JhZ2UifSx7ImtleSI6Im1vc2FpYy1tb3Rpb24vdXNlci11cGxvYWRzL2ZiYjQ3MGNjLWNjZDMtNDczYi1hMzM1LWE5ZDgwM2RmODdjNi81ZGUzYTI1ZC1jYWE3LTQ5NmItODFmYi1mYjEzZDQ1MzNlMGYvbW90aW9uLXN0eWxlLXJlZmVyZW5jZS5tcDQifSx7IngtZ29vZy1kYXRlIjoiMjAyNjEwMDNUMTQwOTM5WiJ9LHsieC1nb29nLWNyZWRlbnRpYWwiOiJtb3NhaWMtcHJvZHVjdGlvbi1ydW50aW1lQGZyYW1lY3V0LmlhbS5nc2VydmljZWFjY291bnQuY29tLzIwMjYxMDAzL2F1dG8vc3RvcmFnZS9nb29nNF9yZXF1ZXN0In0seyJ4LWdvb2ctYWxnb3JpdGhtIjoiR09PRzQtUlNBLVNIQTI1NiJ9XSwiZXhwaXJhdGlvbiI6IjIwMjYtMTAtMDNUMTU6MDk6MzlaIn0=",
+                                             "x-goog-signature":  "24eafa5494bf43ffee382b169f11cd4ecfeee76f0779a8201c0676af805b4c91b03a0886cd9b3ce799460db8e0feccee006d45a1ba2617c04dfb9e7f0433f79a4fa31d74a9194d858d77554d63f222fc473eea26c14d48909979e0efb390013017b082097f0954753092bf2bee7bd4e0fcb69a3baf1052d17f21261212a16be9c37936c0236b40f226ccdbcd500d5c0f3a8440d2eabdafa58856b3a0833b04557b24261f634ab72484169f3f6e5c57a03a34d5839a5baf9066218e375ab6f6320528929cc1b59e48fb57d0ab159f256a313987fca0beeaeb0a78fd1acaf25d408f98514586250ea66072830643d9f597e7d744fbd49ac2ed31b151bbba12df7c"
+                                         },
+                       "attachment_url":  "https://storage.googleapis.com/mosaic-production-storage/mosaic-motion/user-uploads/fbb470cc-ccd3-473b-a335-a9d803df87c6/5de3a25d-caa7-496b-81fb-fb13d4533e0f/motion-style-reference.mp4?X-Goog-Algorithm=GOOG4-RSA-SHA256\u0026X-Goog-Credential=mosaic-production-runtime%40framecut.iam.gserviceaccount.com%2F20261003%2Fauto%2Fstorage%2Fgoog4_request\u0026X-Goog-Date=20261003T140939Z\u0026X-Goog-Expires=604800\u0026X-Goog-SignedHeaders=host\u0026X-Goog-Signature=7d127deafe6a8b4a7d442c29503cbaf665b8d698efed26e9450ef0b3d4fd91374bfaf968ec221f83a481a66990452f1bdd46eddb0a8caaf70c1cbae389af1fc8738ca8c0672184e448df1d15d650c70310b673c63312d825437912d976ce040e29e6a250e0c1da67f05f77cf1b2773c2884044c19320f36b541821f412c1df9be4f0de70870011fddcd13773089274d88a3787b5acce020646768715c267de4ea303f4ff6a3227d0227f16e153a364af8e9541f79712a590639bc982a5040336eda35a6e83732aa8135cf17e48ae9c731d7dc641313b363d82f4932352a4881e5f7aa4473303ad2f9c14a44d48219a60a8cd2a4be2bdd490f369e320f4ebb3ff"
+                   },
+        "uploaded":  true
+    },
+    {
+        "path":  "D:/CRM/school-crm/artifacts/video/acadivo-product-demo.mp4",
+        "name":  "APPROVED 84 SECOND SOURCE CUT",
+        "mime":  "video/mp4",
+        "upload":  {
+                       "upload_url":  "https://storage.googleapis.com/mosaic-production-storage/",
+                       "upload_fields":  {
+                                             "key":  "mosaic-motion/user-uploads/fbb470cc-ccd3-473b-a335-a9d803df87c6/971b81a6-3c6d-42ac-9905-cd091b75e550/acadivo-product-demo.mp4",
+                                             "x-goog-date":  "20261003T140943Z",
+                                             "x-goog-credential":  "mosaic-production-runtime@framecut.iam.gserviceaccount.com/20261003/auto/storage/goog4_request",
+                                             "x-goog-algorithm":  "GOOG4-RSA-SHA256",
+                                             "policy":  "eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJtb3NhaWMtcHJvZHVjdGlvbi1zdG9yYWdlIn0seyJrZXkiOiJtb3NhaWMtbW90aW9uL3VzZXItdXBsb2Fkcy9mYmI0NzBjYy1jY2QzLTQ3M2ItYTMzNS1hOWQ4MDNkZjg3YzYvOTcxYjgxYTYtM2M2ZC00MmFjLTk5MDUtY2QwOTFiNzVlNTUwL2FjYWRpdm8tcHJvZHVjdC1kZW1vLm1wNCJ9LFsiY29udGVudC1sZW5ndGgtcmFuZ2UiLDEsNTM2ODcwOTEyMF0seyJidWNrZXQiOiJtb3NhaWMtcHJvZHVjdGlvbi1zdG9yYWdlIn0seyJrZXkiOiJtb3NhaWMtbW90aW9uL3VzZXItdXBsb2Fkcy9mYmI0NzBjYy1jY2QzLTQ3M2ItYTMzNS1hOWQ4MDNkZjg3YzYvOTcxYjgxYTYtM2M2ZC00MmFjLTk5MDUtY2QwOTFiNzVlNTUwL2FjYWRpdm8tcHJvZHVjdC1kZW1vLm1wNCJ9LHsieC1nb29nLWRhdGUiOiIyMDI2MTAwM1QxNDA5NDNaIn0seyJ4LWdvb2ctY3JlZGVudGlhbCI6Im1vc2FpYy1wcm9kdWN0aW9uLXJ1bnRpbWVAZnJhbWVjdXQuaWFtLmdzZXJ2aWNlYWNjb3VudC5jb20vMjAyNjEwMDMvYXV0by9zdG9yYWdlL2dvb2c0X3JlcXVlc3QifSx7IngtZ29vZy1hbGdvcml0aG0iOiJHT09HNC1SU0EtU0hBMjU2In1dLCJleHBpcmF0aW9uIjoiMjAyNi0xMC0wM1QxNTowOTo0M1oifQ==",
+                                             "x-goog-signature":  "0661173d549a7de9c902b745ac084d7e6119addae246d3376a2db680bf06e65a13184bf78003b1229ceda2805b4e6af8eb1728a8d6c97fb5648e0f3df4ee5b095b507547fa61f5f803cb092d8713c21c7c098ee2ccc6d5404dd091d613f461abcf25ea8e0184da58cd2447677fc7d28d8b971f22c1a8ddbd74f000a16f6a4fb398d0496b1a416da6adbdc4827cd0f4e08f30c00849ae5135cb9ad5fa33d4d792b99eecfb7e64820ba3b503d28923ffe5432c56f9f390d4e4b498e779c4d33bcc46a0f392fcee36b475f310025e31c665c37a8abfd5eea753e9839e6e897772385f66c42cf215facf1638a2f4e5481bb4946188354824127f0917f0da60662d96"
+                                         },
+                       "attachment_url":  "https://storage.googleapis.com/mosaic-production-storage/mosaic-motion/user-uploads/fbb470cc-ccd3-473b-a335-a9d803df87c6/971b81a6-3c6d-42ac-9905-cd091b75e550/acadivo-product-demo.mp4?X-Goog-Algorithm=GOOG4-RSA-SHA256\u0026X-Goog-Credential=mosaic-production-runtime%40framecut.iam.gserviceaccount.com%2F20261003%2Fauto%2Fstorage%2Fgoog4_request\u0026X-Goog-Date=20261003T140943Z\u0026X-Goog-Expires=604800\u0026X-Goog-SignedHeaders=host\u0026X-Goog-Signature=a3ed3ac763a3e72cc30f18553be1c6fb803f463c12a3fedd6a677c270f8f24f35764db51aa3e7523c34041a2e1a8a50a7ba2b1cbf889d0e379e45495610b37da60915a408b810bb16ffbaced5c7b2bff46db246dd6e067b5cdfd587db06b920b9ecfef242cc43c3a32b58eff32cd2af6c506a70fa4f3a28bce6869ac679d6e8bb09a2f459cfb761a988ac1d519874ba9f86143fdd3e4906184ca9ba015667b931805bd17916ac5943470909092c0c81cbcf090e06d35d450610d1d49ba6212713581829ea92c4e3b9ebd04c5a5237ba1b2bb00c601275bbb0b0d7329e4c8bdf8fea525432de9417eb7c7810faf68f1265e90ce75bf6618c9cb1e994a5a8ab0e8"
+                   },
+        "uploaded":  true
+    },
+    {
+        "path":  "D:/CRM/school-crm/public/logo.png",
+        "name":  "Acadivo logo",
+        "mime":  "image/png",
+        "upload":  {
+                       "upload_url":  "https://storage.googleapis.com/mosaic-production-storage/",
+                       "upload_fields":  {
+                                             "key":  "mosaic-motion/user-uploads/fbb470cc-ccd3-473b-a335-a9d803df87c6/dbbe4795-9d00-417e-8691-89c0c099bb24/logo.png",
+                                             "x-goog-date":  "20261003T140947Z",
+                                             "x-goog-credential":  "mosaic-production-runtime@framecut.iam.gserviceaccount.com/20261003/auto/storage/goog4_request",
+                                             "x-goog-algorithm":  "GOOG4-RSA-SHA256",
+                                             "policy":  "eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJtb3NhaWMtcHJvZHVjdGlvbi1zdG9yYWdlIn0seyJrZXkiOiJtb3NhaWMtbW90aW9uL3VzZXItdXBsb2Fkcy9mYmI0NzBjYy1jY2QzLTQ3M2ItYTMzNS1hOWQ4MDNkZjg3YzYvZGJiZTQ3OTUtOWQwMC00MTdlLTg2OTEtODljMGMwOTliYjI0L2xvZ28ucG5nIn0sWyJjb250ZW50LWxlbmd0aC1yYW5nZSIsMSw1MjQyODgwMF0seyJidWNrZXQiOiJtb3NhaWMtcHJvZHVjdGlvbi1zdG9yYWdlIn0seyJrZXkiOiJtb3NhaWMtbW90aW9uL3VzZXItdXBsb2Fkcy9mYmI0NzBjYy1jY2QzLTQ3M2ItYTMzNS1hOWQ4MDNkZjg3YzYvZGJiZTQ3OTUtOWQwMC00MTdlLTg2OTEtODljMGMwOTliYjI0L2xvZ28ucG5nIn0seyJ4LWdvb2ctZGF0ZSI6IjIwMjYxMDAzVDE0MDk0N1oifSx7IngtZ29vZy1jcmVkZW50aWFsIjoibW9zYWljLXByb2R1Y3Rpb24tcnVudGltZUBmcmFtZWN1dC5pYW0uZ3NlcnZpY2VhY2NvdW50LmNvbS8yMDI2MTAwMy9hdXRvL3N0b3JhZ2UvZ29vZzRfcmVxdWVzdCJ9LHsieC1nb29nLWFsZ29yaXRobSI6IkdPT0c0LVJTQS1TSEEyNTYifV0sImV4cGlyYXRpb24iOiIyMDI2LTEwLTAzVDE1OjA5OjQ3WiJ9",
+                                             "x-goog-signature":  "257f529330e3bfc3d0c81f770b45054df74f3e86cd321a5c62257902f051152ab2fd2394a4aa15744cf022372583eb2af52cf5312b4475d82e3f1a57887be7603d324660fa1dbd95e5f9aeeb3abe470887536d34add1354510e21eb842ceeb88332ffcef45a05d099c4c0d86aef4045adbd4f369886c1b5c76ea0cb79a387150adea781de02c62d4d4997927b7cac1dfe9645144f6c7399517893494ccc901cab7e1bf3dfa2a8a72347e879578cbbc301d63548d66a36691fd4f1aa804382734b659994ed161460fac25ad281630692b39226c4239331f6e694758e0cde1ee5ace576f8544413d82c00ea7bd21cf336fccc8bc843c6058fc8f878d2162f90862"
+                                         },
+                       "attachment_url":  "https://storage.googleapis.com/mosaic-production-storage/mosaic-motion/user-uploads/fbb470cc-ccd3-473b-a335-a9d803df87c6/dbbe4795-9d00-417e-8691-89c0c099bb24/logo.png?X-Goog-Algorithm=GOOG4-RSA-SHA256\u0026X-Goog-Credential=mosaic-production-runtime%40framecut.iam.gserviceaccount.com%2F20261003%2Fauto%2Fstorage%2Fgoog4_request\u0026X-Goog-Date=20261003T140947Z\u0026X-Goog-Expires=604800\u0026X-Goog-SignedHeaders=host\u0026X-Goog-Signature=2dd3298f5dc74541c243909f8b484c132216a8cc4d39a182fde59386c18fad6aa5718977815ce8497f9e39ed7ed8414b0759898170732aa3c3ebe0e333ce09adb6d150fdddba227a6f735062724479c3cb40d7f6cb273eb6a6755cc72624cbf86f4cd88559c36a96a6d0a8f494a3d42848b2f87bffa3956797d1d93d508b5655471d94941436a4ade5a649b7eb646589f8321b544f66f9d2e3a2a2a18b4a7fa7c4d2a79244feb4ab4e39a567974859ba6a9b3f1ba401e1982930c2b611894697afee59ac72fd241b90cf86347e5c8890ef451591545db055dc90db83320cb4c711711b19de204d0f3edd0a1a206e013bad12814dda782112a10c6b2cb6d90f05"
+                   },
+        "uploaded":  true
+    },
+    {
+        "path":  "D:/CRM/school-crm/public/product-showcase/teacher-full.jpg",
+        "name":  "Teacher full page",
+        "mime":  "image/jpeg",
+        "upload":  {
+                       "upload_url":  "https://storage.googleapis.com/mosaic-production-storage/",
+                       "upload_fields":  {
+                                             "key":  "mosaic-motion/user-uploads/fbb470cc-ccd3-473b-a335-a9d803df87c6/a2454163-93b4-4be1-8363-a7e80325549c/teacher-full.jpg",
+                                             "x-goog-date":  "20261003T140950Z",
+                                             "x-goog-credential":  "mosaic-production-runtime@framecut.iam.gserviceaccount.com/20261003/auto/storage/goog4_request",
+                                             "x-goog-algorithm":  "GOOG4-RSA-SHA256",
+                                             "policy":  "eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJtb3NhaWMtcHJvZHVjdGlvbi1zdG9yYWdlIn0seyJrZXkiOiJtb3NhaWMtbW90aW9uL3VzZXItdXBsb2Fkcy9mYmI0NzBjYy1jY2QzLTQ3M2ItYTMzNS1hOWQ4MDNkZjg3YzYvYTI0NTQxNjMtOTNiNC00YmUxLTgzNjMtYTdlODAzMjU1NDljL3RlYWNoZXItZnVsbC5qcGcifSxbImNvbnRlbnQtbGVuZ3RoLXJhbmdlIiwxLDUyNDI4ODAwXSx7ImJ1Y2tldCI6Im1vc2FpYy1wcm9kdWN0aW9uLXN0b3JhZ2UifSx7ImtleSI6Im1vc2FpYy1tb3Rpb24vdXNlci11cGxvYWRzL2ZiYjQ3MGNjLWNjZDMtNDczYi1hMzM1LWE5ZDgwM2RmODdjNi9hMjQ1NDE2My05M2I0LTRiZTEtODM2My1hN2U4MDMyNTU0OWMvdGVhY2hlci1mdWxsLmpwZyJ9LHsieC1nb29nLWRhdGUiOiIyMDI2MTAwM1QxNDA5NTBaIn0seyJ4LWdvb2ctY3JlZGVudGlhbCI6Im1vc2FpYy1wcm9kdWN0aW9uLXJ1bnRpbWVAZnJhbWVjdXQuaWFtLmdzZXJ2aWNlYWNjb3VudC5jb20vMjAyNjEwMDMvYXV0by9zdG9yYWdlL2dvb2c0X3JlcXVlc3QifSx7IngtZ29vZy1hbGdvcml0aG0iOiJHT09HNC1SU0EtU0hBMjU2In1dLCJleHBpcmF0aW9uIjoiMjAyNi0xMC0wM1QxNTowOTo1MFoifQ==",
+                                             "x-goog-signature":  "974a54010af7a9ab2533e6671a0cba4394bfa990efe89bc42e6bf9d05a87f8b3fedf97f03589a344e0259099c2d799ec8c0e895e1f231a7f9eb9ae7dcd4c945609dd22c32e573eb57482ce5c86bfa74e47f4e70ff51619811fb9ff5af967bd5cd5db1b11b1a9b2e00abf6da3f73588f72151f890c23bf08e2c4e7209ccb20c910a38ad0fc5200183d8445a895561ceeffb382e9e256f3cfd741fb5c8b57b37ab0c58dbd68388f75a5dba32cc4b46ac633f9af6dcd985792b18f5d6fe9ac72d9ccb168e7664e8533044637d422d1c00060fb3df87a15f95d0c8a9c071ea11d9656ae2bb05348c3a982764d32efe7a8f14774dff917398365f2271a0ed21682fcc"
+                                         },
+                       "attachment_url":  "https://storage.googleapis.com/mosaic-production-storage/mosaic-motion/user-uploads/fbb470cc-ccd3-473b-a335-a9d803df87c6/a2454163-93b4-4be1-8363-a7e80325549c/teacher-full.jpg?X-Goog-Algorithm=GOOG4-RSA-SHA256\u0026X-Goog-Credential=mosaic-production-runtime%40framecut.iam.gserviceaccount.com%2F20261003%2Fauto%2Fstorage%2Fgoog4_request\u0026X-Goog-Date=20261003T140950Z\u0026X-Goog-Expires=604800\u0026X-Goog-SignedHeaders=host\u0026X-Goog-Signature=2a3b0c8d854161d01b344086b0d60c667b512a3fa90eddc061321fd2240815d51abf6cac10ff796c3db5d7fb27d5ba8446deb5374fd72f16eadf1c94e1524d2eea9065d729799b07cde28f20c60e254b64143d6201d83c6116319f1fde53dbea1957fa9c80d646edceffb5d8a289ba672cc4f4e5fd4f18fa318d067138d57e2a84603cba389bebff7bccec4f78d75d75959d603647478993f39c90b7346404d69e612a96e2944081910b0006bbf634ae4f78f890c4b412d987727f868429c4ffa9f695e2ca88a208b3484f4db570dd65b6d03461b07142bd38219502ec949af0458a1d6db1e3090d4102eb96f6a6e5ff2af8af194f7a244a58ffb9a5c0a36687"
+                   },
+        "uploaded":  true
+    },
+    {
+        "path":  "D:/CRM/school-crm/artifacts/video/super-admin.jpg",
+        "name":  "Super Admin",
+        "mime":  "image/jpeg",
+        "upload":  {
+                       "upload_url":  "https://storage.googleapis.com/mosaic-production-storage/",
+                       "upload_fields":  {
+                                             "key":  "mosaic-motion/user-uploads/fbb470cc-ccd3-473b-a335-a9d803df87c6/bdd0f821-d4b5-40e2-b168-f4293a0eee5b/super-admin.jpg",
+                                             "x-goog-date":  "20261003T140954Z",
+                                             "x-goog-credential":  "mosaic-production-runtime@framecut.iam.gserviceaccount.com/20261003/auto/storage/goog4_request",
+                                             "x-goog-algorithm":  "GOOG4-RSA-SHA256",
+                                             "policy":  "eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJtb3NhaWMtcHJvZHVjdGlvbi1zdG9yYWdlIn0seyJrZXkiOiJtb3NhaWMtbW90aW9uL3VzZXItdXBsb2Fkcy9mYmI0NzBjYy1jY2QzLTQ3M2ItYTMzNS1hOWQ4MDNkZjg3YzYvYmRkMGY4MjEtZDRiNS00MGUyLWIxNjgtZjQyOTNhMGVlZTViL3N1cGVyLWFkbWluLmpwZyJ9LFsiY29udGVudC1sZW5ndGgtcmFuZ2UiLDEsNTI0Mjg4MDBdLHsiYnVja2V0IjoibW9zYWljLXByb2R1Y3Rpb24tc3RvcmFnZSJ9LHsia2V5IjoibW9zYWljLW1vdGlvbi91c2VyLXVwbG9hZHMvZmJiNDcwY2MtY2NkMy00NzNiLWEzMzUtYTlkODAzZGY4N2M2L2JkZDBmODIxLWQ0YjUtNDBlMi1iMTY4LWY0MjkzYTBlZWU1Yi9zdXBlci1hZG1pbi5qcGcifSx7IngtZ29vZy1kYXRlIjoiMjAyNjEwMDNUMTQwOTU0WiJ9LHsieC1nb29nLWNyZWRlbnRpYWwiOiJtb3NhaWMtcHJvZHVjdGlvbi1ydW50aW1lQGZyYW1lY3V0LmlhbS5nc2VydmljZWFjY291bnQuY29tLzIwMjYxMDAzL2F1dG8vc3RvcmFnZS9nb29nNF9yZXF1ZXN0In0seyJ4LWdvb2ctYWxnb3JpdGhtIjoiR09PRzQtUlNBLVNIQTI1NiJ9XSwiZXhwaXJhdGlvbiI6IjIwMjYtMTAtMDNUMTU6MDk6NTRaIn0=",
+                                             "x-goog-signature":  "1d7400ab13f20e0e05013559e42959c0b06b4fc3abf09c780702356221dd7daa3184bf381491e37b8f8df6902c3cf1ebf89c132894b8a792f0defc6fa951bb7cd6fe568d7b67cd97a8e7e2c541ab92b8cfb5d0eb617d1555dd12b71568d60725a87df87bdcb637215e3d343aed0dd17b7ce0f31bd52b17753eed03e6993d2334d1ede4cf2effb3df267cdaef1316fbd5857fb1280ebf1f68ded37b794d78181781713e5f75b738f9daccc5e85dce7eb391980acaa1ece936c85c25898247c1d96c570fc93609aa3643fa171800d5d86d0b213e14d13a625be5c381e19a5632de10f02d1bccb1c5ba2e4fb6d6c7c3b75d516653615e43ac380eae59178c214385"
+                                         },
+                       "attachment_url":  "https://storage.googleapis.com/mosaic-production-storage/mosaic-motion/user-uploads/fbb470cc-ccd3-473b-a335-a9d803df87c6/bdd0f821-d4b5-40e2-b168-f4293a0eee5b/super-admin.jpg?X-Goog-Algorithm=GOOG4-RSA-SHA256\u0026X-Goog-Credential=mosaic-production-runtime%40framecut.iam.gserviceaccount.com%2F20261003%2Fauto%2Fstorage%2Fgoog4_request\u0026X-Goog-Date=20261003T140954Z\u0026X-Goog-Expires=604800\u0026X-Goog-SignedHeaders=host\u0026X-Goog-Signature=5dfdd2f95cbb4f319f632857e391edd27ce45ec350af6497315d65e92bec4243f2b54a4f413917e5f945832d64729b0166e701e298c71874d951299473dcce4c8688fe8b7655ca59594a8959de5b9b5f90202f83e6d8e5e413623f6c27ae34f466047774856641823274cd2911eacd53e5bdbdffb9c206127abec7e6914b3dc146540ae4643d3e733bfecbad0d0cb59849ea2782b95724c812fdad949fd525b844eb913c95b6236ce23f150e78e7d887a9a26882579f020ad75c366a7082cc26e470df74bc0fc1790926a1e65e33529f7cde97a55270c34029b6467a4c7b1f13f6ff3fbe209ad71cdb80d9c623e9efdb0f996dee94ed38131cd04ca0da24282e"
+                   },
+        "uploaded":  true
+    },
+    {
+        "path":  "D:/CRM/school-crm/artifacts/video/students.jpg",
+        "name":  "Student directory",
+        "mime":  "image/jpeg",
+        "upload":  {
+                       "upload_url":  "https://storage.googleapis.com/mosaic-production-storage/",
+                       "upload_fields":  {
+                                             "key":  "mosaic-motion/user-uploads/fbb470cc-ccd3-473b-a335-a9d803df87c6/5c8e56a4-d0fa-4526-9e5d-f33c290f4b5c/students.jpg",
+                                             "x-goog-date":  "20261003T140957Z",
+                                             "x-goog-credential":  "mosaic-production-runtime@framecut.iam.gserviceaccount.com/20261003/auto/storage/goog4_request",
+                                             "x-goog-algorithm":  "GOOG4-RSA-SHA256",
+                                             "policy":  "eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJtb3NhaWMtcHJvZHVjdGlvbi1zdG9yYWdlIn0seyJrZXkiOiJtb3NhaWMtbW90aW9uL3VzZXItdXBsb2Fkcy9mYmI0NzBjYy1jY2QzLTQ3M2ItYTMzNS1hOWQ4MDNkZjg3YzYvNWM4ZTU2YTQtZDBmYS00NTI2LTllNWQtZjMzYzI5MGY0YjVjL3N0dWRlbnRzLmpwZyJ9LFsiY29udGVudC1sZW5ndGgtcmFuZ2UiLDEsNTI0Mjg4MDBdLHsiYnVja2V0IjoibW9zYWljLXByb2R1Y3Rpb24tc3RvcmFnZSJ9LHsia2V5IjoibW9zYWljLW1vdGlvbi91c2VyLXVwbG9hZHMvZmJiNDcwY2MtY2NkMy00NzNiLWEzMzUtYTlkODAzZGY4N2M2LzVjOGU1NmE0LWQwZmEtNDUyNi05ZTVkLWYzM2MyOTBmNGI1Yy9zdHVkZW50cy5qcGcifSx7IngtZ29vZy1kYXRlIjoiMjAyNjEwMDNUMTQwOTU3WiJ9LHsieC1nb29nLWNyZWRlbnRpYWwiOiJtb3NhaWMtcHJvZHVjdGlvbi1ydW50aW1lQGZyYW1lY3V0LmlhbS5nc2VydmljZWFjY291bnQuY29tLzIwMjYxMDAzL2F1dG8vc3RvcmFnZS9nb29nNF9yZXF1ZXN0In0seyJ4LWdvb2ctYWxnb3JpdGhtIjoiR09PRzQtUlNBLVNIQTI1NiJ9XSwiZXhwaXJhdGlvbiI6IjIwMjYtMTAtMDNUMTU6MDk6NTdaIn0=",
+                                             "x-goog-signature":  "537d79a7ee99bc2af5b909c76c61f7e9d782f3b2a342b93e6ceefd334cdb7a07af043d0879abb13a12c26938d90550fbf1802061a4ebc32c19d27090a39b4f6e604b76db41ff7377e28a6dce37774dde29e873ceec8c9178d649fc4af1180bec90d09752d8ddfda7c7dd176ad027ce2aa419c99d526142db906f8935cb5856c6cc0fdf251e8c6ddd2add7cae56bf55b9756b325180a2372f9ff2713c4899cc7360cc20fae0b611d40dbbc88fdc19f727427805137a9233a3be684c4963bc88e839417d95b796ea1db88528540412d1e9eed618adc106c4ec14ce3ab30e7a49b273cb5e592c5cd3da8c9d91272034fb8e3a538384daaa294c9b52e1d09c897c35"
+                                         },
+                       "attachment_url":  "https://storage.googleapis.com/mosaic-production-storage/mosaic-motion/user-uploads/fbb470cc-ccd3-473b-a335-a9d803df87c6/5c8e56a4-d0fa-4526-9e5d-f33c290f4b5c/students.jpg?X-Goog-Algorithm=GOOG4-RSA-SHA256\u0026X-Goog-Credential=mosaic-production-runtime%40framecut.iam.gserviceaccount.com%2F20261003%2Fauto%2Fstorage%2Fgoog4_request\u0026X-Goog-Date=20261003T140957Z\u0026X-Goog-Expires=604800\u0026X-Goog-SignedHeaders=host\u0026X-Goog-Signature=1ab692c17cbed7149a6292e4315f1c3f84eb61c0b1e925b8ce701e553b879f511cb230833a47760a29cc019b2848361efa5231b242970595c38deb3f2a013012d7a7f7af4ee6baf9345d9c6040bde1acae1208e2011f4ca965afa2ded5b7587e75acfba3ca4b979da136fa2c032d735f8a1c12eb7aa3a03de00af64304462b809f845ae419056d3e64a8b3911af198f74c7af2ff9340e232f773473500ab29d35ea30d8463567cc2d6e65d486fe09500f4bf3c56842b3c4d3f7b09922c9a46f001e62a052fa058a15e1df7e6b40e3b27f82d47809d605b5013c6fab00e2ff81ef8c92bcd8f6b2f3bef58b2bc75e85b65ddb7a9f94d902af0d68c04e674c5ead5"
+                   },
+        "uploaded":  true
+    },
+    {
+        "path":  "D:/CRM/school-crm/artifacts/video/admissions.jpg",
+        "name":  "Admissions",
+        "mime":  "image/jpeg",
+        "upload":  {
+                       "upload_url":  "https://storage.googleapis.com/mosaic-production-storage/",
+                       "upload_fields":  {
+                                             "key":  "mosaic-motion/user-uploads/fbb470cc-ccd3-473b-a335-a9d803df87c6/ea71840f-7fce-49a5-9a0a-722bc27d6e52/admissions.jpg",
+                                             "x-goog-date":  "20261003T141000Z",
+                                             "x-goog-credential":  "mosaic-production-runtime@framecut.iam.gserviceaccount.com/20261003/auto/storage/goog4_request",
+                                             "x-goog-algorithm":  "GOOG4-RSA-SHA256",
+                                             "policy":  "eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJtb3NhaWMtcHJvZHVjdGlvbi1zdG9yYWdlIn0seyJrZXkiOiJtb3NhaWMtbW90aW9uL3VzZXItdXBsb2Fkcy9mYmI0NzBjYy1jY2QzLTQ3M2ItYTMzNS1hOWQ4MDNkZjg3YzYvZWE3MTg0MGYtN2ZjZS00OWE1LTlhMGEtNzIyYmMyN2Q2ZTUyL2FkbWlzc2lvbnMuanBnIn0sWyJjb250ZW50LWxlbmd0aC1yYW5nZSIsMSw1MjQyODgwMF0seyJidWNrZXQiOiJtb3NhaWMtcHJvZHVjdGlvbi1zdG9yYWdlIn0seyJrZXkiOiJtb3NhaWMtbW90aW9uL3VzZXItdXBsb2Fkcy9mYmI0NzBjYy1jY2QzLTQ3M2ItYTMzNS1hOWQ4MDNkZjg3YzYvZWE3MTg0MGYtN2ZjZS00OWE1LTlhMGEtNzIyYmMyN2Q2ZTUyL2FkbWlzc2lvbnMuanBnIn0seyJ4LWdvb2ctZGF0ZSI6IjIwMjYxMDAzVDE0MTAwMFoifSx7IngtZ29vZy1jcmVkZW50aWFsIjoibW9zYWljLXByb2R1Y3Rpb24tcnVudGltZUBmcmFtZWN1dC5pYW0uZ3NlcnZpY2VhY2NvdW50LmNvbS8yMDI2MTAwMy9hdXRvL3N0b3JhZ2UvZ29vZzRfcmVxdWVzdCJ9LHsieC1nb29nLWFsZ29yaXRobSI6IkdPT0c0LVJTQS1TSEEyNTYifV0sImV4cGlyYXRpb24iOiIyMDI2LTEwLTAzVDE1OjEwOjAwWiJ9",
+                                             "x-goog-signature":  "6322ef6ca8ac1fcafb8413e8a9d23f8543c4a1ae4e0c6939495035c187219c3d211680c0853dd49df8431df856611763a037c3cb0e2f139d7806f5bd0e2cffd5ca4da7d98d448fafb11376b475e5cef7c8d5def5ac7d3136984db341d9f5637cc0c976ee3a94eadd7e4fb3a767283de947aac51033ac2abe13110c5048171b1b48529b249d1b563d0dc620d9fcc9b3d67ec44d43ed81716d955fbc6dad1a8f2e2b539fcc7b183ff005b2d7f43d972163cc8ebdda49c092a1e929ec279aeceeb6f85c3d07ba0c59fa57dbd3b1222492a4a1eca8c1d367a0de0d969615ba61ab048aa503b057bfd3cbed3dc180b2ecb2e7335d87dd6c6e38106678f17779cfe588"
+                                         },
+                       "attachment_url":  "https://storage.googleapis.com/mosaic-production-storage/mosaic-motion/user-uploads/fbb470cc-ccd3-473b-a335-a9d803df87c6/ea71840f-7fce-49a5-9a0a-722bc27d6e52/admissions.jpg?X-Goog-Algorithm=GOOG4-RSA-SHA256\u0026X-Goog-Credential=mosaic-production-runtime%40framecut.iam.gserviceaccount.com%2F20261003%2Fauto%2Fstorage%2Fgoog4_request\u0026X-Goog-Date=20261003T141000Z\u0026X-Goog-Expires=604800\u0026X-Goog-SignedHeaders=host\u0026X-Goog-Signature=67490ba8552e40e4dd3f1b5ae491774b94a69e9305c18141b6413482f991152f858ce01a2eb55036afe0b7b9c4042dca34d6272ed976edc66b200e85035fd5a516ac193809ed1948113811fcc0067b258d24e19e12e769f8eb1633e8540072412cbad8d8c35a5c5b1fc9f95a47b4e44b35693ec1dc29ac49a7e9be433672d323855f4208e0620737ba0cde5d31303cec4a3a79bcd61c75c016403a1b9fa0ae7ae07c8447648d65127a13b94a0049d282dd562eb3cef5d4b4dcbb41f1b1420c3849c7ff9627add67836ae600cfd0e293793a636ce89f604822a1a3e25efa2ba638bae2b009a80483ab86978587e07ed55b5ea5f764e08d1d105216746b725086c"
+                   },
+        "uploaded":  true
+    },
+    {
+        "path":  "D:/CRM/school-crm/artifacts/video/finance-reports.jpg",
+        "name":  "Finance reports",
+        "mime":  "image/jpeg",
+        "upload":  {
+                       "upload_url":  "https://storage.googleapis.com/mosaic-production-storage/",
+                       "upload_fields":  {
+                                             "key":  "mosaic-motion/user-uploads/fbb470cc-ccd3-473b-a335-a9d803df87c6/ff95eecd-0c3e-4f18-9a47-0586722c2408/finance-reports.jpg",
+                                             "x-goog-date":  "20261003T141003Z",
+                                             "x-goog-credential":  "mosaic-production-runtime@framecut.iam.gserviceaccount.com/20261003/auto/storage/goog4_request",
+                                             "x-goog-algorithm":  "GOOG4-RSA-SHA256",
+                                             "policy":  "eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJtb3NhaWMtcHJvZHVjdGlvbi1zdG9yYWdlIn0seyJrZXkiOiJtb3NhaWMtbW90aW9uL3VzZXItdXBsb2Fkcy9mYmI0NzBjYy1jY2QzLTQ3M2ItYTMzNS1hOWQ4MDNkZjg3YzYvZmY5NWVlY2QtMGMzZS00ZjE4LTlhNDctMDU4NjcyMmMyNDA4L2ZpbmFuY2UtcmVwb3J0cy5qcGcifSxbImNvbnRlbnQtbGVuZ3RoLXJhbmdlIiwxLDUyNDI4ODAwXSx7ImJ1Y2tldCI6Im1vc2FpYy1wcm9kdWN0aW9uLXN0b3JhZ2UifSx7ImtleSI6Im1vc2FpYy1tb3Rpb24vdXNlci11cGxvYWRzL2ZiYjQ3MGNjLWNjZDMtNDczYi1hMzM1LWE5ZDgwM2RmODdjNi9mZjk1ZWVjZC0wYzNlLTRmMTgtOWE0Ny0wNTg2NzIyYzI0MDgvZmluYW5jZS1yZXBvcnRzLmpwZyJ9LHsieC1nb29nLWRhdGUiOiIyMDI2MTAwM1QxNDEwMDNaIn0seyJ4LWdvb2ctY3JlZGVudGlhbCI6Im1vc2FpYy1wcm9kdWN0aW9uLXJ1bnRpbWVAZnJhbWVjdXQuaWFtLmdzZXJ2aWNlYWNjb3VudC5jb20vMjAyNjEwMDMvYXV0by9zdG9yYWdlL2dvb2c0X3JlcXVlc3QifSx7IngtZ29vZy1hbGdvcml0aG0iOiJHT09HNC1SU0EtU0hBMjU2In1dLCJleHBpcmF0aW9uIjoiMjAyNi0xMC0wM1QxNToxMDowM1oifQ==",
+                                             "x-goog-signature":  "69d9795db8e317e79d03608a6edddd69853355ee9f1c101df270b6809c38558b18012bb37ffb7d974be4c8f285534e19d82f64cfdd463e48bfa403f86fddf87c171c225f0ad63614563d7b37c86b8022e1c1328a69395a22ae26d6e1f959797988476a1f6a17ed0052bcdcda4a367514d98a129d43929c61efd22453b60a80d52c0c927634c3e873cf1d46fd3b0489bce4ac78f7ca84d0a3d383397f3b3504ff854f739d1d2919694d9ec3817b4bd0bbd7ffedfd5cc32d776073e35aff2eac271ef913a2f7c9e4fc9a748b5d2f8b4a7b8fb74d1aef91a3323cac5ce8baca1d220c7e5b6ecf72273b96cdd63e85bad4576dd87f249f5b046cf5abff8fa197ff56"
+                                         },
+                       "attachment_url":  "https://storage.googleapis.com/mosaic-production-storage/mosaic-motion/user-uploads/fbb470cc-ccd3-473b-a335-a9d803df87c6/ff95eecd-0c3e-4f18-9a47-0586722c2408/finance-reports.jpg?X-Goog-Algorithm=GOOG4-RSA-SHA256\u0026X-Goog-Credential=mosaic-production-runtime%40framecut.iam.gserviceaccount.com%2F20261003%2Fauto%2Fstorage%2Fgoog4_request\u0026X-Goog-Date=20261003T141003Z\u0026X-Goog-Expires=604800\u0026X-Goog-SignedHeaders=host\u0026X-Goog-Signature=ad723b1fe4497b6f2dbb500123c5e0faa8bedca2aa5ce9fae4fed6a6c5e17902dd782965af74c551e4eb34cb7c316167e47bc2da96f991c2cdc3b28d5b3194e4569bbcda0e785a9b02c2f04b992c582c8954379fbda61a8d4109912f669e2f08d74b9f033cdd1b59d01dbe53c715404f157493fc5e85687d028c91c5b7d8f99815a0bfeb5def55b49118f41152108baf2e300f0b6124c95594d13774e31243a21a2e5461d67c20f699b56ceefa305fff9c7a52d96cace4cfb859d095591e95325b24984f690b78c8df1e7eb199634404530d10ddb5229c6e90cb270539d0edf21db67792b7bb53e1174b7e001bd8469258e1b0e822c0dbda4b550ca1d6912a40"
+                   },
+        "uploaded":  true
+    }
+]

@@ -1,6 +1,8 @@
+import { branchScoped } from "../utils/branchScope";
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IAuditLog extends Document {
+  entityId?: string; previousValue?: any; newValue?: any; actorUserId?: mongoose.Types.ObjectId;
   actorName: string;
   actorEmail: string;
   actorRole: string;
@@ -24,9 +26,11 @@ const AuditLogSchema = new Schema<IAuditLog>(
     resource: { type: String, default: "System" },
     ipAddress: { type: String, default: "127.0.0.1" },
     details: { type: String },
+    entityId: String, previousValue: Schema.Types.Mixed, newValue: Schema.Types.Mixed, actorUserId: {type:Schema.Types.ObjectId,ref:"User"},
   },
   { timestamps: true }
 );
 
+AuditLogSchema.plugin(branchScoped);
 export const AuditLog =
   mongoose.models.AuditLog || mongoose.model<IAuditLog>("AuditLog", AuditLogSchema);

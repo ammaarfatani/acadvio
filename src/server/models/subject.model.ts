@@ -1,3 +1,4 @@
+import { branchScoped } from "../utils/branchScope";
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface ISubject extends Document {
@@ -33,6 +34,7 @@ const SubjectSchema = new Schema<ISubject>(
 
 SubjectSchema.index({ schoolId: 1, classId: 1, name: 1 }, { unique: true });
 
+SubjectSchema.plugin(branchScoped);
 export const Subject = mongoose.models.Subject || mongoose.model<ISubject>("Subject", SubjectSchema);
 
 export interface ITimetableSlot extends Document {
@@ -72,5 +74,6 @@ const TimetableSlotSchema = new Schema<ITimetableSlot>(
   { timestamps: true }
 );
 
+TimetableSlotSchema.plugin(branchScoped);
 export const TimetableSlot =
   mongoose.models.TimetableSlot || mongoose.model<ITimetableSlot>("TimetableSlot", TimetableSlotSchema);

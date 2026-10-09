@@ -1,0 +1,43 @@
+[
+  {
+    "url": "http://localhost:3000/brand-editorial/classroom.webp",
+    "status": 200,
+    "contentType": "image/webp",
+    "bytes": 42748
+  },
+  {
+    "url": "http://localhost:3000/brand-editorial/learning-desk.webp",
+    "status": 200,
+    "contentType": "image/webp",
+    "bytes": 20886
+  },
+  {
+    "url": "http://localhost:3000/logo.png",
+    "status": 200,
+    "contentType": "image/png",
+    "bytes": 20771
+  },
+  {
+    "url": "http://localhost:3000/_next/image?url=%2Fbrand-editorial%2Fclassroom.webp&w=640&q=75",
+    "status": 200,
+    "contentType": "image/jpeg",
+    "bytes": 29115
+  },
+  {
+    "url": "http://localhost:3000/login",
+    "status": 200,
+    "contentType": "text/html; charset=utf-8",
+    "bytes": 26998,
+    "loginCompositionServed": true,
+    "classroomPathInHTML": true,
+    "stylesheets": [
+      {
+        "url": "/_next/static/css/app/layout.css?v=1791483474859",
+        "status": 200,
+        "loginStylePresent": true,
+        "moduleStylePresent": true,
+        "pageSpecificLayoutPresent": true
+      }
+    ]
+  }
+]

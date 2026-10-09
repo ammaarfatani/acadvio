@@ -1,0 +1,23 @@
+"use client";
+
+
+
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { schoolAdminApi } from "@/lib/schoolAdminApi";
+import { useAuth } from "@/lib/auth-context";
+
+const money = (amount: number) => `PKR ${Number(amount || 0).toLocaleString()}`;
+export default function SchoolFinanceDashboard() {
+  const { user } = useAuth(); const portalBase = user?.school?.slug ? `/${user.school.slug}/admin` : "/school-admin";
+  const [data, setData] = useState<any>(null); const [loading, setLoading] = useState(true); const [error, setError] = useState("");
+  const load = useCallback(async () => { setLoading(true); setError(""); try { const res = await schoolAdminApi.getFinanceSummary(); setData(res?.data || null); } catch (e: any) { setError(e?.message || "Unable to load finance summary."); } finally { setLoading(false); } }, []);
+  useEffect(() => { void load(); }, [load]);
+  const cards = [["Total fees", data?.totalFeesPKR], ["Collected", data?.collectedFeesPKR], ["Pending", data?.pendingFeesPKR], ["Overdue", data?.overdueFeesPKR], ["Collected today", data?.todayCollectionPKR], ["Collected this month", data?.monthCollectionPKR], ["Expenses", data?.totalExpensesPKR]];
+  return <div className="mx-auto max-w-7xl space-y-6 pb-12"><header className="flex flex-wrap items-end justify-between gap-3"><div><h1 className="text-2xl font-black">Fees & Finance</h1><p className="mt-1 text-sm text-zinc-500">Live totals from this school’s fee challans, payments, and expenses.</p></div><button onClick={() => void load()} disabled={loading} className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold">{loading ? "Refreshing…" : "Refresh"}</button></header>
+    {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+    {loading && !data ? <p role="status" className="rounded-xl bg-white p-6 text-sm text-zinc-500">Loading financial records…</p> : <><section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{cards.map(([label, value]) => <article key={String(label)} className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm"><p className="text-sm text-zinc-500">{label}</p><p className="mt-2 text-xl font-black">{money(value || 0)}</p></article>)}</section>
+    <section className="grid gap-4 lg:grid-cols-2"><article className="rounded-2xl border border-zinc-200 bg-white p-5"><h2 className="font-bold">Challan status</h2><div className="mt-4 grid grid-cols-3 gap-3 text-center"><div><p className="text-2xl font-bold">{data?.challans?.total || 0}</p><p className="text-xs text-zinc-500">Total</p></div><div><p className="text-2xl font-bold text-emerald-700">{data?.challans?.paid || 0}</p><p className="text-xs text-zinc-500">Paid</p></div><div><p className="text-2xl font-bold text-amber-700">{data?.challans?.pending || 0}</p><p className="text-xs text-zinc-500">Pending</p></div></div></article><article className="rounded-2xl border border-zinc-200 bg-white p-5"><h2 className="font-bold">Finance tasks</h2><div className="mt-4 flex flex-wrap gap-2">{[["Fee structures","finance/structures"],["Generate challans","finance/challans"],["Collect payment","finance/collection"],["Expenses","finance/expenses"],["Receipts","finance/receipts"]].map(([label,path]) => <Link key={path} href={`${portalBase}/${path}`} className="rounded-lg border border-zinc-200 px-3 py-2 text-sm font-semibold hover:bg-zinc-50">{label}</Link>)}</div></article></section>
+    <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white"><div className="border-b p-4"><h2 className="font-bold">Recent payment receipts</h2></div>{data?.receipts?.length ? <div className="overflow-x-auto"><table className="w-full min-w-[650px] text-left text-sm"><thead className="bg-zinc-50 text-xs uppercase text-zinc-500"><tr><th className="p-3">Receipt</th><th className="p-3">Student</th><th className="p-3">Class</th><th className="p-3">Date</th><th className="p-3">Method</th><th className="p-3">Amount</th></tr></thead><tbody>{data.receipts.slice(0, 10).map((item: any) => <tr key={item._id} className="border-t"><td className="p-3 font-mono">{item.receiptNumber}</td><td className="p-3">{item.studentName}<div className="text-xs text-zinc-500">{item.rollNumber}</div></td><td className="p-3">{item.className}</td><td className="p-3">{new Date(item.paidAt).toLocaleDateString()}</td><td className="p-3">{item.paymentMethod}</td><td className="p-3 font-semibold">{money(item.amountPKR)}</td></tr>)}</tbody></table></div> : <p className="p-8 text-center text-sm text-zinc-500">No payment receipts yet. Receipts appear after recording a real payment.</p>}</section></>}
+  </div>;
+}

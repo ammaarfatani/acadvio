@@ -1,3 +1,8 @@
+import workforceRoutes from "./workforce.routes";
+import documentRoutes from "./document.routes";
+import organizationRoutes from "./organization.routes";
+import parentRoutes from "./parent.routes";
+import noticeRoutes from "./notice.routes";
 import { Router } from "express";
 import workspaceRoutes from "./workspace.routes";
 import authRoutes from "./auth.routes";
@@ -14,7 +19,12 @@ import examRoutes from "./exam.routes";
 import receptionistRoutes from "./receptionist.routes";
 
 const router = Router();
+router.use("/workforce", workforceRoutes);
 
+router.use("/organization", organizationRoutes);
+router.use("/documents", documentRoutes);
+router.use("/parent", parentRoutes);
+router.use("/notices", noticeRoutes);
 router.use("/workspace", workspaceRoutes);
 router.use("/public", publicRoutes);
 router.use("/auth", authRoutes);

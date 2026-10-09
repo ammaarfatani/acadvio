@@ -1,8 +1,10 @@
+import { branchScoped } from "../utils/branchScope";
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IExamSchedule extends Document {
   schoolId: mongoose.Types.ObjectId;
   title: string;
+  term?: "MID_TERM"|"FINAL_TERM";
   academicSessionId?: mongoose.Types.ObjectId;
   academicSessionName?: string;
   classes: string[];
@@ -20,6 +22,7 @@ const ExamScheduleSchema = new Schema<IExamSchedule>(
   {
     schoolId: { type: Schema.Types.ObjectId, ref: "School", required: true, index: true },
     title: { type: String, required: true },
+    term:{type:String,enum:["MID_TERM","FINAL_TERM"]},
     academicSessionId: { type: Schema.Types.ObjectId, ref: "AcademicSession" },
     academicSessionName: { type: String },
     classes: [{ type: String }],
@@ -38,6 +41,7 @@ const ExamScheduleSchema = new Schema<IExamSchedule>(
   { timestamps: true }
 );
 
+ExamScheduleSchema.plugin(branchScoped);
 export const ExamSchedule =
   mongoose.models.ExamSchedule || mongoose.model<IExamSchedule>("ExamSchedule", ExamScheduleSchema);
 
@@ -74,6 +78,7 @@ const GradingScaleSchema = new Schema<IGradingScale>(
   { timestamps: true }
 );
 
+GradingScaleSchema.plugin(branchScoped);
 export const GradingScale =
   mongoose.models.GradingScale || mongoose.model<IGradingScale>("GradingScale", GradingScaleSchema);
 
@@ -134,6 +139,7 @@ const MarksEntrySchema = new Schema<IMarksEntry>(
 
 MarksEntrySchema.index({ schoolId: 1, examId: 1, classId: 1, subjectId: 1 }, { unique: true });
 
+MarksEntrySchema.plugin(branchScoped);
 export const MarksEntry = mongoose.models.MarksEntry || mongoose.model<IMarksEntry>("MarksEntry", MarksEntrySchema);
 
 export interface IProcessedResult extends Document {
@@ -150,19 +156,21 @@ export interface IProcessedResult extends Document {
     subjectId: mongoose.Types.ObjectId;
     subjectName: string;
     maxMarks: number;
-    obtainedMarks: number;
+    obtainedMarks: number|null;
+    isAbsent?:boolean;
     grade: string;
     remarks?: string;
   }>;
   totalMaxMarks: number;
   totalObtainedMarks: number;
-  percentage: number;
+  percentage: number|null;
   overallGrade: string;
   rank?: number;
-  status: "PASSED" | "PROMOTED" | "FAILED";
+  status: "PASSED" | "PROMOTED" | "FAILED" | "PENDING";
   attendancePercentage?: number;
   teacherRemarks?: string;
   isPublished: boolean;
+  needsProcessing?: boolean;
   publishedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -184,20 +192,22 @@ const ProcessedResultSchema = new Schema<IProcessedResult>(
         subjectId: { type: Schema.Types.ObjectId, ref: "Subject" },
         subjectName: { type: String, required: true },
         maxMarks: { type: Number, required: true },
-        obtainedMarks: { type: Number, required: true },
+        obtainedMarks: { type: Number, default: null },
+        isAbsent:{type:Boolean,default:false},
         grade: { type: String, required: true },
         remarks: { type: String },
       },
     ],
     totalMaxMarks: { type: Number, required: true },
     totalObtainedMarks: { type: Number, required: true },
-    percentage: { type: Number, required: true },
+    percentage: { type: Number, default: null },
     overallGrade: { type: String, required: true },
     rank: { type: Number },
-    status: { type: String, enum: ["PASSED", "PROMOTED", "FAILED"], required: true },
+    status: { type: String, enum: ["PASSED", "PROMOTED", "FAILED", "PENDING"], required: true },
     attendancePercentage: { type: Number },
     teacherRemarks: { type: String },
     isPublished: { type: Boolean, default: false },
+    needsProcessing:{type:Boolean,default:false},
     publishedAt: { type: Date },
   },
   { timestamps: true }
@@ -205,6 +215,7 @@ const ProcessedResultSchema = new Schema<IProcessedResult>(
 
 ProcessedResultSchema.index({ schoolId: 1, examId: 1, studentId: 1 }, { unique: true });
 
+ProcessedResultSchema.plugin(branchScoped);
 export const ProcessedResult =
   mongoose.models.ProcessedResult || mongoose.model<IProcessedResult>("ProcessedResult", ProcessedResultSchema);
 
@@ -249,5 +260,11 @@ const CertificateRecordSchema = new Schema<ICertificateRecord>(
   { timestamps: true }
 );
 
+CertificateRecordSchema.plugin(branchScoped);
 export const CertificateRecord =
   mongoose.models.CertificateRecord || mongoose.model<ICertificateRecord>("CertificateRecord", CertificateRecordSchema);
+
+const ExamTimetableSchema=new Schema({schoolId:{type:Schema.Types.ObjectId,ref:"School",required:true},examId:{type:Schema.Types.ObjectId,ref:"ExamSchedule",required:true},classId:{type:Schema.Types.ObjectId,ref:"ClassModel",required:true},sectionId:{type:Schema.Types.ObjectId,ref:"SectionModel",required:true},subjectId:{type:Schema.Types.ObjectId,ref:"Subject",required:true},supervisorId:{type:Schema.Types.ObjectId,ref:"User"},date:{type:String,required:true},startTime:{type:String,required:true},endTime:{type:String,required:true},room:{type:String,maxlength:80}},{timestamps:true});
+ExamTimetableSchema.index({schoolId:1,examId:1,sectionId:1,subjectId:1},{unique:true});
+ExamTimetableSchema.plugin(branchScoped);
+export const ExamTimetable=mongoose.models.ExamTimetable||mongoose.model("ExamTimetable",ExamTimetableSchema);

@@ -1,5 +1,7 @@
 "use client";
 
+
+
 import { useCallback, useEffect, useState } from "react";
 import { Printer, Search } from "lucide-react";
 import { schoolAdminApi } from "@/lib/schoolAdminApi";

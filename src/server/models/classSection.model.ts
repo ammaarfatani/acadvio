@@ -1,3 +1,4 @@
+import { branchScoped } from "../utils/branchScope";
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IClass extends Document {
@@ -23,8 +24,9 @@ const ClassSchema = new Schema<IClass>(
   { timestamps: true }
 );
 
-ClassSchema.index({ schoolId: 1, name: 1 }, { unique: true });
+ClassSchema.index({ schoolId: 1, branchId: 1, name: 1 }, { unique: true });
 
+ClassSchema.plugin(branchScoped);
 export const ClassModel =
   mongoose.models.ClassModel ||
   mongoose.models.Class ||
@@ -63,6 +65,7 @@ const SectionSchema = new Schema<ISection>(
 
 SectionSchema.index({ schoolId: 1, classId: 1, name: 1 }, { unique: true });
 
+SectionSchema.plugin(branchScoped);
 export const SectionModel =
   mongoose.models.SectionModel ||
   mongoose.models.Section ||

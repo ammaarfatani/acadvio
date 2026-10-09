@@ -1,19 +1,29 @@
 "use client";
+import {Presence} from "@/components/Motion";
+import {PageHeading} from "@/components/ProductUI";
+
+
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Briefcase, Plus, Search, X, Eye, Edit } from "lucide-react";
 import Link from "next/link";
+import {apiFetch} from "@/lib/api";
+import {Text,Select} from "@/components/WorkforceUI";
 import { schoolAdminApi } from "@/lib/schoolAdminApi";
 import { TeacherHistoryModal } from "@/components/TeacherHistoryModal";
 
 type AssignmentDraft = { academicSessionId: string; classId: string; sectionId: string; subjectId: string; sections: any[]; subjects: any[] };
 const newAssignment = (academicSessionId = ""): AssignmentDraft => ({ academicSessionId, classId: "", sectionId: "", subjectId: "", sections: [], subjects: [] });
 
+import { BulkImportModal } from "@/components/BulkImportModal";
+
 export default function TeachersPage() {
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [teachers, setTeachers] = useState<any[]>([]);
+  const [departments,setDepartments]=useState<any[]>([]);const [employmentForm,setEmploymentForm]=useState({department:"",joiningDate:"",salary:""});
   const [classes, setClasses] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState("");const [statusFilter,setStatusFilter]=useState(""),[departmentFilter,setDepartmentFilter]=useState(""),[page,setPage]=useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -35,6 +45,7 @@ export default function TeachersPage() {
         schoolAdminApi.getAcademicSessions(),
       ]);
       setTeachers(teacherRes?.data || []);
+      try{setDepartments((await apiFetch("/workforce/departments/initialize",{method:"POST",body:"{}"})).data);}catch{}
       setClasses(classRes?.data || []);
       setSessions(sessionRes?.data || []);
     } catch (e: any) {
@@ -49,7 +60,7 @@ export default function TeachersPage() {
   }, [load]);
 
   const reset = () => {
-    setEditing(null);
+    setEditing(null);setEmploymentForm({department:"",joiningDate:"",salary:""});
     setForm({ name: "", email: "", password: "", qualification: "", employeeId: "", phone: "" });
     setAssignments([]);
     setModalOpen(false);
@@ -86,8 +97,7 @@ export default function TeachersPage() {
       phone: teacher.profile?.phone || "",
     });
     setAssignments(
-      (teacher.assignments || [])
-        .filter((a: any) => a.status === "ACTIVE")
+      (teacher.classAssignments || [])
         .map((a: any) => ({
           academicSessionId: a.academicSessionId?._id || "",
           classId: a.classId?._id || "",
@@ -105,7 +115,7 @@ export default function TeachersPage() {
     setSaving(true);
     setError("");
     setNotice("");
-    const cleanAssignments = assignments.filter((a) => a.academicSessionId && a.classId && a.sectionId && a.subjectId).map(({ sections, subjects, ...a }) => a);
+    const cleanAssignments = assignments.filter((a) => a.academicSessionId && a.classId && a.sectionId).map(({academicSessionId,classId,sectionId})=>({academicSessionId,classId,sectionId}));
     try {
       if (editing) {
         await schoolAdminApi.updateTeacher(editing._id, {
@@ -113,12 +123,12 @@ export default function TeachersPage() {
           qualification: form.qualification,
           employeeId: form.employeeId || undefined,
           phone: form.phone || undefined,
-          assignments: cleanAssignments,
+          classAssignments: cleanAssignments,
         });
-        setNotice("Teacher and teaching assignments updated.");
+        setNotice("Teacher and assigned classes updated.");
       } else {
-        await schoolAdminApi.createTeacher({ ...form, assignments: cleanAssignments });
-        setNotice("Teacher account and assignments created.");
+        await schoolAdminApi.createTeacher({ ...form,...(employmentForm.department?{department:employmentForm.department,joiningDate:employmentForm.joiningDate||undefined,salary:employmentForm.salary===""?undefined:Number(employmentForm.salary)}:{}), classAssignments: cleanAssignments });
+        setNotice("Teacher account and assigned classes created.");
       }
       reset();
       await load();
@@ -141,17 +151,13 @@ export default function TeachersPage() {
     }
   }
 
-  const filtered = teachers.filter((t) => `${t.name} ${t.email} ${t.profile?.employeeId || ""}`.toLowerCase().includes(search.toLowerCase()));
+  const filtered = teachers.filter((t) => (!statusFilter||t.status===statusFilter)&&(!departmentFilter||t.employment?.department===departmentFilter)&& `${t.name} ${t.email} ${t.profile?.employeeId || ""}`.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 pb-12 text-zinc-900 font-sans">
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-zinc-200 pb-5">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-school-primary">Faculty Directory</p>
-          <h1 className="mt-1 text-3xl font-black tracking-tight">Teachers & Teaching Workload</h1>
-          <p className="mt-1 text-sm text-zinc-500">Teacher accounts, qualifications, and session-specific teaching assignments.</p>
-        </div>
-        <div className="flex gap-2">
+      <Presence show={Boolean(bulkOpen)} kind="modal">{bulkOpen && <BulkImportModal entity="teachers" onClose={() => setBulkOpen(false)} onImported={load} />}</Presence>
+      <PageHeading eyebrow="School directory" title="Teachers & assigned classes" description="Teacher accounts, contact information and class responsibilities." actions={<div className="flex flex-wrap gap-2">
+          <button onClick={() => setBulkOpen(true)} className="rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-xs font-bold text-zinc-800">Bulk Upload</button>
           <Link href="/school-admin/teachers/leave-requests" className="rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-xs font-bold text-zinc-800 hover:bg-zinc-50 shadow-xs">
             Leave Requests
           </Link>
@@ -166,13 +172,12 @@ export default function TeachersPage() {
           >
             <Plus size={16} /> Add New Teacher
           </button>
-        </div>
-      </header>
+        </div>}/>
 
       {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
       {notice && <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs">
+      <div className="ui-data-toolbar flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs">
         <div className="relative min-w-64 flex-1">
           <Search className="absolute left-3 top-2.5 text-zinc-400" size={16} />
           <input
@@ -182,7 +187,7 @@ export default function TeachersPage() {
             className="w-full rounded-xl border border-zinc-200 bg-zinc-50 py-2 pl-9 pr-3 text-xs outline-none focus:border-school-primary"
           />
         </div>
-        <span className="text-xs font-bold text-zinc-500">{filtered.length} Teachers Registered</span>
+        <label className="grid gap-1 text-xs font-semibold">Status<select className="rounded-lg border p-2" value={statusFilter} onChange={e=>{setStatusFilter(e.target.value);setPage(1);}}><option value="">All statuses</option>{["ACTIVE","INACTIVE","DEACTIVATED"].map(s=><option key={s}>{s}</option>)}</select></label><label className="grid gap-1 text-xs font-semibold">Department<select className="rounded-lg border p-2" value={departmentFilter} onChange={e=>{setDepartmentFilter(e.target.value);setPage(1);}}><option value="">All departments</option>{Array.from(new Set(teachers.map(t=>t.employment?.department).filter(Boolean))).map(d=><option key={d}>{d}</option>)}</select></label><span className="text-xs font-bold text-zinc-500">{filtered.length} Teachers Registered</span>
       </div>
 
       {loading ? (
@@ -191,7 +196,7 @@ export default function TeachersPage() {
         </p>
       ) : filtered.length ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((teacher) => (
+          {filtered.slice((Math.min(page,Math.max(1,Math.ceil(filtered.length/18)))-1)*18,Math.min(page,Math.max(1,Math.ceil(filtered.length/18)))*18).map((teacher) => (
             <article key={teacher._id} className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs hover:border-zinc-300 transition-all flex flex-col justify-between">
               <div className="space-y-4">
                 <div className="flex items-start justify-between gap-3">
@@ -212,25 +217,26 @@ export default function TeachersPage() {
                 </div>
 
                 <div className="space-y-1 text-xs">
-                  <p><span className="text-zinc-500 font-medium">Qualification:</span> <strong className="text-zinc-900">{teacher.profile?.qualification || "Not provided"}</strong></p>
-                  <p><span className="text-zinc-500 font-medium">Employee ID:</span> <strong className="text-zinc-900 font-mono">{teacher.profile?.employeeId || "—"}</strong></p>
-                  <p><span className="text-zinc-500 font-medium">Phone:</span> <strong className="text-zinc-900 font-mono">{teacher.profile?.phone || "—"}</strong></p>
+                  <p><span className="text-zinc-500 font-medium">Department:</span> <strong>{teacher.employment?.department||"Not configured"}</strong></p><p><span className="text-zinc-500 font-medium">Joining date:</span> <strong>{teacher.employment?.joiningDate||"Not recorded"}</strong></p><p><span className="text-zinc-500 font-medium">Qualification:</span> <strong className="text-zinc-900">{teacher.profile?.qualification || "Not provided"}</strong></p>
+                  <p><span className="text-zinc-500 font-medium">Employee ID:</span> <strong className="text-zinc-900 font-mono">{teacher.profile?.employeeId || teacher.employment?.employeeId || "—"}</strong></p>
+                  <p><span className="text-zinc-500 font-medium">Phone:</span> <strong className="text-zinc-900 font-mono">{teacher.profile?.phone || teacher.employment?.phone || "—"}</strong></p>
                 </div>
 
                 <div className="border-t border-zinc-100 pt-3 space-y-1.5">
-                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Teaching Assignments</h3>
-                  {teacher.assignments?.length ? (
+                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Assigned Classes</h3>
+                  {teacher.classAssignments?.length ? (
                     <ul className="space-y-1 text-xs">
-                      {teacher.assignments.map((a: any) => (
+                      {teacher.classAssignments.map((a: any) => (
                         <li key={a._id} className="flex flex-wrap justify-between gap-x-2 bg-zinc-50 p-2 rounded-lg text-zinc-800">
-                          <span className="font-bold">{a.classId?.name} · {a.sectionId?.name} · {a.subjectId?.name}</span>
+                          <span className="font-bold">{a.classId?.name} · {a.sectionId?.name}</span>
                           <span className="text-[10px] text-zinc-500 font-mono">{a.academicSessionId?.name}</span>
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-xs text-zinc-400 italic">No teaching assignments in active session.</p>
+                    <p className="text-xs text-zinc-400 italic">No assigned classes yet.</p>
                   )}
+                  {teacher.assignments?.length>0&&<details className="mt-3 rounded-lg border border-zinc-100 bg-zinc-50 p-3 text-xs text-zinc-600"><summary className="cursor-pointer font-medium">Subject duties: {Array.from(new Set(teacher.assignments.map((a:any)=>a.subjectId?.name).filter(Boolean))).join(", ")} · {teacher.assignments.length} allocations</summary><ul className="mt-3 max-h-40 space-y-2 overflow-y-auto">{teacher.assignments.map((a:any)=><li key={a._id}>{[a.subjectId?.name,a.classId?.name,a.sectionId?.name].filter(Boolean).join(" · ")}</li>)}</ul></details>}
                 </div>
               </div>
 
@@ -263,13 +269,14 @@ export default function TeachersPage() {
       )}
 
       {/* EDIT MODAL */}
-      {modalOpen && (
+      {filtered.length>18&&<div className="flex items-center justify-end gap-3 text-sm"><button disabled={page<=1} onClick={()=>setPage(Math.max(1,page-1))} className="rounded-lg border px-3 py-2">Previous</button><span>Page {Math.min(page,Math.ceil(filtered.length/18))} of {Math.ceil(filtered.length/18)}</span><button disabled={page>=Math.ceil(filtered.length/18)} onClick={()=>setPage(page+1)} className="rounded-lg border px-3 py-2">Next</button></div>}
+      <Presence show={Boolean(modalOpen)} kind="modal">{modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-zinc-950/50 p-3 sm:p-6">
           <form onSubmit={save} className="my-auto max-h-[95vh] w-full max-w-3xl space-y-5 overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xl sm:p-7">
             <div className="flex items-start justify-between">
               <div>
                 <h2 className="text-xl font-black">{editing ? "Edit Teacher Account" : "Add New Teacher"}</h2>
-                <p className="mt-1 text-xs text-zinc-500">Authentication credentials and teaching assignments profile.</p>
+                <p className="mt-1 text-xs text-zinc-500">Account credentials, contact information and assigned classes.</p>
               </div>
               <button type="button" onClick={reset} aria-label="Close teacher form">
                 <X size={20} />
@@ -279,16 +286,16 @@ export default function TeachersPage() {
             <div className="grid gap-3 sm:grid-cols-2 text-xs">
               <label className="grid gap-1 font-semibold text-zinc-700">
                 Full Name *
-                <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="rounded-lg border border-zinc-200 px-3 py-2 text-xs font-medium" />
+                <input required placeholder="Enter full name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="rounded-lg border border-zinc-200 px-3 py-2 text-xs font-medium" />
               </label>
               <label className="grid gap-1 font-semibold text-zinc-700">
                 Work Email *
-                <input required type="email" disabled={Boolean(editing)} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="rounded-lg border border-zinc-200 px-3 py-2 text-xs font-mono disabled:bg-zinc-100" />
+                <input required type="email" disabled={Boolean(editing)} placeholder="Enter work email address" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="rounded-lg border border-zinc-200 px-3 py-2 text-xs font-mono disabled:bg-zinc-100" />
               </label>
               {!editing && (
                 <label className="grid gap-1 font-semibold text-zinc-700">
                   Temporary Password *
-                  <input required minLength={8} type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="rounded-lg border border-zinc-200 px-3 py-2 text-xs font-mono" />
+                  <input required minLength={8} type="password" placeholder="Create a password (at least 8 characters)" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="rounded-lg border border-zinc-200 px-3 py-2 text-xs font-mono" />
                 </label>
               )}
               <label className="grid gap-1 font-semibold text-zinc-700">
@@ -305,35 +312,33 @@ export default function TeachersPage() {
               </label>
             </div>
 
+            {!editing&&<section className="grid gap-3 rounded-xl border bg-zinc-50 p-4 sm:grid-cols-3"><Select label="Department" value={employmentForm.department} required={departments.length>0} options={departments.map(d=>d.name)} onChange={(department:string)=>setEmploymentForm({...employmentForm,department})}/><Text label="Joining date" required={!!employmentForm.department} type="date" value={employmentForm.joiningDate} onChange={(joiningDate:string)=>setEmploymentForm({...employmentForm,joiningDate})}/><Text label="Monthly salary (PKR, optional)" required={false} type="number" min="0" placeholder="Enter monthly salary" value={employmentForm.salary} onChange={(salary:string)=>setEmploymentForm({...employmentForm,salary})}/>{!departments.length&&<p className="text-xs text-zinc-500 sm:col-span-3">Set up departments in Staff & roles to include employment details here.</p>}</section>}
             <section className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-bold text-xs uppercase tracking-wider text-zinc-700">Teaching Assignments</h3>
-                  <p className="text-[11px] text-zinc-500">Record session-specific class, section, and subject duties.</p>
+                  <h3 className="font-bold text-xs uppercase tracking-wider text-zinc-700">Assigned Classes</h3>
+                  <p className="text-[11px] text-zinc-500">Choose a session, class and section. Subject allocations remain in Subjects.</p>
                 </div>
                 <button type="button" onClick={() => setAssignments((rows) => [...rows, newAssignment(sessions.find((s) => s.isCurrent)?._id || "")])} className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-bold text-zinc-800 hover:bg-zinc-50">
-                  + Add Subject Duty
+                  + Assign Class
                 </button>
               </div>
               {assignments.map((a, index) => (
                 <div key={index} className="grid gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 sm:grid-cols-2 lg:grid-cols-4 text-xs">
-                  <select required value={a.academicSessionId} onChange={(e) => void updateAssignment(index, "academicSessionId", e.target.value)} className="rounded-lg border bg-white px-2 py-2">
+                  <label className="grid gap-1">Academic session<select required value={a.academicSessionId} onChange={(e) => void updateAssignment(index, "academicSessionId", e.target.value)} className="rounded-lg border bg-white px-2 py-2">
                     <option value="">Select Session</option>
                     {sessions.map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}
-                  </select>
-                  <select required value={a.classId} onChange={(e) => void updateAssignment(index, "classId", e.target.value)} className="rounded-lg border bg-white px-2 py-2 font-bold">
+                  </select></label>
+                  <label className="grid gap-1">Class<select required value={a.classId} onChange={(e) => void updateAssignment(index, "classId", e.target.value)} className="rounded-lg border bg-white px-2 py-2 font-bold">
                     <option value="">Select Class</option>
                     {classes.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
-                  </select>
-                  <select required value={a.sectionId} onChange={(e) => void updateAssignment(index, "sectionId", e.target.value)} className="rounded-lg border bg-white px-2 py-2">
+                  </select></label>
+                  <label className="grid gap-1">Section<select required value={a.sectionId} onChange={(e) => void updateAssignment(index, "sectionId", e.target.value)} className="rounded-lg border bg-white px-2 py-2">
                     <option value="">Select Section</option>
                     {a.sections.map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}
-                  </select>
+                  </select></label>
                   <div className="flex gap-2">
-                    <select required value={a.subjectId} onChange={(e) => void updateAssignment(index, "subjectId", e.target.value)} className="min-w-0 flex-1 rounded-lg border bg-white px-2 py-2 font-bold">
-                      <option value="">Select Subject</option>
-                      {a.subjects.map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}
-                    </select>
+                    
                     <button type="button" onClick={() => setAssignments((rows) => rows.filter((_, i) => i !== index))} className="rounded-lg border border-zinc-200 bg-white px-2 text-zinc-500 hover:text-red-600">
                       <X size={16} />
                     </button>
@@ -352,16 +357,16 @@ export default function TeachersPage() {
             </div>
           </form>
         </div>
-      )}
+      )}</Presence>
 
       {/* TEACHER HISTORY MODAL */}
-      {viewHistoryId && (
+      <Presence show={Boolean(viewHistoryId)} kind="modal">{viewHistoryId && (
         <TeacherHistoryModal
           teacherId={viewHistoryId}
           isOpen={!!viewHistoryId}
           onClose={() => setViewHistoryId(null)}
         />
-      )}
+      )}</Presence>
     </div>
   );
 }

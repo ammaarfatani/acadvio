@@ -1,0 +1,114 @@
+[
+  {
+    "route": "/",
+    "httpStatus": 200,
+    "stockPhotoReference": false,
+    "realPricingSection": true
+  },
+  {
+    "route": "/features",
+    "httpStatus": 200,
+    "stockPhotoReference": false
+  },
+  {
+    "route": "/pricing",
+    "httpStatus": 200,
+    "stockPhotoReference": false
+  },
+  {
+    "route": "/about",
+    "httpStatus": 200,
+    "stockPhotoReference": false
+  },
+  {
+    "route": "/contact",
+    "httpStatus": 200,
+    "stockPhotoReference": false
+  },
+  {
+    "route": "/demo",
+    "httpStatus": 200,
+    "stockPhotoReference": false
+  },
+  {
+    "route": "/login",
+    "httpStatus": 200,
+    "stockPhotoReference": false,
+    "realProductFrame": true
+  },
+  {
+    "route": "/free-trial",
+    "httpStatus": 200,
+    "stockPhotoReference": false
+  },
+  {
+    "route": "/forgot-password",
+    "httpStatus": 200,
+    "stockPhotoReference": false
+  },
+  {
+    "route": "/reset-password",
+    "httpStatus": 200,
+    "stockPhotoReference": false
+  },
+  {
+    "route": "/payment?plan=STARTER&billingCycle=monthly",
+    "httpStatus": 200,
+    "stockPhotoReference": false
+  },
+  {
+    "route": "/super-admin",
+    "httpStatus": 200,
+    "stockPhotoReference": false
+  },
+  {
+    "route": "/school-admin",
+    "httpStatus": 200,
+    "stockPhotoReference": false
+  },
+  {
+    "route": "/teacher",
+    "httpStatus": 200,
+    "stockPhotoReference": false
+  },
+  {
+    "route": "/finance",
+    "httpStatus": 200,
+    "stockPhotoReference": false
+  },
+  {
+    "route": "/exam-staff",
+    "httpStatus": 200,
+    "stockPhotoReference": false
+  },
+  {
+    "route": "/receptionist",
+    "httpStatus": 200,
+    "stockPhotoReference": false
+  },
+  {
+    "route": "/parent",
+    "httpStatus": 200,
+    "stockPhotoReference": false
+  },
+  {
+    "route": "/school-admin/students",
+    "httpStatus": 200,
+    "stockPhotoReference": false
+  },
+  {
+    "route": "/school-admin/teachers",
+    "httpStatus": 200,
+    "stockPhotoReference": false
+  },
+  {
+    "route": "/school-admin/payroll",
+    "httpStatus": 200,
+    "stockPhotoReference": false
+  },
+  {
+    "route": "/aptechinternationalinstitute/login",
+    "httpStatus": 200,
+    "stockPhotoReference": false
+  }
+]

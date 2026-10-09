@@ -1,0 +1,32 @@
+"use client";
+import type { ReactNode } from "react";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { moduleDesign, moduleLayout } from "@/lib/module-design";
+import { useAuth } from "@/lib/auth-context";
+const labels = {overview:"SCHOOL WORKSPACE",people:"PEOPLE & LEARNING",finance:"FINANCIAL OPERATIONS",attendance:"TIME & PRESENCE",academic:"ACADEMIC OPERATIONS",analytics:"REPORTS & INSIGHT",communication:"SCHOOL COMMUNICATION",settings:"WORKSPACE CONTROLS"};
+type Summary = {label:string;value:ReactNode}[];
+function RecordSummary({items}:{items:Summary}) {
+ return <dl className="module-live-summary">{items.map(item=><div key={item.label}><dt>{item.label}</dt><dd>{item.value}</dd></div>)}</dl>;
+}
+export default function ModuleFrame({children,summary}:{children:ReactNode;summary?:Summary}) {
+ const path=usePathname(),kind=moduleDesign(path),layout=moduleLayout(path);
+ const {user}=useAuth();const [today,setToday]=useState("");
+ useEffect(()=>{setToday(new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Karachi",day:"2-digit",month:"long",year:"numeric"}).format(new Date()));},[]);
+ const photo=layout==="academic-desk"?"learning-desk":layout==="student-directory"||layout==="faculty-directory"||layout==="overview"?"classroom":null;
+ const ledger=layout==="finance-ledger";
+ return <section className="module-frame" data-design={kind} data-layout={layout}>
+  <div className="module-frame-content">
+   <div className="module-caption"><span>{labels[kind]}</span><span className="truncate">{user?.school?.name||"Acadivo platform"}</span></div>
+   {children}
+   {!ledger&&summary&&summary.length>0&&<RecordSummary items={summary}/>}
+  </div>
+  {layout!=="compact"&&<aside className="module-editorial" aria-label="Module context">
+   {photo?<><Image src={"/brand-editorial/"+photo+".webp"} alt="" fill sizes="(max-width: 767px) 1px, 280px"/><span className="module-photo-credit">Photo: {photo==="classroom"?"Quilia":"Element5 Digital"} / Unsplash</span></>
+    :ledger?<><span className="module-editorial-label">COLLECTION SNAPSHOT</span>{summary&&summary.length>0?<RecordSummary items={summary}/>:<p className="module-context-copy">Fee records and verified collections</p>}</>
+    :layout==="attendance-date"?<><span className="module-editorial-label">TODAY · ASIA/KARACHI</span><p>{today||"Daily attendance"}</p></>
+    :<><span className="module-editorial-label">REPORT WORKSPACE</span><p className="module-context-copy">Review recorded activity, then use the page controls to select your reporting period.</p></>}
+  </aside>}
+ </section>;
+}

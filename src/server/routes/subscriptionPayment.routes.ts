@@ -85,7 +85,7 @@ router.patch("/:id/review", requireSuperAdmin, async (req, res, next) => {
     let notified = false;
     try {
       const user = await User.findById(reviewed.userId).select("email");
-      if (user) notified = await sendEmailNotification({ to: user.email, subject: "Subscription payment "+input.status.toLowerCase(), text: input.status === "APPROVED" ? "Your payment is approved and your existing school CRM account is active. Sign in with your existing credentials." : "Your payment was rejected: "+input.rejectionReason+". Sign in to submit new payment proof." });
+      if (user) notified = await sendEmailNotification({ to: user.email, subject: "Subscription payment "+input.status.toLowerCase(), text: input.status === "APPROVED" ? "Your payment has been approved. Your Acadivo school account is now ready. Please log in with your existing credentials to continue setup." : "Your payment was rejected: "+input.rejectionReason+". Sign in to submit new payment proof." });
     } catch { console.error("[Payment review] Notification delivery unavailable; review remains saved."); }
     return sendSuccess(res, { status: input.status, emailSent: notified }, "Payment "+input.status.toLowerCase()+"."+ (notified ? " Notification sent." : " Email delivery unavailable; status is visible on the payment page."));
   } catch (e: any) {

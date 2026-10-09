@@ -1,0 +1,23 @@
+{
+  "tag": "APTECH-DEMO-2026",
+  "school": "Aptech International Institute",
+  "completedAt": "2026-10-06T19:38:24.960Z",
+  "counts": {
+    "students": 50,
+    "parents": 50,
+    "teachers": 10,
+    "classes": 10,
+    "sections": 20,
+    "subjects": 80,
+    "timetableLessons": 960,
+    "examPapers": 320,
+    "feeInvoices": 42,
+    "feePayments": 26,
+    "payroll": 10
+  },
+  "synthetic": true,
+  "realMoneyTransferred": false,
+  "emailsSent": 0,
+  "privateCredentialsFile": "demo-credentials.private.json",
+  "note": "Compressed synthetic examination cycle for demo; no official curriculum claim. Existing records preserved."
+}

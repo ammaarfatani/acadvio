@@ -1,53 +1,5 @@
-import { PricingTable } from "@/components/PricingTable";
-import { CTASection } from "@/components/CTASection";
-import { ShieldCheck, CheckCircle2 } from "lucide-react";
-
-export const metadata = {
-  title: "Pricing Plans (PKR) — Acadivo",
-  description:
-    "Transparent pricing for Acadivo School Management & ERP SaaS. Starter (PKR 4,999), Professional (PKR 9,999), Enterprise (PKR 19,999). Pay by bank transfer with manual payment verification.",
-};
-
-export default function PricingPage() {
-  return (
-    <div className="space-y-16 pb-16">
-      
-      {/* Header */}
-      <section className="bg-zinc-950 text-white py-16 sm:py-20 border-b border-zinc-800 relative overflow-hidden">
-        <div className="bg-grid-pattern absolute inset-0 opacity-20 pointer-events-none"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10 space-y-4">
-          <span className="inline-flex items-center gap-2 bg-red-950 text-red-400 border border-red-800 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider">
-            Simple & Transparent Licensing
-          </span>
-          <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-white">
-            Simple, Predictable School ERP Pricing
-          </h1>
-          <p className="text-zinc-400 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
-            Choose the plan that fits your school size. Pay by bank transfer and submit your screenshot for subscription activation.
-          </p>
-
-          <div className="pt-2 flex items-center justify-center gap-6 text-xs text-zinc-400">
-            <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              Billed in Pakistani Rupees (PKR)
-            </span>
-            <span className="flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-red-400" />
-              No hidden setup or installation fees
-            </span>
-          </div>
-        </div>
-      </section>
-
-      {/* Main Pricing Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <PricingTable />
-      </section>
-
-      {/* Bottom CTA */}
-      <CTASection />
-
-    </div>
-  );
-}
-
+import {PricingTable} from "@/components/PricingTable";
+import {CTASection} from "@/components/CTASection";
+import {Workflow} from "@/components/Marketing";
+export const metadata={title:"Pricing Plans (PKR) — Acadivo",description:"Compare current Acadivo school subscription plans. Bank transfer and manual payment verification."};
+export default function PricingPage(){return <div className="m-pricing"><section className="m-pricing-hero"><div className="m-wrap"><p className="m-eyebrow">Pricing / A plan for your school</p><div className="m-pricing-title"><h1>Start with what<br/>your school <em>needs.</em></h1><div><p className="m-lead">Choose your plan and billing cycle. Prices come from the current subscription catalogue, in Pakistani Rupees.</p><p className="m-hero-note">Bank transfer · Screenshot submission · Manual verification</p></div></div></div></section><section className="m-section"><div className="m-wrap"><PricingTable/></div></section><section className="m-section m-rose"><div className="m-wrap"><p className="m-eyebrow">How payment works</p><h2>From plan selection<br/>to approved access.</h2><Workflow payment/><p className="m-body">Payments are reviewed within 24 hours. Submitting a screenshot does not automatically activate access. Request a free trial separately using Try Free Now in the announcement bar.</p></div></section><CTASection/></div>;}

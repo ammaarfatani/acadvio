@@ -1,0 +1,4 @@
+import {Suspense} from "react";
+import PaymentCheckout from "@/components/PaymentCheckout";
+export const metadata={title:"Subscription Payment — Acadivo"};
+export default function Page(){return <div className="m-checkout m-section"><div className="m-wrap"><header className="m-checkout-header"><div><p className="m-eyebrow">Subscription / Payment verification</p><h1>A clear path to<br/><em>approved access.</em></h1></div><div className="m-checkout-notice"><strong>Manual verification within 24 hours</strong><p>Transfer the selected amount, keep your screenshot and submit it for review. Access starts after approval.</p></div></header><ol className="m-checkout-progress" aria-label="Payment steps"><li>01 / Selected plan</li><li>02 / Bank transfer</li><li>03 / Screenshot & review</li></ol><div className="m-checkout-content"><Suspense fallback={<p role="status">Loading subscription…</p>}><PaymentCheckout/></Suspense></div></div></div>;}

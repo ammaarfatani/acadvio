@@ -207,7 +207,7 @@ export class TeacherController {
       if (!schoolId) throw { statusCode: 400, message: "No tenant context." };
 
       const studentId = req.params.studentId as string;
-      const data = await TeacherService.getStudentHistory(schoolId, studentId);
+      const data = await TeacherService.getStudentHistory(schoolId, studentId, req.user?.userType === "TEACHER" ? req.user.userId : undefined);
       return sendSuccess(res, data, "Student academic history retrieved.");
     } catch (error) { next(error); }
   }

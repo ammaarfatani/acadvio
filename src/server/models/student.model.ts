@@ -1,3 +1,4 @@
+import { branchScoped } from "../utils/branchScope";
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IStudent extends Document {
@@ -84,6 +85,8 @@ const StudentSchema = new Schema<IStudent>(
 );
 
 StudentSchema.index({ schoolId: 1, admissionNumber: 1 }, { unique: true });
+StudentSchema.index({ schoolId: 1, studentId: 1 }, { unique: true });
 StudentSchema.index({ schoolId: 1, academicSessionId: 1, classId: 1, sectionId: 1, rollNumber: 1 }, { unique: true, name: "school_session_class_section_roll_unique" });
 
+StudentSchema.plugin(branchScoped);
 export const Student = mongoose.models.Student || mongoose.model<IStudent>("Student", StudentSchema);

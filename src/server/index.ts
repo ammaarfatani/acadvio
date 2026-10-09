@@ -1,8 +1,11 @@
+import { migrateBranchScopes } from "./services/branchMigration.service";
 import { createApp } from "./app";
 import { connectDB } from "./config/db";
 import { env } from "./config/env";
 import { expireTrials } from "./services/trialLifecycle.service";
 import { seedDatabase } from "./utils/seed";
+
+import { BulkImportService } from "./services/bulkImport.service";
 
 const startServer = async () => {
   try {
@@ -18,7 +21,11 @@ const startServer = async () => {
     // 2. Auto-seed permissions and super admin if in development or missing
     await seedDatabase();
 
+    await migrateBranchScopes();
+    console.log("[Branches] Main branches and existing record scopes verified.");
     await expireTrials();
+    await BulkImportService.resume();
+    setInterval(() => { void BulkImportService.resume().catch(() => console.error("[BulkImport] Recovery check failed.")); }, 60000).unref();
     setInterval(() => { void expireTrials().catch(() => console.error("[Subscription] Trial expiry synchronization failed.")); }, 60000).unref();
     // 3. Create Express App
     const app = createApp();

@@ -1,3 +1,7 @@
+import {persistMarks} from "./marksPersistence.service";
+import {teacherBatches,mergeTeacherBatches} from "./workforce.service";
+import { branchContext } from "../utils/branchScope";
+import { hasFeature } from "../../lib/plan-features";
 import mongoose from "mongoose";
 import { User } from "../models/user.model";
 import { Student } from "../models/student.model";
@@ -38,13 +42,13 @@ export class TeacherService {
     const contexts: any[] = [];
     for (const group of groups.values()) {
       const { classId, subjectId } = group;
-      const exams = await ExamSchedule.find({ schoolId, classes: classId, subjects: subjectId, ...(session ? { academicSessionId: session._id } : {}), status: { $nin: ["COMPLETED", "PUBLISHED"] } }).sort({ startDate: -1 }).lean();
+      const exams = await ExamSchedule.find({ schoolId, classes: classId, subjects: subjectId, ...(session ? { academicSessionId: session._id } : {}), status: { $nin: ["COMPLETED", "DRAFT"] } }).sort({ startDate: -1 }).lean();
       const students = await Student.find({ schoolId, classId, ...(group.sections.length ? { sectionId: { $in: group.sections.map((section: any) => section?._id || section) } } : {}), status: "ACTIVE", ...(session ? { academicSessionId: session._id } : {}) }).select("name rollNumber").sort({ rollNumber: 1 }).lean();
       for (const exam of exams as any[]) {
         const entry: any = await MarksEntry.findOne({ schoolId, examId: exam._id, classId, subjectId }).lean();
         contexts.push({ exam: { _id: exam._id, title: exam.title, startDate: exam.startDate, endDate: exam.endDate, status: exam.status }, class: group.class, section: { _id: group.sections.map((section: any) => String(section?._id || section)).join(","), name: group.sections.map((section: any) => section?.name).filter(Boolean).join(", ") || "All assigned sections" }, subject: group.subject, students: students.map((student: any) => {
           const existing: any = entry?.records?.find((record: any) => String(record.studentId) === String(student._id));
-          return { studentId: student._id, name: student.name, rollNumber: student.rollNumber, obtainedMarks: existing?.obtainedMarks ?? "", remarks: existing?.remarks || "" };
+          return { studentId: student._id, name: student.name, rollNumber: student.rollNumber, obtainedMarks: existing?.obtainedMarks ?? "", isAbsent:Boolean(existing?.isAbsent), remarks: existing?.remarks || "" };
         }), maxMarks: group.subject?.totalMarks || 100, passingMarks: group.subject?.passingMarks || 33, entryStatus: entry?.status || "PENDING" });
       }
     }
@@ -125,7 +129,7 @@ export class TeacherService {
     const allowedPairs = assignments.map((item: any) => ({ classId: String(item.classId?._id || item.classId), subjectId: String(item.subjectId?._id || item.subjectId) }));
     const legacyPairs = legacySubjects.map((subject: any) => ({ classId: String(subject.classId), subjectId: String(subject._id) }));
     const relevantPairs = allowedPairs.concat(legacyPairs);
-    const relevantExamCandidates = relevantPairs.length ? await ExamSchedule.find({ schoolId, ...(currentSession ? { academicSessionId: currentSession._id } : {}), status: { $nin: ["COMPLETED", "PROCESSED", "PUBLISHED"] }, $or: relevantPairs.map((pair) => ({ classes: pair.classId, subjects: pair.subjectId })) }).sort({ startDate: 1 }).lean() : [];
+    const relevantExamCandidates = relevantPairs.length && (!branchContext.getStore() || hasFeature(branchContext.getStore()?.plan, "EXAMINATIONS")) ? await ExamSchedule.find({ schoolId, ...(currentSession ? { academicSessionId: currentSession._id } : {}), status: { $nin: ["COMPLETED", "PROCESSED", "PUBLISHED"] }, $or: relevantPairs.map((pair) => ({ classes: pair.classId, subjects: pair.subjectId })) }).sort({ startDate: 1 }).lean() : [];
     const pendingMarksEntries = (await Promise.all(relevantExamCandidates.flatMap((exam: any) => relevantPairs.filter((pair) => exam.classes?.includes(pair.classId) && exam.subjects?.includes(pair.subjectId)).map((pair) => MarksEntry.exists({ schoolId, examId: exam._id, classId: pair.classId, subjectId: pair.subjectId }).then((exists) => !exists))))).filter(Boolean).length;
     const upcomingExams = relevantExamCandidates.slice(0, 3);
 
@@ -260,6 +264,7 @@ export class TeacherService {
       if (!assignedClassIds.includes(s.classId.toString())) assignedClassIds.push(s.classId.toString());
     });
 
+    if (!assignedClassIds.length) return [];
     const filteredAssignments = teachingAssignments.filter((assignment) => !subjectId || String(assignment.subjectId) === subjectId);
     const filteredSubjects = assignedSubjects.filter((subject) => !subjectId || String(subject._id) === subjectId);
     const filteredSlots = slots.filter((slot) => !subjectId || String(slot.subjectId) === subjectId);
@@ -433,46 +438,19 @@ export class TeacherService {
     const query: any = { schoolId, "records.teacherUserId": teacherUserId };
     if (from || to) query.date = { ...(from ? { $gte: new Date(`${from}T00:00:00`) } : {}), ...(to ? { $lte: new Date(`${to}T23:59:59.999`) } : {}) };
     const docs = await TeacherAttendance.find(query).sort({ date: -1 }).lean();
-    return docs.map((doc: any) => ({ date: doc.date, ...(doc.records || []).find((item: any) => String(item.teacherUserId) === teacherUserId) })).filter((item: any) => item.teacherUserId);
+    const merged=mergeTeacherBatches(docs,await teacherBatches(schoolId,from,to,teacherUserId));
+    return merged.map((doc: any) => ({ date: doc.date, ...(doc.records || []).find((item: any) => String(item.teacherUserId) === teacherUserId) })).filter((item: any) => item.teacherUserId);
   }
 
-  static async checkInTeacher(schoolId: string, teacherUserId: string) {
-    const teacher = await User.findOne({ _id: teacherUserId, schoolId, userType: "TEACHER" }).select("name email");
-    if (!teacher) throw { statusCode: 404, message: "Teacher account not found." };
-    const now = new Date(); const date = new Date(now); date.setHours(0, 0, 0, 0);
-    let doc = await TeacherAttendance.findOne({ schoolId, date });
-    const index = doc?.records.findIndex((item: any) => String(item.teacherUserId) === teacherUserId) ?? -1;
-    if (index >= 0 && doc!.records[index].checkedInAt) throw { statusCode: 409, message: "You have already checked in today." };
-    if (!doc) doc = new TeacherAttendance({ schoolId, date, markedByName: "Teacher self-attendance", records: [] });
-    const record: any = index >= 0 ? doc.records[index] : { teacherUserId, teacherName: teacher.name || teacher.email || "Teacher", status: "PRESENT" };
-    record.checkedInAt = now; record.arrivalTime = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }); record.status = "PRESENT";
-    if (index >= 0) doc.records[index] = record; else doc.records.push(record);
-    try { await doc.save(); } catch (error: any) {
-      if (error?.code === 11000) throw { statusCode: 409, message: "Attendance check-in already exists for today." };
-      throw error;
-    }
-    void TeacherNotification.create({ schoolId, teacherUserId, title: "Attendance marked", message: "Your attendance has been marked Present.", href: "/teacher/my-attendance" }).catch(() => console.warn("[TEACHER-NOTIFICATION] Unable to create check-in notification."));
-    return { date, record };
-  }
-
-  static async checkOutTeacher(schoolId: string, teacherUserId: string) {
-    const now = new Date(); const date = new Date(now); date.setHours(0, 0, 0, 0);
-    const doc = await TeacherAttendance.findOne({ schoolId, date, "records.teacherUserId": teacherUserId });
-    if (!doc) throw { statusCode: 409, message: "Check in before checking out." };
-    const record: any = doc.records.find((item: any) => String(item.teacherUserId) === teacherUserId);
-    if (!record?.checkedInAt) throw { statusCode: 409, message: "Check in before checking out." };
-    if (record.checkedOutAt) throw { statusCode: 409, message: "You have already checked out today." };
-    record.checkedOutAt = now; await doc.save();
-    void TeacherNotification.create({ schoolId, teacherUserId, title: "Attendance updated", message: "Your check-out time has been recorded.", href: "/teacher/my-attendance" }).catch(() => console.warn("[TEACHER-NOTIFICATION] Unable to create check-out notification."));
-    return { date, record };
-  }
+  static async checkInTeacher(schoolId:string,teacherUserId:string){const {manual}=await import("./workforce.service");return manual({schoolId,userId:teacherUserId,userType:"TEACHER"},"in");}
+  static async checkOutTeacher(schoolId:string,teacherUserId:string){const {manual}=await import("./workforce.service");return manual({schoolId,userId:teacherUserId,userType:"TEACHER"},"out");}
 
   // 5. TEACHER MARKS ENTRY (STRICT SCOPE)
   static async saveMarks(schoolId: string, teacherUserId: string, data: {
     examId: string;
     classId: string;
     subjectId: string;
-    marksRecords: Array<{ studentId: string; obtainedMarks: number; remarks?: string }>;
+    marksRecords: Array<{ studentId: string; obtainedMarks?: number; isAbsent?:boolean; remarks?: string }>;
   }) {
     // Security check: Verify teacher is assigned to this subject & class!
     const subject = await Subject.findOne({ _id: data.subjectId, schoolId, classId: data.classId });
@@ -489,16 +467,13 @@ export class TeacherService {
     if (allowedAssignments.length && allowedAssignments.some((item: any) => item.sectionId)) studentQuery.sectionId = { $in: allowedAssignments.map((item: any) => item.sectionId) };
     const roster = await Student.find(studentQuery).select("_id name rollNumber").lean();
     const rosterById = new Map(roster.map((student: any) => [String(student._id), student]));
-    if (!data.marksRecords.length || data.marksRecords.some((record) => !rosterById.has(String(record.studentId)) || record.obtainedMarks < 0 || record.obtainedMarks > subject.totalMarks)) throw { statusCode: 400, message: "Marks must be within the subject limit and belong to students in your assigned class." };
+    if (!data.marksRecords.length || data.marksRecords.some((record) => !rosterById.has(String(record.studentId)) || !record.isAbsent && (!Number.isFinite(record.obtainedMarks) || record.obtainedMarks! < 0 || record.obtainedMarks! > subject.totalMarks))) throw { statusCode: 400, message: "Marks must be within the subject limit and belong to students in your assigned class." };
     const recordIds = data.marksRecords.map((record) => String(record.studentId));
-    if (new Set(recordIds).size !== recordIds.length || recordIds.length !== roster.length) throw { statusCode: 400, message: "Submit marks for each active student in your assigned class exactly once." };
+    if (new Set(recordIds).size !== recordIds.length) throw { statusCode: 400, message: "Submit marks for each active student in your assigned class exactly once." };
     const teacher = await User.findOne({ _id: teacherUserId, schoolId, userType: "TEACHER" });
     const classRecord = await ClassModel.findOne({ _id: data.classId, schoolId }).select("name");
-    const records = data.marksRecords.map((record) => { const student: any = rosterById.get(String(record.studentId)); return { studentId: student._id, studentName: student.name, rollNumber: student.rollNumber, obtainedMarks: record.obtainedMarks, remarks: record.remarks }; });
-    const doc = await MarksEntry.findOneAndUpdate(
-      { schoolId, examId: data.examId, classId: data.classId, subjectId: data.subjectId },
-      {
-        $set: {
+    const records = data.marksRecords.map((record) => { const student: any = rosterById.get(String(record.studentId)); return { studentId: student._id, studentName: student.name, rollNumber: student.rollNumber, obtainedMarks: record.isAbsent?0:record.obtainedMarks, isAbsent:Boolean(record.isAbsent), remarks: record.remarks }; });
+    const doc = await persistMarks(schoolId, {
           schoolId,
           examId: data.examId,
           classId: data.classId,
@@ -508,14 +483,10 @@ export class TeacherService {
           subjectName: subject.name,
           maxMarks: subject.totalMarks,
           passingMarks: subject.passingMarks,
-          records,
           enteredByTeacherId: teacherUserId,
           enteredByTeacherName: teacher?.name || teacher?.email || "Teacher",
           status: "SUBMITTED",
-        },
-      },
-      { upsert: true, new: true }
-    );
+    }, records);
 
     return doc;
   }
@@ -561,17 +532,10 @@ export class TeacherService {
   }
 
   static async reviewLeaveRequest(schoolId: string, leaveId: string, status: "APPROVED" | "REJECTED", reviewerName: string, comment?: string) {
-    const leave = await LeaveRequest.findOne({ _id: leaveId, schoolId });
-    if (!leave) throw { statusCode: 404, message: "Leave request not found." };
-    if (leave.status !== "PENDING") throw { statusCode: 409, message: "This leave request has already been reviewed." };
+    const {reviewLeave}=await import("./workforce.service");const {branchContext}=await import("../utils/branchScope");const context=branchContext.getStore();
+    const leave=await reviewLeave({schoolId,userId:context?.userId,userType:"SCHOOL_ADMIN",email:reviewerName},leaveId,status,reviewerName,comment);
 
-    leave.status = status;
-    leave.reviewedByUserName = reviewerName;
-    leave.reviewComment = comment || "";
-    leave.reviewedAt = new Date();
-    await leave.save();
-
-    await TeacherNotification.create({ schoolId, teacherUserId: leave.teacherId, title: `Leave request ${status.toLowerCase()}`, message: `Your ${leave.leaveType.toLowerCase()} leave request for ${leave.startDate.toLocaleDateString()} to ${leave.endDate.toLocaleDateString()} was ${status.toLowerCase()}.${comment ? ` ${comment}` : ""}`, href: "/teacher/leave" }).catch(() => console.warn("[TEACHER-NOTIFICATION] Unable to create leave status notification."));
+    await TeacherNotification.create({ schoolId, teacherUserId: leave.teacherId, title: `Leave request ${status.toLowerCase()}`, message: `Your ${leave.leaveType.toLowerCase()} leave request for ${leave.startDate.toLocaleDateString()} to ${leave.endDate.toLocaleDateString()} was ${status.toLowerCase()}.${comment ? ` ${comment}` : ""}`, href: "/my-attendance" }).catch(() => console.warn("[TEACHER-NOTIFICATION] Unable to create leave status notification."));
 
     return leave;
   }
@@ -718,7 +682,8 @@ export class TeacherService {
     return classesList;
   }
 
-  static async getStudentHistory(schoolId: string, studentId: string) {
+  static async getStudentHistory(schoolId: string, studentId: string, teacherUserId?: string) {
+    if (teacherUserId) { const allowed = await this.getTeacherStudents(schoolId, teacherUserId); if (!allowed.some((s: any) => String(s._id) === studentId)) throw { statusCode: 404, message: "Student is not assigned to your classes." }; }
     const student = await Student.findOne({ _id: studentId, schoolId })
       .populate("classId", "name code")
       .populate("sectionId", "name roomNumber")
@@ -727,7 +692,7 @@ export class TeacherService {
 
     if (!student) throw { statusCode: 404, message: "Student record not found." };
 
-    const results = await ProcessedResult.find({ schoolId, studentId }).sort({ createdAt: -1 }).lean();
+    const results = !branchContext.getStore() || hasFeature(branchContext.getStore()?.plan, "EXAMINATIONS") ? await ProcessedResult.find({ schoolId, studentId }).sort({ createdAt: -1 }).lean() : [];
 
     const attendanceDocs = await StudentAttendance.find({
       schoolId,

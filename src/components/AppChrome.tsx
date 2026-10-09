@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { routeFeature } from "@/lib/plan-features";
+import { Presence, RouteMotion } from "./Motion";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { WebsiteGuide } from "@/components/WebsiteGuide";
@@ -14,12 +16,13 @@ const roleHome: Record<string, string> = {
   FINANCE: "/finance",
   EXAM_STAFF: "/exam-staff",
   RECEPTIONIST: "/receptionist",
+  PARENT: "/parent",
 };
 
 function isPortalPath(path: string) {
-  return ["/super-admin", "/school-admin", "/teacher", "/finance", "/exam-staff", "/receptionist"].some(
+  return ["/super-admin", "/school-admin", "/teacher", "/finance", "/exam-staff", "/receptionist", "/parent"].some(
     (prefix) => path === prefix || path.startsWith(`${prefix}/`)
-  ) || /^\/[^/]+\/(admin|teacher|staff|finance|exam-staff)(\/|$)/.test(path);
+  ) || /^\/[^/]+\/(admin|teacher|staff|finance|exam-staff|parent)(\/|$)/.test(path);
 }
 
 function canAccessPortal(path: string, userType: string) {
@@ -31,6 +34,7 @@ function canAccessPortal(path: string, userType: string) {
   if (path === "/finance" || path.startsWith("/finance/")) return userType === "FINANCE";
   if (path === "/exam-staff" || path.startsWith("/exam-staff/")) return userType === "EXAM_STAFF";
   if (path === "/receptionist" || path.startsWith("/receptionist/")) return userType === "RECEPTIONIST";
+  if (path === "/parent" || path.startsWith("/parent/")) return userType === "PARENT";
   return false;
 }
 
@@ -55,8 +59,13 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
     if (!portal) return;
     if (loading) return;
     if (!user) {
-      const match = pathname.match(/^\/([^/]+)\/(?:admin|teacher|staff|finance|exam-staff)/);
+      const match = pathname.match(/^\/([^/]+)\/(?:admin|teacher|staff|finance|exam-staff|parent)/);
       router.replace(match ? `/${match[1]}/login?reason=session` : "/login?reason=session");
+      return;
+    }
+    if (user.school?.status === "PENDING_APPROVAL" && user.school.registrationType !== "paid") {
+      clearSession();
+      router.replace("/login?reason=pending");
       return;
     }
     const staticAliases: Record<string, string> = {
@@ -65,6 +74,7 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
       "/finance": "finance",
       "/exam-staff": "exam-staff",
       "/receptionist": "staff",
+      "/parent": "parent",
     };
     if (user.school?.slug) {
       const legacyPrefix = Object.keys(staticAliases).find((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
@@ -86,7 +96,7 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
       return;
     }
     const parts = pathname.split("/").filter(Boolean);
-    const scoped = parts.length > 1 && !["super-admin", "school-admin", "teacher", "finance", "exam-staff", "receptionist"].includes(parts[0]);
+    const scoped = parts.length > 1 && !["super-admin", "school-admin", "teacher", "finance", "exam-staff", "receptionist", "parent"].includes(parts[0]);
     const slug = scoped ? parts[0] : null;
     if (slug && user.school?.slug !== slug) {
       router.replace(roleHome[user.userType] || "/login?reason=portal");
@@ -100,24 +110,30 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
   }, [pathname, portal, loading, user, router, clearSession]);
 
   if (portal) {
-    if (loading || !user) {
+    if (loading || !user || (user.school?.status === "PENDING_APPROVAL" && user.school.registrationType !== "paid")) {
       return (
         <main className="min-h-screen grid place-items-center bg-zinc-100 text-sm text-zinc-600" role="status">
           {loading ? "Restoring your session…" : "Redirecting to sign in…"}
         </main>
       );
     }
-    return <>{children}{feedback && <div className={`fixed bottom-4 right-4 z-[100] max-w-md rounded-xl border px-4 py-3 text-sm shadow-xl ${feedback.type === "error" ? "border-red-300 bg-red-50 text-red-900" : "border-emerald-300 bg-emerald-50 text-emerald-900"}`} role="status">{feedback.message}</div>}</>;
+    const parts = pathname.split("/").filter(Boolean);
+    const root = parts[1] === "admin" ? "school-admin" : parts[1] === "staff" ? "receptionist" : parts[1];
+    const normalized = roleHome[parts[0].toUpperCase().replace("-", "_")] ? pathname : `/${root}${parts.length > 2 ? "/"+parts.slice(2).join("/") : ""}`;
+    if (!canAccessPortal(normalized, user.userType)) return <main className="grid min-h-screen place-items-center bg-zinc-100 text-sm text-zinc-500">Redirecting to your portal…</main>;
+    const feature = routeFeature(pathname);
+    if (user.userType !== "SUPER_ADMIN" && feature && !user.features?.includes(feature)) return <main className="grid min-h-screen place-items-center bg-zinc-100 p-6"><div className="rounded-xl border bg-white p-6"><h1 className="font-bold">Feature unavailable on your plan</h1><p className="mt-2 text-sm text-zinc-500">Contact your school administrator to upgrade the subscription.</p><button onClick={()=>router.replace(roleHome[user.userType] || "/login")} className="mt-4 rounded bg-red-600 px-4 py-2 text-sm text-white">Return to your portal</button></div></main>;
+    return <>{children}<Presence show={!!feedback} kind="toast">{feedback && <div className={`fixed bottom-4 right-4 z-[100] max-w-md rounded-xl border px-4 py-3 text-sm shadow-xl ${feedback.type === "error" ? "border-red-300 bg-red-50 text-red-900" : "border-emerald-300 bg-emerald-50 text-emerald-900"}`} role="status">{feedback.message}</div>}</Presence></>;
   }
 
   return (
-    <>
+    <div className="marketing-site">
       <Navbar />
-      <main className="flex-grow">{children}</main>
+      <main className="flex-grow"><RouteMotion>{children}</RouteMotion></main>
       <Footer />
       <WebsiteGuide />
-      {feedback && <div className={`fixed bottom-4 right-4 z-[100] max-w-md rounded-xl border px-4 py-3 text-sm shadow-xl ${feedback.type === "error" ? "border-red-300 bg-red-50 text-red-900" : "border-emerald-300 bg-emerald-50 text-emerald-900"}`} role="status">{feedback.message}</div>}
-    </>
+      <Presence show={!!feedback} kind="toast">{feedback && <div className={`fixed bottom-4 right-4 z-[100] max-w-md rounded-xl border px-4 py-3 text-sm shadow-xl ${feedback.type === "error" ? "border-red-300 bg-red-50 text-red-900" : "border-emerald-300 bg-emerald-50 text-emerald-900"}`} role="status">{feedback.message}</div>}</Presence>
+    </div>
   );
 }
 

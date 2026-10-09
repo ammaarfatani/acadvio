@@ -24,12 +24,12 @@ const schoolId = new mongoose.Types.ObjectId().toString();
 const otherSchool = new mongoose.Types.ObjectId().toString();
 const userId = new mongoose.Types.ObjectId().toString();
 const superId = new mongoose.Types.ObjectId().toString();
-let school = { _id: schoolId, status: "PENDING_APPROVAL" };
+let school = { _id: schoolId, status: "PENDING_APPROVAL", registrationType: "paid" };
 let user = { _id: userId, schoolId, status: "PENDING_APPROVAL", userType: "SCHOOL_ADMIN", email: "test@example.invalid" };
 const superUser = { _id: superId, status: "ACTIVE", userType: "SUPER_ADMIN" };
 let sub = { _id: new mongoose.Types.ObjectId().toString(), schoolId, plan: "PROFESSIONAL", price: 9999, billingCycle: "monthly" };
 let payments = [];
-const chain = value => ({ populate() { return this; }, select() { return this; }, sort() { return this; }, limit() { return this; }, session() { return this; }, lean() { return Promise.resolve(value); }, then(resolve, reject) { return Promise.resolve(value).then(resolve, reject); } });
+const chain = value => ({ exec(){ return Promise.resolve(value); }, populate() { return this; }, select() { return this; }, sort() { return this; }, limit() { return this; }, session() { return this; }, lean() { return Promise.resolve(value); }, then(resolve, reject) { return Promise.resolve(value).then(resolve, reject); } });
 const catalogue = [
   { code: "STARTER", name: "Starter Plan", priceMonthlyPKR: 4999, priceAnnualPKR: 3999, isActive: true },
   { code: "PROFESSIONAL", name: "Professional Plan", priceMonthlyPKR: 9999, priceAnnualPKR: 7999, isActive: true },
@@ -38,6 +38,11 @@ const catalogue = [
 Plan.find = async () => catalogue;
 let registeredInput;
 PublicService.registerSchoolApplication = async data => { registeredInput = data; return { schoolId, status: "PENDING_APPROVAL", message: "Application submitted" }; };
+const { Branch } = require("../src/server/models/branch.model.ts");
+Branch.findOneAndUpdate = async () => ({ _id: schoolId, status: "ACTIVE" });
+Branch.findOne = async () => ({ _id: schoolId, status: "ACTIVE" });
+User.findOne = () => chain(user);
+User.updateOne = async (_filter,update) => { Object.assign(user, update.$set); };
 User.findById = id => chain(id === superId ? superUser : user);
 School.findById = () => chain(school);
 School.updateMany = async (filter, update) => matches(school, filter) ? apply(school, update) : {};

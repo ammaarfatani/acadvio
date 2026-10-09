@@ -1,4 +1,7 @@
 "use client";
+import {PageHeading} from "@/components/ProductUI";
+
+
 import WorkspaceAnalytics from "@/components/WorkspaceAnalytics";
 
 import { useEffect, useState } from "react";
@@ -42,23 +45,9 @@ export default function FinanceDashboardPage() {
   const overduePct = totalStatusChallans > 0 ? Math.round((statusCounts.overdue / totalStatusChallans) * 100) : 0;
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="ui-dashboard ui-dashboard--finance space-y-6 pb-12">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 text-white p-6 rounded-2xl shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border border-zinc-800">
-        <div>
-          <span className="text-xs font-bold text-red-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
-            <ShieldCheck className="h-3.5 w-3.5 text-red-400" />
-            Institutional Accounts & Treasury Console
-          </span>
-          <h1 className="text-2xl font-black tracking-tight">
-            Financial Operations Dashboard
-          </h1>
-          <p className="text-xs text-zinc-300 mt-1">
-            Net Collection Surplus: <span className="font-mono font-black text-red-400 text-sm">PKR {metrics.netCollectionPKR.toLocaleString()}</span>
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
+      <PageHeading eyebrow="School finance" title="Fee collection & accounts" description="Challans, receipts, expenses and outstanding balances." detail={<>Net collection surplus · <strong>PKR {metrics.netCollectionPKR.toLocaleString()}</strong></>} actions={<div className="flex items-center gap-2">
           <Link
             href="/finance/collection"
             className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-xs transition-colors flex items-center gap-2 shrink-0"
@@ -72,8 +61,7 @@ export default function FinanceDashboardPage() {
           >
             <span>Log Expense</span>
           </Link>
-        </div>
-      </div>
+        </div>}/>
 
       {error && (
         <div role="alert" className="p-4 rounded-xl border border-red-200 bg-red-50 text-xs text-red-800 font-semibold">
@@ -84,7 +72,7 @@ export default function FinanceDashboardPage() {
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div className="bg-white border border-zinc-200 p-4 rounded-xl shadow-xs">
-          <span className="text-[10px] font-semibold text-zinc-500 uppercase block">Today's Collection</span>
+          <span className="text-[10px] font-semibold text-zinc-500 uppercase block">Today&#39;s Collection</span>
           <p className="text-lg font-black text-zinc-950 mt-1 font-mono">PKR {metrics.todayCollectionPKR.toLocaleString()}</p>
         </div>
 

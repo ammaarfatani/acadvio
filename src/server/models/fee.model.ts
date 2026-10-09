@@ -1,3 +1,4 @@
+import { branchScoped } from "../utils/branchScope";
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IFeeStructure extends Document {
@@ -45,6 +46,7 @@ const FeeStructureSchema = new Schema<IFeeStructure>(
   { timestamps: true }
 );
 
+FeeStructureSchema.plugin(branchScoped);
 export const FeeStructure =
   mongoose.models.FeeStructure || mongoose.model<IFeeStructure>("FeeStructure", FeeStructureSchema);
 
@@ -143,6 +145,7 @@ const FeeChallanSchema = new Schema<IFeeChallan>(
 
 FeeChallanSchema.index({ schoolId: 1, challanNumber: 1 }, { unique: true });
 
+FeeChallanSchema.plugin(branchScoped);
 export const FeeChallan = mongoose.models.FeeChallan || mongoose.model<IFeeChallan>("FeeChallan", FeeChallanSchema);
 
 export interface IFeePayment extends Document {
@@ -175,6 +178,7 @@ const FeePaymentSchema = new Schema<IFeePayment>({
 }, { timestamps: true });
 FeePaymentSchema.index({ schoolId: 1, receiptNumber: 1 }, { unique: true });
 FeePaymentSchema.index({ schoolId: 1, paidAt: -1 });
+FeePaymentSchema.plugin(branchScoped);
 export const FeePayment = mongoose.models.FeePayment || mongoose.model<IFeePayment>("FeePayment", FeePaymentSchema);
 
 export interface IExpense extends Document {
@@ -218,4 +222,5 @@ const ExpenseSchema = new Schema<IExpense>(
   { timestamps: true }
 );
 
+ExpenseSchema.plugin(branchScoped);
 export const Expense = mongoose.models.Expense || mongoose.model<IExpense>("Expense", ExpenseSchema);

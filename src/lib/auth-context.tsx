@@ -9,7 +9,11 @@ export type SessionUser = {
   email: string;
   userType: string;
   status?: string;
-  school?: { _id?: string; name: string; slug?: string; code?: string; status?: string; logoUrl?: string; address?: string; phone?: string; theme?: string } | null;
+  organizationId?: string;
+  branchId?: string | null;
+  isOrganizationOwner?: boolean;
+  features?: string[];
+  school?: { attendanceMode?: "MANUAL" | "BIOMETRIC"; attendanceSetupCompletedAt?: string; _id?: string; name: string; slug?: string; code?: string; status?: string; registrationType?: "trial" | "paid"; plan?: string; logoUrl?: string; address?: string; phone?: string } | null;
   permissions?: string[];
 };
 
@@ -29,6 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const setUser = useCallback((next: SessionUser | null) => setUserState(next), []);
   const clearSession = useCallback(() => {
     localStorage.removeItem("acadivo_access_token");
+    sessionStorage.removeItem("acadivo:branch");
     setUserState(null);
   }, []);
 

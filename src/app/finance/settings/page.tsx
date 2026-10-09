@@ -1,44 +1,31 @@
 "use client";
 
+
+
 import { useState, useEffect } from "react";
-import { Settings, Palette, CheckCircle2, DollarSign, Calendar, Building2, Save } from "lucide-react";
-import { useAuth } from "@/lib/auth-context";
+import { Settings, CheckCircle2, DollarSign, Calendar, Building2, Save } from "lucide-react";
 import { financeApi } from "@/lib/financeApi";
 
 export default function FinanceSettingsPage() {
-  const { user, setUser } = useAuth();
-  const currentTheme = user?.school?.theme || "theme-red";
-
-  const [selectedTheme, setSelectedTheme] = useState(currentTheme);
   const [currency, setCurrency] = useState("PKR");
   const [dateFormat, setDateFormat] = useState("DD/MM/YYYY");
   const [bankDetails, setBankDetails] = useState({
     bankName: "",
     accountTitle: "",
     accountNumber: "",
-    iban: "",
+    iban: "", branch:"", instructions:"", enabled:false,
   });
 
-  const [savingTheme, setSavingTheme] = useState(false);
   const [savingPreferences, setSavingPreferences] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-
-  const themeOptions = [
-    { code: "theme-red", name: "Crimson Red (Default)", colorBg: "bg-red-600" },
-    { code: "theme-blue", name: "Royal Blue", colorBg: "bg-blue-600" },
-    { code: "theme-green", name: "Emerald Green", colorBg: "bg-emerald-600" },
-    { code: "theme-purple", name: "Violet Purple", colorBg: "bg-purple-600" },
-    { code: "theme-amber", name: "Warm Amber", colorBg: "bg-amber-600" },
-  ];
 
   useEffect(() => {
     async function loadSettings() {
       try {
         const res = await financeApi.getSchoolProfile();
         if (res?.data) {
-          if (res.data.theme) setSelectedTheme(res.data.theme);
           if (res.data.currency) setCurrency(res.data.currency);
           if (res.data.dateFormat) setDateFormat(res.data.dateFormat);
           if (res.data.bankDetails) {
@@ -46,7 +33,7 @@ export default function FinanceSettingsPage() {
               bankName: res.data.bankDetails.bankName || "",
               accountTitle: res.data.bankDetails.accountTitle || "",
               accountNumber: res.data.bankDetails.accountNumber || "",
-              iban: res.data.bankDetails.iban || "",
+              iban: res.data.bankDetails.iban || "", branch:res.data.bankDetails.branch||"", instructions:res.data.bankDetails.instructions||"", enabled:!!res.data.bankDetails.enabled,
             });
           }
         }
@@ -58,30 +45,6 @@ export default function FinanceSettingsPage() {
     }
     loadSettings();
   }, []);
-
-  const handleSaveTheme = async (themeCode: string) => {
-    setSelectedTheme(themeCode);
-    setSavingTheme(true);
-    setError("");
-    try {
-      await financeApi.updateSchoolBranding({ theme: themeCode as any });
-      if (user && user.school) {
-        setUser({
-          ...user,
-          school: {
-            ...user.school,
-            theme: themeCode,
-          },
-        });
-      }
-      setNotice("Finance portal color theme updated successfully!");
-      setTimeout(() => setNotice(null), 3500);
-    } catch (err: any) {
-      setError(err?.message || "Unable to save theme preference.");
-    } finally {
-      setSavingTheme(false);
-    }
-  };
 
   const handleSavePreferences = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,10 +71,10 @@ export default function FinanceSettingsPage() {
       <div className="border-b border-zinc-200 pb-4">
         <h1 className="text-2xl font-black text-zinc-950 flex items-center gap-2">
           <Settings className="h-6 w-6 text-school-primary" />
-          Finance Portal Settings & Theme Customization
+          Finance Portal Settings
         </h1>
         <p className="text-xs text-zinc-500">
-          Customize the visual color theme, challan bank accounts, and financial display preferences across the finance department portal.
+          Manage challan bank accounts and financial display preferences across the finance department portal.
         </p>
       </div>
 
@@ -127,44 +90,6 @@ export default function FinanceSettingsPage() {
           <span>{notice}</span>
         </div>
       )}
-
-      {/* Theme Picker Card */}
-      <div className="bg-white border border-zinc-200 p-6 rounded-2xl shadow-xs space-y-5">
-        <h2 className="text-sm font-bold text-zinc-950 flex items-center gap-2 border-b border-zinc-100 pb-3">
-          <Palette className="h-4 w-4 text-school-primary" />
-          Select Accent Color Theme
-        </h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {themeOptions.map((th) => {
-            const isSelected = selectedTheme === th.code;
-            return (
-              <button
-                key={th.code}
-                onClick={() => handleSaveTheme(th.code)}
-                disabled={savingTheme}
-                className={`p-4 rounded-xl border text-left flex items-center justify-between gap-3 transition-all ${
-                  isSelected
-                    ? "border-school-primary bg-school-primary/5 ring-2 ring-school-primary/30"
-                    : "border-zinc-200 bg-white hover:bg-zinc-50"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg ${th.colorBg} shrink-0 shadow-xs`} />
-                  <div>
-                    <h3 className="font-bold text-xs text-zinc-950">{th.name}</h3>
-                    <p className="text-[10px] text-zinc-500 font-mono">{th.code}</p>
-                  </div>
-                </div>
-
-                {isSelected && (
-                  <CheckCircle2 className="h-5 w-5 text-school-primary shrink-0" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
 
       {/* Financial Display & Bank Details Preferences */}
       <form onSubmit={handleSavePreferences} className="bg-white border border-zinc-200 p-6 rounded-2xl shadow-xs space-y-5">
@@ -205,7 +130,7 @@ export default function FinanceSettingsPage() {
           <h3 className="text-xs font-bold text-zinc-900 flex items-center gap-1.5">
             <Building2 className="w-3.5 h-3.5 text-zinc-500" />
             Official Bank Account on Student Fee Challans
-          </h3>
+          </h3><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!bankDetails.enabled} onChange={e=>setBankDetails({...bankDetails,enabled:e.target.checked})}/>Enable parent bank payment submissions</label><label className="block text-sm">Bank branch<input value={bankDetails.branch||""} onChange={e=>setBankDetails({...bankDetails,branch:e.target.value})} className="mt-1 block w-full rounded-lg border p-2"/></label><label className="block text-sm">Payment instructions<input value={bankDetails.instructions||""} onChange={e=>setBankDetails({...bankDetails,instructions:e.target.value})} className="mt-1 block w-full rounded-lg border p-2"/></label>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             <div>

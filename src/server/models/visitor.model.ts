@@ -1,3 +1,4 @@
+import { branchScoped } from "../utils/branchScope";
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IVisitor extends Document {
@@ -51,4 +52,5 @@ const VisitorSchema = new Schema<IVisitor>(
 VisitorSchema.index({ schoolId: 1, checkInTime: -1 });
 VisitorSchema.index({ schoolId: 1, status: 1 });
 
+VisitorSchema.plugin(branchScoped);
 export const Visitor = mongoose.models.Visitor || mongoose.model<IVisitor>("Visitor", VisitorSchema);

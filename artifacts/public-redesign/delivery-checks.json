@@ -1,0 +1,97 @@
+{
+  "images": [
+    {
+      "path": "/logo.png",
+      "status": 200,
+      "contentType": "image/png",
+      "bytes": 20771
+    },
+    {
+      "path": "/marketing/classroom.webp",
+      "status": 200,
+      "contentType": "image/webp",
+      "bytes": 42748
+    },
+    {
+      "path": "/marketing/learning-desk.webp",
+      "status": 200,
+      "contentType": "image/webp",
+      "bytes": 20886
+    },
+    {
+      "path": "/product-showcase/examination.jpg",
+      "status": 200,
+      "contentType": "image/jpeg",
+      "bytes": 84803
+    },
+    {
+      "path": "/product-showcase/finance.jpg",
+      "status": 200,
+      "contentType": "image/jpeg",
+      "bytes": 64808
+    },
+    {
+      "path": "/product-showcase/receptionist.jpg",
+      "status": 200,
+      "contentType": "image/jpeg",
+      "bytes": 54868
+    },
+    {
+      "path": "/product-showcase/school-admin-insights.jpg",
+      "status": 200,
+      "contentType": "image/jpeg",
+      "bytes": 64025
+    },
+    {
+      "path": "/product-showcase/school-admin.jpg",
+      "status": 200,
+      "contentType": "image/jpeg",
+      "bytes": 74246
+    },
+    {
+      "path": "/product-showcase/teacher-full.jpg",
+      "status": 200,
+      "contentType": "image/jpeg",
+      "bytes": 111666
+    },
+    {
+      "path": "/product-showcase/teacher.jpg",
+      "status": 200,
+      "contentType": "image/jpeg",
+      "bytes": 66819
+    }
+  ],
+  "publicCssDelivered": true,
+  "serverQuotes": [
+    {
+      "plan": "STARTER",
+      "cycle": "monthly",
+      "amountMatchesCatalogue": true
+    },
+    {
+      "plan": "STARTER",
+      "cycle": "annual",
+      "amountMatchesCatalogue": true
+    },
+    {
+      "plan": "ENTERPRISE",
+      "cycle": "monthly",
+      "amountMatchesCatalogue": true
+    },
+    {
+      "plan": "ENTERPRISE",
+      "cycle": "annual",
+      "amountMatchesCatalogue": true
+    },
+    {
+      "plan": "PROFESSIONAL",
+      "cycle": "monthly",
+      "amountMatchesCatalogue": true
+    },
+    {
+      "plan": "PROFESSIONAL",
+      "cycle": "annual",
+      "amountMatchesCatalogue": true
+    }
+  ]
+}

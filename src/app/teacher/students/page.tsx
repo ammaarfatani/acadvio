@@ -1,5 +1,8 @@
 "use client";
 
+
+
+import {Presence} from "@/components/Motion";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Search, Eye } from "lucide-react";
@@ -218,14 +221,14 @@ export default function MyAssignedStudentsPage() {
       )}
 
       {/* STUDENT ACADEMIC HISTORY DRAWER */}
-      {selectedStudentId && (
+      <Presence show={Boolean(selectedStudentId)} kind="modal">{selectedStudentId && (
         <StudentHistoryModal
           studentId={selectedStudentId}
           isOpen={!!selectedStudentId}
           onClose={() => setSelectedStudentId(null)}
           portalType="teacher"
         />
-      )}
+      )}</Presence>
     </div>
   );
 }

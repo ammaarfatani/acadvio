@@ -1,11 +1,12 @@
 "use client";
 
+import { PLAN_FEATURE_LABELS } from "@/lib/plan-features";
 import { Fragment, useState, useEffect } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import { Check, ArrowRight, HelpCircle, Shield, Sparkles, Building, ChevronDown, ChevronUp } from "lucide-react";
 
-export function PricingTable() {
+export function PricingTable({compact = false}: {compact?: boolean}) {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
@@ -20,59 +21,23 @@ export function PricingTable() {
       badge: null,
       highlight: false,
       ctaText: "Pay Now",
-      features: [
-        "Student Records & Enrollment",
-        "Teacher & Staff Management",
-        "Class & Section Allocation",
-        "Subject Management",
-        "Daily Attendance Tracking",
-        "Class Timetable Allocation",
-        "Basic Overview Dashboard",
-        "Standard Exportable Reports",
-        "School Branding & Logo Setup",
-        "Standard Business Hours Support",
-      ],
+      features: PLAN_FEATURE_LABELS.STARTER,
     },
     {
       name: "PROFESSIONAL",
       description: "Complete ERP suite with automated Fee Challans, Exams & Marksheets.",
-      badge: "Most Popular for Schools",
+      badge: "Complete school workflows",
       highlight: true,
       ctaText: "Pay Now",
-      features: [
-        "Everything in Starter, plus:",
-        "Fee Management & Custom Fee Types",
-        "Automated Fee Challan Generation",
-        "Payment Receipt Generation & Printing",
-        "School Expense & Cash Log Tracking",
-        "Examination Schedule Management",
-        "Marks Entry & Auto Grade Calculation",
-        "Professional Result Marksheets",
-        "Class Report Cards & Certificates",
-        "Advanced Financial & Attendance Reports",
-        "Multiple Staff Role Permissions",
-        "Priority Phone & Email Support",
-      ],
+      features: PLAN_FEATURE_LABELS.PROFESSIONAL,
     },
     {
       name: "ENTERPRISE",
       description: "Full-scale ERP for multi-branch school networks & educational groups.",
-      badge: "Multi-Branch Ready",
+      badge: "Branch management",
       highlight: false,
       ctaText: "Pay Now",
-      features: [
-        "Everything in Professional, plus:",
-        "Multi-Branch Centralized Dashboard",
-        "Advanced Ledger & Double-Entry Finance",
-        "Staff Payroll & Salary Processing",
-        "Library Management & Book Tracking",
-        "Transport & Bus Route Allocation",
-        "School Assets & Inventory Register",
-        "Executive Analytics & Multi-Campus Reports",
-        "Custom RBAC Role Definitions",
-        "Dedicated Account Manager & Setup Specialist",
-        "Custom On-Site Staff Onboarding",
-      ],
+      features: PLAN_FEATURE_LABELS.ENTERPRISE,
     },
   ];
 
@@ -90,7 +55,6 @@ export function PricingTable() {
       { name: "Fee Structure & Monthly Challans", starter: false, pro: true, enterprise: true },
       { name: "Bank Deposit Slips & Receipts", starter: false, pro: true, enterprise: true },
       { name: "Expense Tracking", starter: false, pro: true, enterprise: true },
-      { name: "Advanced Ledger & Payroll", starter: false, pro: false, enterprise: true },
       { name: "Multi-Branch Financial Consolidation", starter: false, pro: false, enterprise: true },
     ]},
     { category: "Examinations & Grading", items: [
@@ -100,10 +64,10 @@ export function PricingTable() {
       { name: "Certificates & Transcripts", starter: false, pro: true, enterprise: true },
     ]},
     { category: "Multi-Branch & Enterprise", items: [
-      { name: "Multiple Staff Role Permissions", starter: "Basic", pro: "Standard Roles", enterprise: "Custom RBAC" },
+      { name: "Multiple Staff Role Permissions", starter: false, pro: "Standard Roles", enterprise: "Standard Roles" },
       { name: "Multi-Campus Administration", starter: false, pro: false, enterprise: true },
-      { name: "Library & Inventory Modules", starter: false, pro: false, enterprise: true },
-      { name: "Dedicated Support Specialist", starter: false, pro: false, enterprise: true },
+      { name: "Branch School Admin Accounts", starter: false, pro: false, enterprise: true },
+      { name: "Consolidated & Branch Reports", starter: false, pro: false, enterprise: true },
     ]},
   ];
 
@@ -114,7 +78,7 @@ export function PricingTable() {
     },
     {
       q: "Can we switch between plans later?",
-      a: "Yes, you can upgrade or downgrade your plan at any time directly from your Acadivo admin console. Your school data will remain intact during any tier change.",
+      a: "School administrators can select a subscription from their billing workspace. Paid activation follows payment verification; your school records remain associated with your school.",
     },
     {
       q: "How are fee challans printed for students?",
@@ -122,7 +86,7 @@ export function PricingTable() {
     },
     {
       q: "Do students or parents get separate login portals?",
-      a: "No. Acadivo is strictly a B2B School Management ERP designed for school administrators, principals, accountants, and teachers to handle school records. Students and parents exist purely as structured data records.",
+      a: "School administrators can create parent login accounts and link their children. Parents can view those children’s attendance and school notices, plus fee statements and published results when included in the school’s plan. Student records do not have separate student logins.",
     },
     {
       q: "What currency is billed?",
@@ -131,12 +95,13 @@ export function PricingTable() {
   ];
 
   return (
-    <div className="space-y-16">
+    <div className="m-pricing-table space-y-16">
       
       {/* Billing Switcher */}
       <div className="flex flex-col items-center justify-center space-y-3">
         <div className="inline-flex items-center bg-zinc-100 p-1.5 rounded-xl border border-zinc-200">
           <button
+            aria-pressed={billingCycle === "monthly"}
             onClick={() => setBillingCycle("monthly")}
             className={`px-5 py-2 text-sm font-semibold rounded-lg transition-all ${
               billingCycle === "monthly"
@@ -147,6 +112,7 @@ export function PricingTable() {
             Monthly Billing
           </button>
           <button
+            aria-pressed={billingCycle === "annual"}
             onClick={() => setBillingCycle("annual")}
             className={`px-5 py-2 text-sm font-semibold rounded-lg transition-all flex items-center gap-2 ${
               billingCycle === "annual"
@@ -156,7 +122,7 @@ export function PricingTable() {
           >
             <span>Annual Billing</span>
             <span className="bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
-              Save 20%
+              12-month billing
             </span>
           </button>
         </div>
@@ -254,6 +220,7 @@ export function PricingTable() {
         })}
       </div>
 
+      {!compact && <>
       {/* Feature Comparison Matrix */}
       <div className="pt-12 space-y-8 max-w-7xl mx-auto">
         <div className="text-center space-y-2">
@@ -344,6 +311,7 @@ export function PricingTable() {
                 className="border border-zinc-200 rounded-xl bg-white overflow-hidden"
               >
                 <button
+                  aria-expanded={isOpen}
                   onClick={() => setOpenFaq(isOpen ? null : index)}
                   className="w-full text-left p-4 sm:p-5 flex items-center justify-between gap-4 font-semibold text-zinc-900 text-sm hover:bg-zinc-50 transition-colors"
                 >
@@ -364,6 +332,7 @@ export function PricingTable() {
         </div>
       </div>
 
+      </>}
     </div>
   );
 }

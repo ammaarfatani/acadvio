@@ -1,3 +1,4 @@
+import { branchScoped } from "../utils/branchScope";
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface ILeaveRequest extends Document {
@@ -46,5 +47,6 @@ const LeaveRequestSchema = new Schema<ILeaveRequest>(
   { timestamps: true }
 );
 
+LeaveRequestSchema.plugin(branchScoped);
 export const LeaveRequest =
   mongoose.models.LeaveRequest || mongoose.model<ILeaveRequest>("LeaveRequest", LeaveRequestSchema);

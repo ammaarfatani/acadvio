@@ -1,0 +1,233 @@
+"use client";
+import ModuleFrame from "@/components/ModuleFrame";
+
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { Search, Eye } from "lucide-react";
+import { teacherApi } from "@/lib/teacherApi";
+import { StudentHistoryModal } from "@/components/StudentHistoryModal";
+
+const id = (value: any) => String(value?._id || value || "");
+
+export default function MyAssignedStudentsPage() {
+  const [assignments, setAssignments] = useState<any[]>([]);
+  const [classTeacherKeys, setClassTeacherKeys] = useState<Set<string>>(new Set());
+  const [students, setStudents] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
+  const [subjectId, setSubjectId] = useState("");
+  const [classSection, setClassSection] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+
+  useEffect(() => {
+    Promise.all([teacherApi.getDashboardMetrics(), teacherApi.getClassTeacherSections()])
+      .then(([response, classResponse]) => {
+        const current = response.data?.teacher?.teachingAssignments || [];
+        const classSections = classResponse.data || [];
+        setAssignments([...current, ...classSections.map((item: any) => ({ classId: item.classId, sectionId: item.sectionId, subjectId: null }))]);
+        setClassTeacherKeys(new Set(classSections.map((item: any) => `${id(item.classId)}:${id(item.sectionId)}`)));
+      })
+      .catch((e: any) => setError(e.message || "Unable to load your assignments."));
+  }, []);
+
+  const subjects = useMemo(
+    () => [...new Map(assignments.filter((a) => a.subjectId).map((a) => [id(a.subjectId), a.subjectId])).values()],
+    [assignments]
+  );
+
+  const filteredAssignments = useMemo(
+    () => assignments.filter((a) => !subjectId || id(a.subjectId) === subjectId),
+    [assignments, subjectId]
+  );
+
+  const choices = useMemo(
+    () =>
+      [
+        ...new Map(
+          filteredAssignments.map((item) => {
+            const key = `${id(item.classId)}:${id(item.sectionId)}`;
+            return [
+              key,
+              {
+                key,
+                classId: id(item.classId),
+                sectionId: id(item.sectionId),
+                label: `${item.classId?.name || "Class"} · ${item.sectionId?.name || "Section"}`,
+              },
+            ];
+          })
+        ),
+      ].map((pair: any) => pair[1]),
+    [filteredAssignments]
+  );
+
+  useEffect(() => {
+    if (classSection && !choices.some((choice: any) => choice.key === classSection)) setClassSection("");
+  }, [choices, classSection]);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError("");
+    const choice: any = choices.find((item: any) => item.key === classSection);
+
+    teacherApi
+      .getAssignedStudents(choice?.classId, search || undefined, choice?.sectionId, subjectId || undefined)
+      .then((response) => {
+        if (active) setStudents(response.data || []);
+      })
+      .catch((e: any) => {
+        if (active) {
+          setStudents([]);
+          setError(e.message || "Unable to load assigned students.");
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [search, choices, classSection, subjectId]);
+
+  return (
+    <div className="mx-auto max-w-6xl space-y-6 pb-12 font-sans">
+      <ModuleFrame><header className="border-b border-zinc-200 pb-5">
+        <p className="text-xs font-semibold uppercase tracking-wider text-school-primary">Faculty Directory</p>
+        <h1 className="mt-1 text-3xl font-black text-zinc-950 tracking-tight">My Assigned Students</h1>
+        <p className="mt-1 text-sm text-zinc-500">Active students in your assigned classes and sections.</p>
+      </header></ModuleFrame>
+
+      <section className="grid gap-3 rounded-2xl border border-zinc-200 bg-white p-4 sm:grid-cols-3">
+        <label className="grid gap-1 text-xs font-semibold text-zinc-700">
+          Subject Filter
+          <select
+            value={subjectId}
+            onChange={(e) => {
+              setSubjectId(e.target.value);
+              setClassSection("");
+            }}
+            className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-900 focus:outline-none"
+          >
+            <option value="">All assigned subjects</option>
+            {subjects.map((subject: any) => (
+              <option key={id(subject)} value={id(subject)}>
+                {subject?.name || "Subject"}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="grid gap-1 text-xs font-semibold text-zinc-700">
+          Class & Section
+          <select
+            value={classSection}
+            onChange={(e) => setClassSection(e.target.value)}
+            className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-900 focus:outline-none"
+          >
+            <option value="">All assigned classes</option>
+            {choices.map((choice: any) => (
+              <option key={choice.key} value={choice.key}>
+                {choice.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="grid gap-1 text-xs font-semibold text-zinc-700">
+          Search Students
+          <span className="relative">
+            <Search size={16} className="absolute left-3 top-2.5 text-zinc-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Name or roll number"
+              className="w-full rounded-xl border border-zinc-200 bg-zinc-50 py-2 pl-9 pr-3 text-xs font-medium focus:outline-none"
+            />
+          </span>
+        </label>
+      </section>
+
+      {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+
+      {loading ? (
+        <p role="status" className="rounded-2xl bg-white p-6 text-sm text-zinc-500 animate-pulse">
+          Loading your assigned students…
+        </p>
+      ) : students.length ? (
+        <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-xs">
+          <table className="w-full min-w-[760px] text-left text-sm">
+            <thead className="bg-zinc-50 text-xs uppercase text-zinc-500 font-bold">
+              <tr>
+                <th className="p-3.5">Roll number</th>
+                <th className="p-3.5">Student Name</th>
+                <th className="p-3.5">Class</th>
+                <th className="p-3.5">Section</th>
+                <th className="p-3.5">Status</th>
+                <th className="p-3.5">Attendance Access</th>
+                <th className="p-3.5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-200 text-xs">
+              {students.map((student) => {
+                const key = `${id(student.classId)}:${id(student.sectionId)}`;
+                const isClassTeacher = classTeacherKeys.has(key);
+                return (
+                  <tr key={student._id} className="hover:bg-zinc-50">
+                    <td className="p-3.5 font-mono font-bold text-zinc-950">{student.rollNumber}</td>
+                    <td className="p-3.5 font-bold text-zinc-900">{student.name}</td>
+                    <td className="p-3.5">{student.className}</td>
+                    <td className="p-3.5 font-semibold text-zinc-700">{student.sectionId?.name || student.sectionName || "Section A"}</td>
+                    <td className="p-3.5">
+                      <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800 uppercase">
+                        {student.status}
+                      </span>
+                    </td>
+                    <td className="p-3.5">
+                      {isClassTeacher ? (
+                        <Link
+                          className="rounded-lg bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1 text-[11px] font-bold text-white shadow-xs inline-block"
+                          href={`/teacher/attendance?classId=${student.classId}&sectionId=${student.sectionId}`}
+                        >
+                          Mark Daily Attendance
+                        </Link>
+                      ) : (
+                        <span className="text-[11px] text-zinc-400 italic">Subject Teacher</span>
+                      )}
+                    </td>
+                    <td className="p-3.5 text-right">
+                      <button
+                        onClick={() => setSelectedStudentId(student._id)}
+                        className="px-3 py-1.5 bg-zinc-950 hover:bg-zinc-800 text-white rounded-lg text-xs font-bold transition-colors inline-flex items-center gap-1.5"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> View Academic History
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-10 text-center">
+          <h2 className="font-bold text-zinc-900">No assigned students found</h2>
+          <p className="mt-1 text-sm text-zinc-500">Students from your assigned classes and sections will appear here.</p>
+        </div>
+      )}
+
+      {/* STUDENT ACADEMIC HISTORY DRAWER */}
+      {selectedStudentId && (
+        <StudentHistoryModal
+          studentId={selectedStudentId}
+          isOpen={!!selectedStudentId}
+          onClose={() => setSelectedStudentId(null)}
+          portalType="teacher"
+        />
+      )}
+    </div>
+  );
+}

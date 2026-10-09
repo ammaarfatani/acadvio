@@ -1,3 +1,6 @@
+import {z} from "zod";
+import {AcademicSession} from "../models/academicSession.model";
+import {sendSuccess} from "../utils/response.util";
 import { Router } from "express";
 import { SchoolAdminController } from "../controllers/schoolAdmin.controller";
 import { authenticate } from "../middlewares/auth.middleware";
@@ -8,10 +11,25 @@ import { UserType } from "../constants/roles.constant";
 import { validate } from "../middlewares/validate.middleware";
 import { StudentCreateSchema, StudentUpdateSchema, ClassCreateSchema, SectionCreateSchema, SubjectCreateSchema, FeeStructureSchema, FeeBatchSchema, CollectPaymentSchema, ExpenseSchema, ExamScheduleSchema, AnnouncementSchema, AcademicSessionSchema, TimetableSlotSchema, TeacherAdminCreateSchema, TeacherAdminUpdateSchema } from "../validators/domain.validator";
 
+import rateLimit from "express-rate-limit";
+import { bulkImportHandlers, previewImportSchema, commitImportSchema } from "../controllers/bulkImport.controller";
+
 const router = Router();
 
 // Protect all school admin routes with authentication and strict tenant enforcement
 router.use(authenticate, requireExactUserType(UserType.SCHOOL_ADMIN), enforceSchoolTenant);
+
+const importLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false, message: { success: false, message: "Too many import uploads. Please wait before trying again." } });
+for (const entity of ["students", "teachers"] as const) {
+  const handlers = bulkImportHandlers(entity);
+  const permission = requirePermission(`${entity}.create`);
+  router.get(`/${entity}/bulk-import/template`, permission, handlers.template);
+  router.post(`/${entity}/bulk-import/preview`, permission, importLimiter, validate(previewImportSchema), handlers.preview);
+  router.get(`/${entity}/bulk-import/:importId`, permission, handlers.status);
+  router.post(`/${entity}/bulk-import/:importId/commit`, permission, validate(commitImportSchema), handlers.commit);
+  router.get(`/${entity}/bulk-import/:importId/errors`, permission, handlers.errors);
+}
+
 
 // Dashboard
 router.get("/dashboard", SchoolAdminController.getDashboard);
@@ -22,6 +40,8 @@ router.put("/teachers/:teacherId", requirePermission("teachers.update"), validat
 router.get("/academic-sessions", requirePermission("settings.view"), SchoolAdminController.getAcademicSessions);
 router.post("/academic-sessions", requirePermission("settings.update"), validate(AcademicSessionSchema), SchoolAdminController.createAcademicSession);
 router.patch("/academic-sessions/:sessionId/current", requirePermission("settings.update"), SchoolAdminController.setCurrentAcademicSession);
+router.put("/academic-sessions/:sessionId",requirePermission("settings.update"),validate(AcademicSessionSchema),async(req,res,next)=>{try{const sessionId=z.string().regex(/^[a-f0-9]{24}$/i).parse(req.params.sessionId);const {isCurrent,...fields}=req.body;const session=await AcademicSession.findOneAndUpdate({_id:sessionId,schoolId:req.user!.schoolId},{$set:fields},{new:true,runValidators:true});if(!session)throw {statusCode:404,message:"Session not found."};return sendSuccess(res,session,"Session updated.");}catch(e){next(e);}});
+router.patch("/academic-sessions/:sessionId/archive",requirePermission("settings.update"),async(req,res,next)=>{try{const sessionId=z.string().regex(/^[a-f0-9]{24}$/i).parse(req.params.sessionId),{archived}=z.object({archived:z.boolean()}).strict().parse(req.body);const session=await AcademicSession.findOne({_id:sessionId,schoolId:req.user!.schoolId});if(!session)throw {statusCode:404,message:"Session not found."};if(archived&&session.isCurrent)throw {statusCode:409,message:"Set another current session before archiving this one."};session.isArchived=archived;await session.save();return sendSuccess(res,session,archived?"Session archived. Records are preserved.":"Session restored.");}catch(e){next(e);}});
 router.get("/timetable", requirePermission("settings.view"), SchoolAdminController.getTimetable);
 router.post("/timetable", requirePermission("settings.update"), validate(TimetableSlotSchema), SchoolAdminController.createTimetableSlot);
 
@@ -67,6 +87,6 @@ router.get("/exams/results", requirePermission("exams.view"), SchoolAdminControl
 
 // Announcements
 router.get("/announcements", SchoolAdminController.getAnnouncements);
-router.post("/announcements", requirePermission("settings.update"), validate(AnnouncementSchema), SchoolAdminController.createAnnouncement);
+router.post("/announcements", requirePermission("notices.manage"), validate(AnnouncementSchema), SchoolAdminController.createAnnouncement);
 
 export default router;

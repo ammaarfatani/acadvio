@@ -1,37 +1,4 @@
-import { Suspense } from "react";
-import { FreeTrialForm } from "@/components/FreeTrialForm";
-import { ShieldCheck, CheckCircle2 } from "lucide-react";
-
-export const metadata = {
-  title: "Start 14-Day Free Trial — Acadivo",
-  description:
-    "Register your school for a 14-day free trial of Acadivo School Management & ERP SaaS. No credit card required.",
-};
-
-export default function FreeTrialPage() {
-  return (
-    <div className="py-12 sm:py-16 bg-zinc-50 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-        
-        {/* Header */}
-        <div className="text-center space-y-3 max-w-3xl mx-auto">
-          <span className="inline-flex items-center gap-2 bg-red-100 text-red-700 border border-red-200 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-            Institutional Registration
-          </span>
-          <h1 className="text-3xl sm:text-5xl font-extrabold text-zinc-950 tracking-tight">
-            Start Your 14-Day Free Trial
-          </h1>
-          <p className="text-sm sm:text-base text-zinc-600 leading-relaxed">
-            Register your school institutional details to experience Acadivo. No credit card or upfront deposit required during trial.
-          </p>
-        </div>
-
-        {/* Form Container */}
-        <Suspense fallback={<div className="text-center p-12 text-sm text-zinc-500">Loading form...</div>}>
-          <FreeTrialForm />
-        </Suspense>
-
-      </div>
-    </div>
-  );
-}
+import {Suspense} from "react";
+import {FreeTrialForm} from "@/components/FreeTrialForm";
+export const metadata={title:"Start 14-Day Free Trial — Acadivo",description:"Request a school trial. No credit card required; access starts after school approval."};
+export default function FreeTrialPage(){return <div className="m-registration m-section"><div className="m-wrap m-registration-grid"><aside><p className="m-eyebrow">School registration / 14-day trial</p><h1>Your school.<br/>A connected<br/><em>start.</em></h1><p className="m-lead">Tell us about your school. No credit card or upfront payment is required to request a trial.</p><ol className="m-registration-steps"><li><span>01</span><div><h3>Submit your school details</h3><p>Keep your school and admin information accurate.</p></div></li><li><span>02</span><div><h3>Wait for school approval</h3><p>Your request is reviewed before portal access is enabled.</p></div></li><li><span>03</span><div><h3>Watch your email</h3><p>You’ll receive an update when your school is approved.</p></div></li></ol></aside><div className="m-registration-form"><Suspense fallback={<p role="status">Loading school registration…</p>}><FreeTrialForm/></Suspense></div></div></div>;}

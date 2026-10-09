@@ -1,4 +1,7 @@
 "use client";
+
+
+import {Presence} from "@/components/Motion";
 import Link from "next/link";
 
 import { useEffect, useState } from "react";
@@ -36,6 +39,8 @@ export default function ApplicationsPage() {
 
   useEffect(() => {
     fetchPending();
+    const timer = window.setInterval(fetchPending, 30000);
+    return () => window.clearInterval(timer);
   }, []);
 
   const handleApprove = async (schoolId: string, schoolName: string) => {
@@ -113,11 +118,14 @@ export default function ApplicationsPage() {
                     <span className="text-[11px] text-zinc-500 font-mono">Applied: {new Date(app.createdAt).toLocaleString()}</span>
                   </div>
                   <span className="bg-red-50 text-red-700 border border-red-200 px-3 py-1 rounded-full text-xs font-extrabold uppercase">
-                    {app.plan} Plan
+                    {app.plan === "FREE_TRIAL" ? "14-Day Free Trial" : app.plan+" Plan"}
                   </span>
                 </div>
 
                 <div className="space-y-2 text-xs text-zinc-700 font-medium">
+                  <div className="flex items-center gap-2"><User className="w-4 h-4 text-red-500 shrink-0" /><span>{app.adminName || "Admin not available"}</span></div>
+                  {app.adminEmail && <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-red-500 shrink-0" /><span className="font-mono">{app.adminEmail}</span></div>}
+                  <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-red-500 shrink-0" /><span>Pending approval</span></div>
                   <div className="flex items-center gap-2">
                     <Mail className="w-4 h-4 text-red-500 shrink-0" />
                     <span className="font-mono">{app.email}</span>
@@ -159,7 +167,7 @@ export default function ApplicationsPage() {
       </div>
 
       {/* REJECT MODAL */}
-      {rejectingApp && (
+      <Presence show={Boolean(rejectingApp)} kind="modal">{rejectingApp && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-zinc-200">
             <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
@@ -200,7 +208,7 @@ export default function ApplicationsPage() {
             </form>
           </div>
         </div>
-      )}
+      )}</Presence>
 
     </div>
   );

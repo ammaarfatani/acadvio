@@ -1,5 +1,7 @@
 "use client";
 
+
+
 import { useEffect, useState } from "react";
 import { Award, Trophy, CheckCircle2, RefreshCw, Search, Send, FileText, AlertCircle } from "lucide-react";
 import { schoolAdminApi } from "@/lib/schoolAdminApi";
@@ -341,7 +343,7 @@ export default function ResultsPage() {
                       <td className="p-3.5 text-center font-mono font-bold text-zinc-800">
                         {obtMarks} <span className="text-zinc-400 font-normal">/ {totMarks}</span>
                       </td>
-                      <td className="p-3.5 text-center font-mono font-bold text-zinc-950">{r.percentage}%</td>
+                      <td className="p-3.5 text-center font-mono font-bold text-zinc-950">{r.percentage==null?"Pending":r.percentage+"%"}</td>
                       <td className="p-3.5 text-center">
                         <span className={`border px-2 py-0.5 rounded text-[11px] font-black ${getGradeBadge(currentGrade)}`}>
                           {currentGrade}

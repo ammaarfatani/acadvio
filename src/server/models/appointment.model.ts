@@ -1,3 +1,4 @@
+import { branchScoped } from "../utils/branchScope";
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IAppointment extends Document {
@@ -46,5 +47,6 @@ const AppointmentSchema = new Schema<IAppointment>(
 
 AppointmentSchema.index({ schoolId: 1, appointmentDate: 1, status: 1 });
 
+AppointmentSchema.plugin(branchScoped);
 export const Appointment =
   mongoose.models.Appointment || mongoose.model<IAppointment>("Appointment", AppointmentSchema);

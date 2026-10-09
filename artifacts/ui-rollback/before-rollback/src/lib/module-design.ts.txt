@@ -1,0 +1,31 @@
+export type ModuleDesign = "overview" | "people" | "finance" | "attendance" | "academic" | "analytics" | "communication" | "settings";
+/** Presentation only: no permission, endpoint or routing decisions live here. */
+export function moduleDesign(path: string): ModuleDesign {
+ const parts = path.toLowerCase().split("/").filter(Boolean);
+ const roleIndex = parts.findIndex(part => ["school-admin","admin","teacher","finance","exam-staff","receptionist","staff","parent","super-admin"].includes(part));
+ const segment = (roleIndex >= 0 ? parts.slice(roleIndex + 1) : parts).join("/");
+ if (/reports|analytics|audit/.test(segment)) return "analytics";
+ if (/attendance|leave|calendar|timetable/.test(segment)) return "attendance";
+ if (/fees|fee-|challan|collection|payment|expense|salary|payroll|subscription/.test(segment)) return "finance";
+ if (/exam|marks|results|certificate|merit|subject|classes|sections|session/.test(segment) && !/\/exam-staff$/.test(segment)) return "academic";
+ if (/student|teacher|parent-account|staff|employee|admission|candidate|users/.test(segment) && !/\/teacher$/.test(segment)) return "people";
+ if (/notice|announcement|notification|document|appointment|inquir/.test(segment)) return "communication";
+ if (/setting|profile|role|device|plan/.test(segment)) return "settings";
+ return "overview";
+}
+
+export type ModuleLayout = "student-directory" | "faculty-directory" | "finance-ledger" | "attendance-date" | "academic-desk" | "report-workspace" | "overview" | "compact";
+export function moduleLayout(path: string): ModuleLayout {
+ const parts=path.toLowerCase().split("/").filter(Boolean);
+ const index=parts.findIndex(part=>["school-admin","admin","teacher","finance","exam-staff","receptionist","staff","parent","super-admin"].includes(part));
+ const role=index>=0?parts[index]:"";
+ const route=(index>=0?parts.slice(index+1):parts).join("/");
+ if(route==="students"||route==="admissions")return "student-directory";
+ if(route==="teachers")return "faculty-directory";
+ if(route==="finance"||route==="finance/collection"||route==="collection"||(!route&&role==="finance"))return "finance-ledger";
+ if(["attendance/students","attendance","staff-attendance","my-attendance","calendar","timetable","academics/timetable"].includes(route))return "attendance-date";
+ if(["exams","examinations/exams"].includes(route)||(!route&&role==="exam-staff"))return "academic-desk";
+ if(route==="reports"||route==="reports/basic")return "report-workspace";
+ if(!route)return "overview";
+ return "compact";
+}

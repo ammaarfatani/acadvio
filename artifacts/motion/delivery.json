@@ -1,0 +1,22 @@
+[
+  {
+    "route": "/",
+    "status": 200,
+    "motionCssDelivered": true
+  },
+  {
+    "route": "/login",
+    "status": 200,
+    "motionCssDelivered": true
+  },
+  {
+    "route": "/pricing",
+    "status": 200,
+    "motionCssDelivered": true
+  },
+  {
+    "route": "/demo",
+    "status": 200,
+    "motionCssDelivered": true
+  }
+]

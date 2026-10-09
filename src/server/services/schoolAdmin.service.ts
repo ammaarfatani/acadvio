@@ -1,3 +1,7 @@
+import {persistMarks} from "./marksPersistence.service";
+import {linkPrimaryParent} from "./primaryParent.service";
+import {teacherBatches,mergeTeacherBatches} from "./workforce.service";
+import { hasFeature } from "../../lib/plan-features";
 import mongoose from "mongoose";
 import { School } from "../models/school.model";
 import { Student } from "../models/student.model";
@@ -14,6 +18,7 @@ import { ClassTeacherAssignment } from "../models/classTeacherAssignment.model";
 import { TeacherProfile, TeachingAssignment } from "../models/teacherProfile.model";
 import { TeacherNotification } from "../models/teacherNotification.model";
 import { LeaveRequest } from "../models/leaveRequest.model";
+import {StaffEmployment} from "../models/workforce.model";
 import { UserService } from "./user.service";
 import { ClientSession, Types } from "mongoose";
 import { UserType } from "../constants/roles.constant";
@@ -46,18 +51,19 @@ export class SchoolAdminService {
       TeacherAttendance.findOne({ schoolId, date: today }).select("records"),
       Student.aggregate([{ $match: { schoolId: new Types.ObjectId(schoolId), status: "ACTIVE" } }, { $group: { _id: "$className", count: { $sum: 1 } } }, { $sort: { _id: 1 } }]),
     ]);
-    const teacherAttendanceRows = teacherAttendanceToday?.records || [];
+    const teacherAttendanceRows = mergeTeacherBatches(teacherAttendanceToday?[teacherAttendanceToday]:[],await teacherBatches(schoolId,today.toISOString().slice(0,10),today.toISOString().slice(0,10))).flatMap((d:any)=>d.records);
 
     // Monthly Fee Collection & Pending Fees calculation
-    const challans = await FeeChallan.find({ schoolId, isVoided: { $ne: true } });
+    const financeEnabled = hasFeature(school.status === "TRIAL" ? "FREE_TRIAL" : school.plan, "FINANCE");
+    const challans = financeEnabled ? await FeeChallan.find({ schoolId, isVoided: { $ne: true } }) : [];
     const monthStart = new Date();
     monthStart.setDate(1);
     monthStart.setHours(0, 0, 0, 0);
-    const monthlyPayments = await FeePayment.find({ schoolId, paidAt: { $gte: monthStart } }).select("amountPKR");
+    const monthlyPayments = financeEnabled ? await FeePayment.find({ schoolId, paidAt: { $gte: monthStart } }).select("amountPKR") : [];
     const monthlyCollectionPKR = monthlyPayments.reduce((sum: number, payment: any) => sum + Number(payment.amountPKR || 0), 0);
     const pendingFeesPKR = challans.reduce((sum: number, c: any) => sum + (c.remainingAmountPKR || 0), 0);
 
-    const upcomingExams = await ExamSchedule.countDocuments({ schoolId, status: { $ne: "COMPLETED" } });
+    const upcomingExams = hasFeature(school.status === "TRIAL" ? "FREE_TRIAL" : school.plan, "EXAMINATIONS") ? await ExamSchedule.countDocuments({ schoolId, status: { $ne: "COMPLETED" } }) : 0;
     const [totalSections, currentSession, timetableSlots] = await Promise.all([
       SectionModel.countDocuments({ schoolId }), AcademicSession.findOne({ schoolId, isCurrent: true }).select("name"), TimetableSlot.countDocuments({ schoolId }),
     ]);
@@ -136,6 +142,13 @@ export class SchoolAdminService {
   }
 
   static async createStudent(schoolId: string, data: any, dbSession?: ClientSession, sendAssignmentNotifications = true) {
+    if(data.parentInfo?.guardianEmail&&!dbSession){
+      const session=await mongoose.startSession();let result:any;
+      try{await session.withTransaction(async()=>{result=await this.createStudent(schoolId,data,session,false);});
+        if(sendAssignmentNotifications){const teachers=await TeachingAssignment.find({schoolId,classId:result.classId,sectionId:result.sectionId,academicSessionId:result.academicSessionId,status:"ACTIVE"}).distinct("teacherUserId");if(teachers.length)void TeacherNotification.insertMany(teachers.map(teacherUserId=>({schoolId,teacherUserId,title:"Student added to your class",message:`${result.name} was added to ${result.className} · ${result.sectionName}.`,href:"/teacher/students"}))).catch(()=>console.warn("[TEACHER-NOTIFICATION] Unable to create student assignment notifications."));}return result;
+      }finally{await session.endSession();}
+    }
+
     const linkedClass = await ClassModel.findOne({ _id: data.classId, schoolId }).select("_id name numericLevel").session(dbSession || null);
     if (!linkedClass) throw { statusCode: 400, message: "Select a class that belongs to your school." };
     data.className = linkedClass.name;
@@ -163,6 +176,7 @@ export class SchoolAdminService {
       status: "ACTIVE",
     };
     const student = dbSession ? (await Student.create([studentData], { session: dbSession }))[0] : await Student.create(studentData);
+    if(data.parentInfo?.guardianEmail&&dbSession)student.$locals.primaryParent=await linkPrimaryParent(schoolId,student,data.parentAccount?.password,dbSession);
     const assignedTeachers = sendAssignmentNotifications ? await TeachingAssignment.find({ schoolId, classId: linkedClass._id, sectionId: section?._id, academicSessionId: academicSession._id, status: "ACTIVE" }).distinct("teacherUserId") : [];
     if (assignedTeachers.length) void TeacherNotification.insertMany(assignedTeachers.map((teacherUserId: any) => ({ schoolId, teacherUserId, title: "Student added to your class", message: `${student.name} was added to ${linkedClass.name} · ${section.name}.`, href: "/teacher/students" }))).catch(() => console.warn("[TEACHER-NOTIFICATION] Unable to create student assignment notifications."));
     return student;
@@ -252,16 +266,18 @@ export class SchoolAdminService {
   }
 
   static async getSchoolTeachers(schoolId: string) {
-    const users = await User.find({ schoolId, userType: UserType.TEACHER }).select("-passwordHash -refreshTokenHash").sort({ name: 1 }).lean();
+    const users = await User.find({ schoolId, userType: UserType.TEACHER }).select("name email userType status branchId").sort({ name: 1 }).lean();
     const ids = users.map((teacher: any) => teacher._id);
-    const [profiles, assignments] = await Promise.all([
+    const [profiles, assignments, classAssignments,employment] = await Promise.all([
       TeacherProfile.find({ schoolId, userId: { $in: ids } }).lean(),
       TeachingAssignment.find({ schoolId, teacherUserId: { $in: ids } }).populate("academicSessionId", "name").populate("classId", "name").populate("sectionId", "name").populate("subjectId", "name code").sort({ assignedAt: -1 }).lean(),
+      ClassTeacherAssignment.find({schoolId,teacherUserId:{$in:ids}}).populate("academicSessionId","name").populate("classId","name").populate("sectionId","name").lean(),
+      StaffEmployment.find({schoolId,userId:{$in:ids}}).select("userId department phone employeeId joiningDate designation status").lean(),
     ]);
     const profilesByUser = new Map(profiles.map((item: any) => [String(item.userId), item]));
     const assignmentsByUser = new Map<string, any[]>();
     assignments.forEach((item: any) => { const key = String(item.teacherUserId); assignmentsByUser.set(key, [...(assignmentsByUser.get(key) || []), item]); });
-    return users.map((teacher: any) => ({ ...teacher, profile: profilesByUser.get(String(teacher._id)) || null, assignments: assignmentsByUser.get(String(teacher._id)) || [] }));
+    return users.map((teacher: any) => ({ ...teacher, profile: profilesByUser.get(String(teacher._id)) || null, employment:employment.find((e:any)=>String(e.userId)===String(teacher._id)), classAssignments: classAssignments.filter((a:any)=>String(a.teacherUserId)===String(teacher._id)), assignments: assignmentsByUser.get(String(teacher._id)) || [] }));
   }
 
   private static async validateTeachingAssignments(schoolId: string, assignments: any[]) {
@@ -279,10 +295,26 @@ export class SchoolAdminService {
     }
   }
 
+  private static async validateClassAssignments(schoolId:string, rows:any[], teacherId?:string) {
+    const keys=new Set<string>();
+    for(const row of rows){const key=row.academicSessionId+":"+row.sectionId;if(keys.has(key))throw {statusCode:400,message:"This class and section is already selected."};keys.add(key);
+      const [session,section,assigned]=await Promise.all([AcademicSession.findOne({_id:row.academicSessionId,schoolId}),SectionModel.findOne({_id:row.sectionId,classId:row.classId,schoolId}),ClassTeacherAssignment.findOne({schoolId,academicSessionId:row.academicSessionId,sectionId:row.sectionId})]);
+      if(!session||!section)throw {statusCode:400,message:"Select a session and class section belonging to this school."};
+      if(assigned&&String(assigned.teacherUserId)!==teacherId)throw {statusCode:409,message:"This section already has a class teacher. Change it from Classes before assigning another teacher."};
+    }
+  }
+  private static async saveClassAssignments(schoolId:string, teacherId:string, teacherName:string, rows:any[]) {
+    const session=await mongoose.startSession();try{await session.withTransaction(async()=>{
+      await ClassTeacherAssignment.deleteMany({schoolId,teacherUserId:teacherId},{session});
+      if(rows.length)await ClassTeacherAssignment.insertMany(rows.map(row=>({...row,schoolId,teacherUserId:teacherId,teacherName})),{session});
+    });}finally{await session.endSession();}
+  }
   static async createSchoolTeacher(schoolId: string, data: any) {
     await this.validateTeachingAssignments(schoolId, data.assignments || []);
+    await this.validateClassAssignments(schoolId,data.classAssignments||[]);
     const teacher = await UserService.createStaffUser(schoolId, { ...data, userType: UserType.TEACHER });
     try {
+      if(data.classAssignments)await this.saveClassAssignments(schoolId,String(teacher.id),data.name,data.classAssignments);
       await TeacherProfile.create({ schoolId, userId: teacher.id, qualification: data.qualification, employeeId: data.employeeId, phone: data.phone });
       if (data.assignments?.length) await TeachingAssignment.insertMany(data.assignments.map((item: any) => ({ ...item, schoolId, teacherUserId: teacher.id, status: "ACTIVE" })));
       if (data.assignments?.length) await TeacherNotification.insertMany(await Promise.all(data.assignments.map(async (item: any) => {
@@ -291,7 +323,7 @@ export class SchoolAdminService {
       })));
       return (await this.getSchoolTeachers(schoolId)).find((item: any) => String(item._id) === String(teacher.id));
     } catch (error) {
-      await Promise.all([TeachingAssignment.deleteMany({ schoolId, teacherUserId: teacher.id }), TeacherProfile.deleteOne({ schoolId, userId: teacher.id }), User.deleteOne({ _id: teacher.id, schoolId })]);
+      await Promise.all([StaffEmployment.deleteOne({schoolId,userId:teacher.id}),TeacherNotification.deleteMany({schoolId,teacherUserId:teacher.id}),ClassTeacherAssignment.deleteMany({schoolId,teacherUserId:teacher.id}), TeachingAssignment.deleteMany({ schoolId, teacherUserId: teacher.id }), TeacherProfile.deleteOne({ schoolId, userId: teacher.id }), User.deleteOne({ _id: teacher.id, schoolId })]);
       throw error;
     }
   }
@@ -299,13 +331,15 @@ export class SchoolAdminService {
   static async updateSchoolTeacher(schoolId: string, teacherId: string, data: any) {
     const teacher = await User.findOne({ _id: teacherId, schoolId, userType: UserType.TEACHER });
     if (!teacher) throw { statusCode: 404, message: "Teacher not found in this school." };
+    if(data.classAssignments)await this.validateClassAssignments(schoolId,data.classAssignments,teacherId);
     if (data.assignments) await this.validateTeachingAssignments(schoolId, data.assignments);
     const oldAssignments = data.assignments ? await TeachingAssignment.find({ schoolId, teacherUserId: teacherId, status: "ACTIVE" }).lean() : [];
     if (data.name) teacher.name = data.name;
     if (data.status) teacher.status = data.status;
     await teacher.save();
     if (data.status && data.status !== "ACTIVE") await TeachingAssignment.updateMany({ schoolId, teacherUserId: teacherId, status: "ACTIVE" }, { $set: { status: "ENDED", endedAt: new Date() } });
-    const { assignments, name, status, ...profileData } = data;
+    if(data.classAssignments)await this.saveClassAssignments(schoolId,teacherId,teacher.name,data.classAssignments);
+    const { assignments, classAssignments, name, status, ...profileData } = data;
     if (Object.keys(profileData).length) await TeacherProfile.findOneAndUpdate({ schoolId, userId: teacherId }, { $set: profileData, $setOnInsert: { schoolId, userId: teacherId } }, { upsert: true, new: true });
     if (assignments) {
       await TeachingAssignment.updateMany({ schoolId, teacherUserId: teacherId, status: "ACTIVE" }, { $set: { status: "ENDED", endedAt: new Date() } });
@@ -404,7 +438,7 @@ export class SchoolAdminService {
       const status = String(record.status).toLowerCase() as "present" | "absent" | "late" | "leave";
       if (status === "present" || status === "absent" || status === "late" || status === "leave") counts[status] += 1;
     }
-    return { studentAttendance, teacherAttendance, summary: { ...counts, attendancePercent: counts.total ? Math.round(((counts.present + counts.late) / counts.total) * 1000) / 10 : 0 } };
+    return { studentAttendance, teacherAttendance:mergeTeacherBatches(teacherAttendance,await teacherBatches(schoolId,from,to)), summary: { ...counts, attendancePercent: counts.total ? Math.round(((counts.present + counts.late) / counts.total) * 1000) / 10 : 0 } };
   }
 
   static async getTimetable(schoolId: string, classId: string) {
@@ -546,15 +580,7 @@ export class SchoolAdminService {
   }
 
   static async createExamSchedule(schoolId: string, data: any) {
-    const [classes, subjects, session] = await Promise.all([
-      ClassModel.find({ schoolId, _id: { $in: data.classes } }).select("_id"),
-      Subject.find({ schoolId, _id: { $in: data.subjects } }).select("_id classId"),
-      data.academicSessionId ? AcademicSession.findOne({ _id: data.academicSessionId, schoolId }).select("name") : AcademicSession.findOne({ schoolId, isCurrent: true }).select("_id name"),
-    ]);
-    if (classes.length !== data.classes.length) throw { statusCode: 400, message: "Every selected class must belong to this school." };
-    if (subjects.length !== data.subjects.length) throw { statusCode: 400, message: "Every selected subject must belong to this school." };
-    if (!session) throw { statusCode: 400, message: "Select or create an academic session for this school." };
-    return ExamSchedule.create({ ...data, schoolId, academicSessionId: session._id, academicSessionName: session.name });
+    const {ExamService}=await import("./exam.service");return ExamService.createExam(schoolId,data);
   }
 
   static async getMarks(schoolId: string, examId?: string, classId?: string, subjectId?: string, sectionId?: string) {
@@ -623,7 +649,7 @@ export class SchoolAdminService {
     }
 
     const [exam, classRecord, subject]: [any, any, any] = await Promise.all([
-      ExamSchedule.findOne({ _id: data.examId, schoolId }).select("title"),
+      ExamSchedule.findOne({ _id: data.examId, schoolId }).select("title classes subjects academicSessionId"),
       ClassModel.findOne({ _id: data.classId, schoolId }).select("name"),
       Subject.findOne({ _id: data.subjectId, schoolId, classId: data.classId }).select("name totalMarks passingMarks"),
     ]);
@@ -639,11 +665,13 @@ export class SchoolAdminService {
     const roster = await Student.find(studentQuery).select("_id name rollNumber").lean();
     const rosterMap = new Map(roster.map((s: any) => [String(s._id), s]));
 
+    if (!exam.classes.includes(data.classId) || !exam.subjects.includes(data.subjectId)) throw {statusCode:400,message:"Choose an included examination class and subject."};
+    if(new Set(data.marks.map(m=>m.studentId)).size!==data.marks.length || data.marks.some(m=>!rosterMap.has(String(m.studentId)) || m.obtainedMarks!=="" && (!Number.isFinite(Number(m.obtainedMarks)) || Number(m.obtainedMarks)<0 || Number(m.obtainedMarks)>subject.totalMarks))) throw {statusCode:400,message:"Marks must be unique, within the subject maximum and belong to the selected class section."};
     const records = (data.marks || [])
-      .filter((m: any) => rosterMap.has(String(m.studentId)) && m.obtainedMarks !== "")
+      .filter((m: any) => rosterMap.has(String(m.studentId)) && (m.isAbsent || m.obtainedMarks !== ""))
       .map((m: any) => {
         const student: any = rosterMap.get(String(m.studentId));
-        const obtained = Number(m.obtainedMarks) || 0;
+        const obtained = m.isAbsent ? 0 : Number(m.obtainedMarks);
         const pct = subject.totalMarks > 0 ? (obtained / subject.totalMarks) * 100 : 0;
         let grade = "F";
         if (pct >= 90) grade = "A+";
@@ -663,10 +691,7 @@ export class SchoolAdminService {
         };
       });
 
-    const doc = await MarksEntry.findOneAndUpdate(
-      { schoolId, examId: data.examId, classId: data.classId, subjectId: data.subjectId },
-      {
-        $set: {
+    const doc = await persistMarks(schoolId, {
           schoolId,
           examId: data.examId,
           classId: data.classId,
@@ -676,13 +701,9 @@ export class SchoolAdminService {
           subjectName: subject.name,
           maxMarks: subject.totalMarks || 100,
           passingMarks: subject.passingMarks || 33,
-          records,
           enteredByTeacherName: userName,
           status: "SUBMITTED",
-        },
-      },
-      { upsert: true, new: true }
-    );
+    }, records, (data.marks || []).map(m => String(m.studentId)));
 
     return doc;
   }
@@ -739,7 +760,7 @@ export class SchoolAdminService {
       .limit(60)
       .lean();
 
-    const attendanceLogs = attendanceDocs.map((doc: any) => {
+    const attendanceLogs = mergeTeacherBatches(attendanceDocs,await teacherBatches(schoolId,undefined,undefined,teacherUserId)).map((doc: any) => {
       const rec = doc.records.find((r: any) => String(r.teacherUserId) === String(teacherUserId));
       return {
         date: doc.date,

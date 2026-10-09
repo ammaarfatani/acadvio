@@ -1,5 +1,6 @@
 "use client";
 
+import { ScreenshotCapture } from "@/components/ScreenshotCapture";
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Check, ArrowRight } from "lucide-react";
@@ -25,8 +26,8 @@ export function ProductShowcase({ compact = false }: { compact?: boolean }) {
         {!compact && <><ul className="mt-6 space-y-3">{portal.tasks.map(task => <li key={task} className="flex gap-2 text-sm text-zinc-600"><Check size={16} className="mt-0.5 shrink-0 text-brand-600"/>{task}</li>)}</ul><Link href="/free-trial" className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-brand-600">Explore with your own school <ArrowRight size={16}/></Link></>}
       </div>
       <figure className="min-w-0 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-        <div className="flex items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50 px-4 py-3"><span className="text-xs font-medium text-zinc-500">Acadivo / {portal.label}</span><a href={`/product-showcase/${portal.image}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-600">Open screenshot <ArrowUpRight size={14}/></a></div>
-        <img key={portal.id} src={`/product-showcase/${portal.image}`} alt={`Actual Acadivo ${portal.label} portal showing its dashboard and navigation`} width={portal.id === "teacher" ? 1272 : 1280} height={portal.id === "receptionist" ? 450 : portal.id === "teacher" ? 1432 : 800} loading="lazy" className="h-auto w-full"/>
+        <div className="flex items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50 px-4 py-3"><span className="text-xs font-medium text-zinc-500">Acadivo / {portal.label}</span></div>
+        <ScreenshotCapture key={portal.id} image={portal.image} label={portal.label}/>
         <figcaption className="border-t border-zinc-100 px-4 py-3 text-xs leading-5 text-zinc-500">Captured from the working {portal.label.toLowerCase()} portal. Identifying details are redacted for this public preview. Records shown belong to the captured workspace; your dashboard reflects your own school.</figcaption>
       </figure>
     </div>

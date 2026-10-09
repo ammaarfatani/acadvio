@@ -1,4 +1,6 @@
 "use client";
+import {PageHeading} from "@/components/ProductUI";
+import OrganizationWorkspace from "@/components/OrganizationWorkspace";
 import WorkspaceAnalytics from "@/components/WorkspaceAnalytics";
 
 import { useCallback, useEffect, useState } from "react";
@@ -9,18 +11,20 @@ import { useAuth } from "@/lib/auth-context";
 
 type DashboardData = { school: { name: string; status: string; plan: string }; metrics: Record<string, any> };
 const card = "rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm";
-export default function SchoolAdminDashboard() {
+export default function SchoolAdminDashboard() { const { user } = useAuth(); return user?.isOrganizationOwner ? <OrganizationWorkspace/> : <SingleSchoolDashboard/>; }
+function SingleSchoolDashboard() {
   const { user } = useAuth(); const portalBase = user?.school?.slug ? `/${user.school.slug}/admin` : "/school-admin";
   const [data, setData] = useState<DashboardData | null>(null); const [error, setError] = useState(""); const [loading, setLoading] = useState(true);
   const load = useCallback(async () => { setLoading(true); try { const response = await schoolAdminApi.getDashboardMetrics(); setData(response.data); setError(""); } catch (e: any) { setError(e.message || "Could not load school dashboard."); } finally { setLoading(false); } }, []);
   useEffect(() => { void load(); }, [load]);
   const m = data?.metrics; const distribution = m?.studentDistribution || []; const maxClassCount = Math.max(1, ...distribution.map((row: any) => row.count));
   const primaryCards = [["Students", m?.totalStudents ?? 0, Users, "students"], ["Teachers", m?.totalTeachers ?? 0, GraduationCap, "teachers"], ["Staff users", m?.totalStaff ?? 0, Users, "staff"], ["Classes", m?.totalClasses ?? 0, BookOpen, "academics/classes"]] as const;
-  return <div className="mx-auto max-w-7xl space-y-7 pb-12 text-zinc-900">
-    <header className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[.16em] text-school-primary">{data?.school?.name || user?.school?.name || "School"}</p><h1 className="mt-1 text-3xl font-black tracking-tight">School overview</h1><p className="mt-1 text-sm text-zinc-500">A live view of today’s attendance and your school’s academic setup.</p></div><div className="flex items-center gap-3"><span className="hidden rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-600 sm:inline-flex sm:items-center sm:gap-2"><CalendarDays size={16} />{m?.currentSessionName || "No active session"}</span><button onClick={() => void load()} disabled={loading} className="rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold hover:bg-zinc-50 disabled:opacity-60">{loading ? "Refreshing…" : "Refresh"}</button></div></header>
+  const visibleCards = primaryCards.filter(([, , , path]) => path !== "staff" || user?.features?.includes("STAFF_ROLES"));
+  return <div className="ui-dashboard ui-dashboard--school-admin mx-auto max-w-7xl space-y-7 pb-12 text-zinc-900">
+    <PageHeading eyebrow={data?.school?.name || user?.school?.name || "Your school"} title="School overview" description="Today’s attendance, student records and academic setup, in one view." actions={<div className="flex items-center gap-3"><span className="hidden rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-600 sm:inline-flex sm:items-center sm:gap-2"><CalendarDays size={16} />{m?.currentSessionName || "No active session"}</span><button onClick={() => void load()} disabled={loading} className="rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold hover:bg-zinc-50 disabled:opacity-60">{loading ? "Refreshing…" : "Refresh"}</button></div>}/>
     {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
-    {loading && !data ? <div role="status" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{primaryCards.map(([label]) => <div key={label} className={`${card} h-28 animate-pulse bg-zinc-100`} />)}</div> : <>
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{primaryCards.map(([label, value, Icon, path]) => <Link key={label} href={`${portalBase}/${path}`} className={`${card} group transition hover:-translate-y-0.5 hover:border-school-primary/40 hover:shadow-md`}><div className="flex items-center justify-between"><span className="grid h-10 w-10 place-items-center rounded-xl bg-school-primary/10 text-school-primary"><Icon size={19} /></span><span className="text-xs font-semibold text-zinc-400 group-hover:text-school-primary">View</span></div><p className="mt-4 text-sm text-zinc-500">{label}</p><p className="mt-1 text-3xl font-black">{value}</p></Link>)}</section>
+    {loading && !data ? <div role="status" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{visibleCards.map(([label]) => <div key={label} className={`${card} h-28 animate-pulse bg-zinc-100`} />)}</div> : <>
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{visibleCards.map(([label, value, Icon, path]) => <Link key={label} href={`${portalBase}/${path}`} className={`${card} group transition hover:-translate-y-0.5 hover:border-school-primary/40 hover:shadow-md`}><div className="flex items-center justify-between"><span className="grid h-10 w-10 place-items-center rounded-xl bg-school-primary/10 text-school-primary"><Icon size={19} /></span><span className="text-xs font-semibold text-zinc-400 group-hover:text-school-primary">View</span></div><p className="mt-4 text-sm text-zinc-500">{label}</p><p className="mt-1 text-3xl font-black">{value}</p></Link>)}</section>
       {m && !m.totalStudents && !m.totalTeachers && !m.totalClasses && !m.totalSubjects ? <section className={`${card} border-dashed p-8`}><h2 className="text-xl font-bold">Your school isn’t configured yet</h2><p className="mt-1 text-sm text-zinc-500">Start with a session and class, then add teachers and students. Dashboard totals will update as records are created.</p><div className="mt-5 flex flex-wrap gap-2">{[["Create academic session","academics/sessions"],["Create class","academics/classes"],["Add teacher","teachers"],["Add student","students"]].map(([label,path]) => <Link key={path} href={`${portalBase}/${path}`} className="rounded-xl bg-school-primary px-4 py-2.5 text-sm font-bold text-white hover:opacity-90">{label}</Link>)}</div></section> : <>
         <section className="grid gap-4 lg:grid-cols-2">
           <article className={card}><div className="flex items-start justify-between"><div><h2 className="text-base font-bold">Student attendance today</h2><p className="mt-1 text-sm text-zinc-500">From submitted class registers</p></div><Link href={`${portalBase}/attendance/students`} className="text-sm font-semibold text-school-primary">View report</Link></div><div className="mt-5 flex items-end gap-3"><p className="text-4xl font-black">{m?.todayAttendancePercent ?? 0}%</p><p className="pb-1 text-sm text-zinc-500">{m?.studentsPresentToday || 0} present · {m?.studentsAbsentToday || 0} absent · {m?.studentsLateToday || 0} late</p></div><div className="mt-4 h-2.5 overflow-hidden rounded-full bg-zinc-100"><div className="h-full rounded-full bg-school-primary transition-all" style={{ width: `${Math.min(100, m?.todayAttendancePercent || 0)}%` }} /></div></article>
@@ -34,4 +38,3 @@ export default function SchoolAdminDashboard() {
   <WorkspaceAnalytics/>
 </div>;
 }
-

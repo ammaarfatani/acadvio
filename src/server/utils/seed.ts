@@ -50,19 +50,18 @@ export const seedDatabase = async () => {
       { upsert: true }
     );
   }
-  await Role.updateMany(
-    { userType: { $in: [UserType.EXAM_STAFF, UserType.FINANCE, UserType.RECEPTIONIST] } },
-    { $addToSet: { permissions: { $each: ["settings.view", "settings.update", "admissions.view", "admissions.manage", "visitors.manage"] } } }
-  );
+  // Add notice permissions to existing built-in school roles without granting unrelated department permissions.
+  await Role.updateMany({ code: "ROLE_SCHOOL_ADMIN" }, { $addToSet: { permissions: { $each: ["notices.view", "notices.manage", "organization.manage"] } } });
+  await Role.updateMany({ code: { $in: ["ROLE_TEACHER", "ROLE_FINANCE", "ROLE_EXAM_STAFF", "ROLE_RECEPTIONIST"] } }, { $addToSet: { permissions: "notices.view" } });
   console.log(`[Seeder] Seeded ${SYSTEM_ROLES.length} system roles and synced permissions.`);
 
   // 3. Seed Platform Super Admin User
   const superAdminRole = await Role.findOne({ code: "ROLE_SUPER_ADMIN" });
-  const superAdminEmail = "superadmin@acadivo.com";
+  const superAdminEmail = process.env.SUPER_ADMIN_EMAIL || "superadmin@acadivo.com";
   let superAdminUser = await User.findOne({ email: superAdminEmail });
 
-  if (!superAdminUser) {
-    const passwordHash = await hashPassword("SuperAdmin2026!Pass");
+  if (!superAdminUser && process.env.SUPER_ADMIN_INITIAL_PASSWORD) {
+    const passwordHash = await hashPassword(process.env.SUPER_ADMIN_INITIAL_PASSWORD!);
     superAdminUser = await User.create({
       schoolId: null,
       roleId: superAdminRole?._id,
@@ -73,10 +72,11 @@ export const seedDatabase = async () => {
       status: UserStatus.ACTIVE,
       isEmailVerified: true,
     });
-    console.log("[Seeder] Created Super Admin account: superadmin@acadivo.com / SuperAdmin2026!Pass");
+    console.log("[Seeder] Created configured Super Admin account.");
   }
 
   if (process.env.SEED_DEMO_DATA !== "true") return;
+  if (!process.env.SEED_DEMO_PASSWORD) throw new Error("Set SEED_DEMO_PASSWORD explicitly before enabling demo seeding.");
   // 4. Seed Demo Active School: Oakridge Model School
   const demoSchoolCode = "oakridge";
   let demoSchool = await School.findOne({ code: demoSchoolCode });
@@ -101,7 +101,7 @@ export const seedDatabase = async () => {
     });
 
     const schoolAdminRole = await Role.findOne({ code: "ROLE_SCHOOL_ADMIN" });
-    const adminPasswordHash = await hashPassword("Admin2026!Pass");
+    const adminPasswordHash = await hashPassword(process.env.SEED_DEMO_PASSWORD!);
 
     await User.create({
       schoolId: demoSchool._id,
@@ -131,7 +131,7 @@ export const seedDatabase = async () => {
       isCurrent: true,
     });
 
-    console.log("[Seeder] Created Demo Active School & Admin (principal.malik@oakridge.edu.pk / Admin2026!Pass)");
+    console.log("[Seeder] Created explicitly configured demo account.");
   }
 
   // 5. Seed Primary Target School: Apex International Institute
@@ -174,7 +174,7 @@ export const seedDatabase = async () => {
   const examRole = await Role.findOne({ code: "ROLE_EXAM_STAFF" });
   const receptionRole = await Role.findOne({ code: "ROLE_RECEPTIONIST" });
 
-  const defaultPasswordHash = await hashPassword("Apex2026!Pass");
+  const defaultPasswordHash = await hashPassword(process.env.SEED_DEMO_PASSWORD!);
 
   // Create Apex Users across all 5 operational roles
   let apexAdmin = await User.findOne({ email: "admin@apex.edu.pk" });

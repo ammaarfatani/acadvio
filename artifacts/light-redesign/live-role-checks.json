@@ -1,0 +1,59 @@
+[
+  {
+    "role": "SUPER_ADMIN",
+    "loginHttpStatus": 200,
+    "correctRole": true,
+    "sessionIdentityHttpStatus": 200,
+    "dashboardHttpStatus": 200,
+    "unauthenticatedDashboardHttpStatus": 401
+  },
+  {
+    "role": "SCHOOL_ADMIN",
+    "loginHttpStatus": 200,
+    "correctRole": true,
+    "sessionIdentityHttpStatus": 200,
+    "dashboardHttpStatus": 200,
+    "unauthenticatedDashboardHttpStatus": 401
+  },
+  {
+    "role": "TEACHER",
+    "loginHttpStatus": 200,
+    "correctRole": true,
+    "sessionIdentityHttpStatus": 200,
+    "dashboardHttpStatus": 200,
+    "unauthenticatedDashboardHttpStatus": 401,
+    "superAdminAccessHttpStatus": 403
+  },
+  {
+    "role": "EXAM_STAFF",
+    "loginHttpStatus": 200,
+    "correctRole": false,
+    "sessionIdentityHttpStatus": 200,
+    "dashboardHttpStatus": 403,
+    "unauthenticatedDashboardHttpStatus": 401,
+    "superAdminAccessHttpStatus": 403
+  },
+  {
+    "role": "FINANCE",
+    "loginHttpStatus": 401
+  },
+  {
+    "role": "RECEPTIONIST",
+    "loginHttpStatus": 200,
+    "correctRole": true,
+    "sessionIdentityHttpStatus": 200,
+    "dashboardHttpStatus": 200,
+    "unauthenticatedDashboardHttpStatus": 401,
+    "superAdminAccessHttpStatus": 403
+  },
+  {
+    "role": "PARENT",
+    "loginHttpStatus": 200,
+    "correctRole": true,
+    "sessionIdentityHttpStatus": 200,
+    "dashboardHttpStatus": 200,
+    "unauthenticatedDashboardHttpStatus": 401,
+    "superAdminAccessHttpStatus": 403,
+    "linkedChildRecordsHttpStatus": 200
+  }
+]

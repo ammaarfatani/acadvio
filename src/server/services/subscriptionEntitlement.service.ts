@@ -1,3 +1,5 @@
+import { withoutBranchScope } from "../utils/branchScope";
+import { hasFeature, PLAN_FEATURES } from "../../lib/plan-features";
 import { expireTrials } from "./trialLifecycle.service";
 import { School } from "../models/school.model";
 import { Student } from "../models/student.model";
@@ -20,7 +22,7 @@ export interface PlanLimits {
 export const PLAN_CONFIGS: Record<string, PlanLimits> = {
   FREE_TRIAL: {
     name: "14-Day Free Trial", pricePKR: 0, maxStudents: 1500, maxTeachers: 75,
-    features: { customBranding: true, advancedReports: true, certificates: true, smsGateway: true },
+    features: { customBranding: true, advancedReports: true, certificates: true, smsGateway: false },
   },
   STARTER: {
     name: "Starter Plan",
@@ -28,7 +30,7 @@ export const PLAN_CONFIGS: Record<string, PlanLimits> = {
     maxStudents: 300,
     maxTeachers: 15,
     features: {
-      customBranding: false,
+      customBranding: true,
       advancedReports: false,
       certificates: false,
       smsGateway: false,
@@ -43,7 +45,7 @@ export const PLAN_CONFIGS: Record<string, PlanLimits> = {
       customBranding: true,
       advancedReports: true,
       certificates: true,
-      smsGateway: true,
+      smsGateway: false,
     },
   },
   ENTERPRISE: {
@@ -55,7 +57,7 @@ export const PLAN_CONFIGS: Record<string, PlanLimits> = {
       customBranding: true,
       advancedReports: true,
       certificates: true,
-      smsGateway: true,
+      smsGateway: false,
     },
   },
 };
@@ -74,7 +76,9 @@ export class SubscriptionEntitlementService {
         ? Math.max(0, Math.ceil((new Date(school.trialEndsAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
         : 0;
 
-    const plan = ["TRIAL", "TRIAL_EXPIRED"].includes(school.status) ? PLAN_CONFIGS.FREE_TRIAL : PLAN_CONFIGS[school.plan] || PLAN_CONFIGS.PROFESSIONAL;
+    const code = ["TRIAL", "TRIAL_EXPIRED"].includes(school.status) ? "FREE_TRIAL" : school.plan;
+    const configured = PLAN_CONFIGS[code] || PLAN_CONFIGS.STARTER;
+    const plan = { ...configured, features: { customBranding: hasFeature(code, "CORE_ADMIN"), advancedReports: hasFeature(code, "ADVANCED_REPORTS"), certificates: hasFeature(code, "EXAMINATIONS"), smsGateway: false } };
 
     return {
       schoolId: school._id,
@@ -86,6 +90,7 @@ export class SubscriptionEntitlementService {
       isTrialExpired: school.status === "TRIAL_EXPIRED",
       isActive: school.status === "ACTIVE" || school.status === "TRIAL",
       limits: plan,
+      enabledFeatures: PLAN_FEATURES[school.status === "TRIAL" ? "FREE_TRIAL" : school.plan] || [],
     };
   }
 
@@ -95,10 +100,12 @@ export class SubscriptionEntitlementService {
     const school = await School.findById(schoolId);
     if (!school) throw { statusCode: 404, message: "School tenant not found." };
 
-    const plan = ["TRIAL", "TRIAL_EXPIRED"].includes(school.status) ? PLAN_CONFIGS.FREE_TRIAL : PLAN_CONFIGS[school.plan] || PLAN_CONFIGS.PROFESSIONAL;
+    const code = ["TRIAL", "TRIAL_EXPIRED"].includes(school.status) ? "FREE_TRIAL" : school.plan;
+    const configured = PLAN_CONFIGS[code] || PLAN_CONFIGS.STARTER;
+    const plan = { ...configured, features: { customBranding: hasFeature(code, "CORE_ADMIN"), advancedReports: hasFeature(code, "ADVANCED_REPORTS"), certificates: hasFeature(code, "EXAMINATIONS"), smsGateway: false } };
 
     if (resourceType === "students") {
-      const currentCount = await Student.countDocuments({ schoolId, status: "ACTIVE" });
+      const currentCount = await withoutBranchScope(() => Student.countDocuments({ schoolId, status: "ACTIVE" }).exec());
       if (currentCount >= plan.maxStudents) {
         throw {
           statusCode: 403,
@@ -106,7 +113,7 @@ export class SubscriptionEntitlementService {
         };
       }
     } else if (resourceType === "teachers") {
-      const currentCount = await User.countDocuments({ schoolId, userType: UserType.TEACHER, status: "ACTIVE" });
+      const currentCount = await withoutBranchScope(() => User.countDocuments({ schoolId, userType: UserType.TEACHER, status: "ACTIVE" }).exec());
       if (currentCount >= plan.maxTeachers) {
         throw {
           statusCode: 403,

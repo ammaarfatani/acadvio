@@ -1,3 +1,4 @@
+import { branchScoped } from "../utils/branchScope";
 import mongoose, { Document, Schema } from "mongoose";
 
 export type AdmissionStatus = "NEW" | "CONTACTED" | "FOLLOW_UP" | "APPLIED" | "APPROVED" | "ADMITTED" | "REJECTED" | "CANCELLED";
@@ -54,4 +55,5 @@ const AdmissionSchema = new Schema<IAdmission>({
 
 AdmissionSchema.index({ schoolId: 1, applicationNumber: 1 }, { unique: true });
 AdmissionSchema.index({ schoolId: 1, academicSessionId: 1, applyingClassId: 1, status: 1, inquiryDate: -1 });
+AdmissionSchema.plugin(branchScoped);
 export const Admission = mongoose.models.Admission || mongoose.model<IAdmission>("Admission", AdmissionSchema);

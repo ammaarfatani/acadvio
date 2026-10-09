@@ -1,3 +1,4 @@
+import { hasFeature } from "../../lib/plan-features";
 import { z } from "zod";
 import { AuthenticatedUser } from "../middlewares/auth.middleware";
 import { Student } from "../models/student.model";
@@ -19,9 +20,9 @@ export function availableReports(actor:AuthenticatedUser):Report[] {
   const result:Report[]=[];
   if(["SCHOOL_ADMIN","RECEPTIONIST"].includes(actor.userType) && has("students.view"))result.push("students");
   if(actor.userType === "SCHOOL_ADMIN" && has("teachers.view"))result.push("teachers");
-  if(["SCHOOL_ADMIN","FINANCE"].includes(actor.userType) && has("fees.view"))result.push("finance");
+  if(["SCHOOL_ADMIN","FINANCE"].includes(actor.userType) && has("fees.view") && hasFeature(actor.plan, "FINANCE"))result.push("finance");
   if(actor.userType === "SCHOOL_ADMIN" && has("attendance.view"))result.push("attendance");
-  if(["SCHOOL_ADMIN","EXAM_STAFF"].includes(actor.userType) && has("results.view"))result.push("examinations");
+  if(["SCHOOL_ADMIN","EXAM_STAFF"].includes(actor.userType) && has("results.view") && hasFeature(actor.plan, "EXAMINATIONS"))result.push("examinations");
   return result;
 }
 export async function fetchAuthorizedReport(actor:AuthenticatedUser,input:z.infer<typeof ReportInput>) {

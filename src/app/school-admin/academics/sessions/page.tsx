@@ -1,10 +1,16 @@
 "use client";
 
+
+
+import {Presence} from "@/components/Motion";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Calendar, Plus } from "lucide-react";
+import {apiFetch} from "@/lib/api";
+import {Text,card,button} from "@/components/WorkforceUI";
 import { schoolAdminApi } from "@/lib/schoolAdminApi";
 
 export default function SessionsPage() {
+  const [editing,setEditing]=useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -45,8 +51,9 @@ export default function SessionsPage() {
       <label className="flex items-center gap-2 text-sm"><input name="isCurrent" type="checkbox" /> Set as current session</label>
       <div><button disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-school-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"><Plus size={16} />{saving ? "Saving…" : "Add session"}</button></div>
     </form>
+<Presence show={Boolean(editing)} kind="modal">{editing&&<div className="fixed inset-0 z-50 overflow-auto bg-black/40 p-4 sm:p-10"><form className={card+" mx-auto max-w-lg space-y-4"} onSubmit={async e=>{e.preventDefault();setSaving(true);try{await apiFetch("/school-admin/academic-sessions/"+editing._id,{method:"PUT",body:JSON.stringify({name:editing.name,startDate:editing.startDate,endDate:editing.endDate})});setEditing(null);await load();}catch(e:any){setError(e.message);}finally{setSaving(false);}}}><h2 className="text-xl font-semibold">Edit academic session</h2><Text label="Session name" placeholder="2026–2027" value={editing.name} onChange={(name:string)=>setEditing({...editing,name})}/><Text label="Start date" type="date" value={editing.startDate} onChange={(startDate:string)=>setEditing({...editing,startDate})}/><Text label="End date" type="date" min={editing.startDate} value={editing.endDate} onChange={(endDate:string)=>setEditing({...editing,endDate})}/><div className="flex justify-end gap-3"><button type="button" className="rounded-lg border px-4 py-2 text-sm" onClick={()=>setEditing(null)}>Cancel</button><button disabled={saving} className={button}>Save session</button></div></form></div>}</Presence>
     <section className="space-y-3" aria-live="polite">
-      {loading ? <p className="rounded-xl border border-zinc-200 bg-white p-6 text-sm text-zinc-500">Loading sessions…</p> : sessions.length === 0 ? <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-10 text-center"><Calendar className="mx-auto mb-3 text-zinc-400" /><h2 className="font-bold">No academic sessions yet</h2><p className="mt-1 text-sm text-zinc-500">Create your school’s first academic session above.</p></div> : sessions.map((session) => <article key={session._id} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm"><div><h2 className="font-bold">{session.name}</h2><p className="text-sm text-zinc-500">{new Date(session.startDate).toLocaleDateString()} – {new Date(session.endDate).toLocaleDateString()}</p></div><div className="flex items-center gap-3">{session.isCurrent ? <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">Current</span> : <button onClick={() => void setCurrent(session._id)} className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-semibold">Set current</button>}</div></article>)}
+      {loading ? <p className="rounded-xl border border-zinc-200 bg-white p-6 text-sm text-zinc-500">Loading sessions…</p> : sessions.length === 0 ? <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-10 text-center"><Calendar className="mx-auto mb-3 text-zinc-400" /><h2 className="font-bold">No academic sessions yet</h2><p className="mt-1 text-sm text-zinc-500">Create your school’s first academic session above.</p></div> : sessions.map((session) => <article key={session._id} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm"><div><h2 className="font-bold">{session.name}</h2><p className="text-sm text-zinc-500">{new Date(session.startDate).toLocaleDateString()} – {new Date(session.endDate).toLocaleDateString()}</p></div><div className="flex items-center gap-3">{session.isArchived&&<span className="rounded-full bg-zinc-100 px-3 py-1 text-xs">Archived</span>}<button className="rounded-lg border px-3 py-2 text-sm" onClick={()=>setEditing({...session,startDate:session.startDate.slice(0,10),endDate:session.endDate.slice(0,10)})}>Edit</button>{!session.isCurrent&&<button className="rounded-lg border px-3 py-2 text-sm" onClick={async()=>{try{await apiFetch("/school-admin/academic-sessions/"+session._id+"/archive",{method:"PATCH",body:JSON.stringify({archived:!session.isArchived})});await load();}catch(e:any){setError(e.message);}}}>{session.isArchived?"Restore":"Archive"}</button>}{session.isCurrent ? <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">Current</span> : <button disabled={session.isArchived} onClick={() => void setCurrent(session._id)} className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-semibold">Set current</button>}</div></article>)}
     </section>
   </div>;
 }

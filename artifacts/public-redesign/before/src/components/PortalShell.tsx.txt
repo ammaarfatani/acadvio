@@ -1,0 +1,84 @@
+"use client";
+import {useOptionalParent} from "@/lib/parent-context";
+import {AttendanceSetup} from "./StaffAttendanceWorkspace";
+import ChangePassword from "./ChangePassword";
+import BranchSwitcher from "./BranchSwitcher";
+import { routeFeature } from "@/lib/plan-features";
+
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { Bell, ChevronDown, ChevronRight, LayoutGrid, LogOut, Menu, Search, Settings, X, MessageSquare } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
+import { apiFetch, authApi } from "@/lib/api";
+import { portalNavigation, PortalRole } from "@/lib/portal-navigation";
+import PublicLogo from "./PublicLogo";
+import { ScreenshotPrivacy } from "./ScreenshotPrivacy";
+import SchoolLogo from "./SchoolLogo";
+import AcadivoAssistant from "./AcadivoAssistant";
+
+export default function PortalShell({ role, children }: {role: PortalRole; children: React.ReactNode}) {
+  const { user, clearSession, refreshUser } = useAuth();
+  const pathname = usePathname(), router = useRouter();
+  const config = portalNavigation[role];
+  const base = role !== "SUPER_ADMIN" && user?.school?.slug ? "/"+user.school.slug+"/"+config.scoped : config.root;
+  const [passwordOpen,setPasswordOpen]=useState(false);
+  const parent=useOptionalParent();const parentChild=parent?.selected;const notificationEndpoint="/workspace/notifications"+(role==="PARENT"&&parentChild?"?studentId="+parentChild:"");
+  const notificationScope=useRef(notificationEndpoint);notificationScope.current=notificationEndpoint;
+  useEffect(()=>{if(role==="PARENT"){setMenu(null);setNotifications(null);}},[parentChild,role]);
+  const [drawer,setDrawer] = useState(false), [menu,setMenu] = useState<"profile"|"notifications"|null>(null);
+  const [query,setQuery] = useState(""), [assistant,setAssistant] = useState(false);
+  const [notifications,setNotifications] = useState<any>(null), [notificationError,setNotificationError] = useState("");
+  const nav = useRef<HTMLElement>(null), main = useRef<HTMLElement>(null), header = useRef<HTMLDivElement>(null);
+  const storageKey = "acadivo:nav:"+user?.id+":"+role;
+  const billingOnly = role === "SCHOOL_ADMIN" && (user?.status === "PENDING_APPROVAL" || !!user?.school?.status && !["ACTIVE","TRIAL"].includes(user.school.status));
+  const needsAttendanceSetup = role === "SCHOOL_ADMIN" && !billingOnly && !!user?.school && !user.school.attendanceSetupCompletedAt && (user.isOrganizationOwner || user.branchId === user.school._id);
+  const groups = billingOnly ? [{label:"Subscription",items:[{label:"Subscription status",path:"/subscription"},{label:"Payment verification",path:"/payments"}]}] : config.groups.map(group => ({...group,items:group.items.filter(item => (!item.permission || user?.permissions?.includes(item.permission)) && (role === "SUPER_ADMIN" || !routeFeature(config.root+item.path) || !!user?.features?.includes(routeFeature(config.root+item.path)!)) && (item.path !== "/attendance/devices" || user?.school?.attendanceMode === "BIOMETRIC") && (!item.path.startsWith("/organization") || user?.isOrganizationOwner))}));
+  const links = groups.flatMap(group => group.items);
+  const current = links.filter(item => item.path && pathname.startsWith(base+item.path)).sort((a,b) => b.path.length-a.path.length)[0]?.label || "Overview";
+  useEffect(() => { if(nav.current) nav.current.scrollTop = Number(sessionStorage.getItem(storageKey) || 0); },[storageKey]);
+  useEffect(() => { setDrawer(false); setMenu(null); setQuery(""); main.current?.scrollTo({top:0}); },[pathname]);
+  useEffect(() => {
+    function close(event: MouseEvent) { if(header.current && !header.current.contains(event.target as Node)) {setMenu(null);setQuery("");} }
+    function escape(event: KeyboardEvent) {if(event.key === "Escape") {setDrawer(false);setMenu(null);setAssistant(false);setQuery("");}}
+    document.addEventListener("mousedown",close); document.addEventListener("keydown",escape);
+    return () => {document.removeEventListener("mousedown",close);document.removeEventListener("keydown",escape);};
+  },[]);
+  useEffect(() => { if(!drawer) return; const previous = document.body.style.overflow; document.body.style.overflow="hidden"; return () => {document.body.style.overflow=previous;}; },[drawer]);
+  useEffect(() => { if(!user?.id || billingOnly || role==="PARENT"&&!parentChild) return; let live=true; apiFetch(notificationEndpoint).then(response => {if(live)setNotifications(response.data);}).catch(() => {}); return () => {live=false;}; },[user?.id,billingOnly,notificationEndpoint,parentChild,role]);
+  async function openNotifications() {
+    if(menu === "notifications") {setMenu(null);return;}
+    setMenu("notifications");setNotificationError("");setNotifications(null);
+    try {const scope=notificationEndpoint;const result = await apiFetch(scope);if(notificationScope.current===scope)setNotifications(result.data);} catch(e:any) {setNotificationError(e.message);}
+  }
+  async function markRead(id:string) {
+    try {await apiFetch("/workspace/notifications/"+id+"/read",{method:"PATCH"});setNotifications((previous:any) => ({...previous,items:previous.items.map((item:any) => item.id === id ? {...item,isRead:true} : item),unreadCount:Math.max(0,previous.unreadCount-1)}));} catch(e:any) {setNotificationError(e.message);}
+  }
+  async function logout() {try {await authApi.logout();} finally {clearSession();router.replace(user?.school?.slug ? "/"+user.school.slug+"/login" : "/login");}}
+  const brand = <Link href={base} className="block px-6 py-5 border-b border-zinc-200"><PublicLogo className="w-32"/>{role !== "SUPER_ADMIN" && <div className="mt-4 flex items-center gap-2.5"><div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-zinc-200 bg-zinc-50 text-sm font-semibold"><SchoolLogo/></div><div className="min-w-0"><p className="truncate text-sm font-semibold text-zinc-900">{user?.school?.name || "Your school"}</p><p className="text-[11px] text-zinc-500">{config.title}</p></div></div>}{role === "SUPER_ADMIN" && <p className="mt-3 text-xs text-zinc-500">{config.title}</p>}</Link>;
+  const navigation = (mobile=false) => <nav ref={mobile ? undefined : nav} aria-label={config.title} onScroll={event => {if(!mobile)sessionStorage.setItem(storageKey,String(event.currentTarget.scrollTop));}} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4">{groups.map(group => group.items.length > 0 && <section key={group.label} className="mb-5"><h2 className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500">{group.label}</h2>{group.items.map(item => {const active=pathname===base+item.path;return <Link key={item.path} href={base+item.path} aria-current={active ? "page" : undefined} className={"mb-0.5 flex items-center gap-2.5 rounded-md px-3 py-2 text-[13px] font-medium transition-colors "+(active ? "bg-red-50 text-brand-600" : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950")}><LayoutGrid size={15} aria-hidden="true"/><span>{item.label}</span>{active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-brand-600"/>}</Link>;})}</section>)}</nav>;
+  const footer = role === "PARENT" ? null : <div className="shrink-0 border-t border-zinc-200 px-5 py-4"><button onClick={() => setAssistant(true)} disabled={billingOnly} className="flex w-full items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-medium hover:bg-zinc-50 disabled:opacity-40"><MessageSquare size={16}/><span>Acadivo AI</span><ChevronRight size={14} className="ml-auto"/></button></div>;
+  return <div className="portal-shell flex h-dvh overflow-hidden bg-[#f7f8fa] text-[#111111]">
+    <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-zinc-200 bg-white md:flex">{brand}{navigation()}{footer}</aside>
+    {drawer && <div className="fixed inset-0 z-50 flex md:hidden"><button className="absolute inset-0 bg-black/30" onClick={() => setDrawer(false)} aria-label="Close navigation"/><aside role="dialog" aria-modal="true" aria-label="Navigation" className="relative flex h-full w-72 max-w-[85vw] flex-col bg-white"><button className="absolute right-3 top-4 p-2" onClick={() => setDrawer(false)} aria-label="Close navigation"><X size={18}/></button>{brand}{navigation(true)}{footer}</aside></div>}
+    <div className="flex min-w-0 flex-1 flex-col md:ml-64">
+      <div ref={header} className="relative z-40 shrink-0 border-b border-zinc-200 bg-white">
+        <header className="flex h-16 items-center gap-3 px-4 lg:px-7">
+          <button onClick={() => setDrawer(true)} className="rounded-md p-2 hover:bg-zinc-100 md:hidden" aria-label="Open navigation"><Menu size={20}/></button>
+          <div className="hidden min-w-0 items-center gap-2 text-sm md:flex"><span className="text-zinc-500">Workspace</span><ChevronRight size={14} className="text-zinc-400"/><span className="truncate font-medium">{current}</span></div>
+          <div className="relative ml-auto hidden w-60 lg:block"><Search className="absolute left-3 top-2.5 text-zinc-400" size={16}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Find a page…" aria-label="Search navigation" className="h-9 w-full rounded-md border border-zinc-200 bg-zinc-50 pl-9 pr-3 text-xs"/>{query && <div className="absolute top-11 max-h-72 w-full overflow-auto rounded-lg border bg-white p-1 shadow-lg">{links.filter(item => item.label.toLowerCase().includes(query.toLowerCase())).map(item => <Link key={item.path} href={base+item.path} className="block rounded px-3 py-2 text-sm hover:bg-zinc-50">{item.label}</Link>)}{!links.some(item => item.label.toLowerCase().includes(query.toLowerCase())) && <p className="p-3 text-xs text-zinc-500">No matching pages.</p>}</div>}</div>
+          {!billingOnly && <BranchSwitcher/>}
+          {!billingOnly && role !== "PARENT" && <button onClick={() => setAssistant(true)} title="Open Acadivo AI" className="hidden rounded-md border px-3 py-2 text-xs font-medium hover:bg-zinc-50 sm:block">Ask Acadivo</button>}
+          {!billingOnly && <button onClick={() => void openNotifications()} disabled={role==="PARENT"&&!parentChild} aria-label="Notifications" aria-expanded={menu === "notifications"} className="relative rounded-md p-2 hover:bg-zinc-100"><Bell size={18}/>{notifications?.unreadCount > 0 && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-brand-600"/>}</button>}
+          <button onClick={() => setMenu(menu === "profile" ? null : "profile")} aria-label="Account menu" aria-expanded={menu === "profile"} className="flex min-w-0 items-center gap-2 border-l border-zinc-200 pl-3"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-zinc-100 text-xs font-semibold">{user?.name?.slice(0,2).toUpperCase()}</span><span className="hidden text-left sm:block"><span className="block max-w-36 truncate text-xs font-semibold">{user?.name}</span><span className="block text-[10px] text-zinc-500">{config.title}</span></span><ChevronDown size={14}/></button>
+        </header>
+        {menu === "profile" && <div className="absolute right-4 top-14 w-64 rounded-lg border border-zinc-200 bg-white p-2 shadow-lg"><div className="border-b px-3 py-3"><p className="text-sm font-semibold">{user?.name}</p><p className="break-all text-xs text-zinc-500">{user?.email}</p><p className="mt-1 text-xs text-zinc-500">{user?.school?.name || "Acadivo platform"}</p></div>{!billingOnly && <Link href={base+(links.some(item => item.path === "/profile") ? "/profile" : "/settings")} className="flex items-center gap-2 rounded px-3 py-2 text-sm hover:bg-zinc-50"><Settings size={15}/>Account & settings</Link>}<button onClick={()=>{setMenu(null);setPasswordOpen(true);}} className="block w-full rounded px-3 py-2 text-left text-sm hover:bg-zinc-50">Change password</button><button onClick={() => void logout()} className="flex w-full items-center gap-2 rounded px-3 py-2 text-sm text-red-700 hover:bg-red-50"><LogOut size={15}/>Sign out</button></div>}
+        {menu === "notifications" && <div className="absolute right-4 top-14 max-h-[70vh] w-[min(360px,calc(100vw-32px))] overflow-auto rounded-lg border border-zinc-200 bg-white p-4 shadow-lg"><h2 className="text-sm font-semibold">Notifications</h2>{notificationError ? <p role="alert" className="mt-3 text-xs text-red-700">{notificationError}</p> : !notifications ? <p className="mt-3 text-xs text-zinc-500">Loading notifications…</p> : notifications.items.length ? notifications.items.map((item:any) => <article key={item.id} className="border-b py-3 last:border-0"><p className="text-sm font-medium">{item.title}</p><p className="mt-1 text-xs leading-relaxed text-zinc-600">{item.content}</p><p className="mt-2 text-[10px] text-zinc-400">{new Date(item.createdAt).toLocaleString()}</p>{item.canMarkRead && !item.isRead && <button onClick={() => void markRead(item.id)} className="mt-2 text-xs font-medium text-brand-600">Mark as read</button>}</article>) : <p className="mt-4 text-xs text-zinc-500">No notifications available.</p>}</div>}
+      </div>
+      <main ref={main} id="workspace-content" className="portal-content min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 lg:p-8"><div className="mx-auto max-w-[1440px]">{user?.isOrganizationOwner && !user.branchId && <p className="mb-4 rounded-lg border bg-white px-4 py-3 text-xs text-zinc-600">Viewing all branches. Choose a specific branch before creating or editing campus records.</p>}{billingOnly && !pathname.endsWith("/payments") && !pathname.endsWith("/subscription") ? <p className="text-sm text-zinc-500">Opening subscription settings…</p> : needsAttendanceSetup ? <AttendanceSetup mandatory onComplete={()=>void refreshUser()}/> : children}</div></main>
+    </div>
+    {passwordOpen && <ChangePassword onClose={()=>setPasswordOpen(false)}/>}
+    <ScreenshotPrivacy/>
+    {assistant && !billingOnly && role !== "PARENT" && <AcadivoAssistant onClose={() => setAssistant(false)}/>}
+  </div>;
+}

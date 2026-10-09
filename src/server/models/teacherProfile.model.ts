@@ -1,3 +1,4 @@
+import { branchScoped } from "../utils/branchScope";
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface ITeacherProfile extends Document {
@@ -19,6 +20,7 @@ const TeacherProfileSchema = new Schema<ITeacherProfile>({
 }, { timestamps: true });
 TeacherProfileSchema.index({ schoolId: 1, employeeId: 1 }, { unique: true, partialFilterExpression: { employeeId: { $type: "string" } } });
 
+TeacherProfileSchema.plugin(branchScoped);
 export const TeacherProfile = mongoose.models.TeacherProfile || mongoose.model<ITeacherProfile>("TeacherProfile", TeacherProfileSchema);
 
 export interface ITeachingAssignment extends Document {
@@ -49,4 +51,5 @@ const TeachingAssignmentSchema = new Schema<ITeachingAssignment>({
 TeachingAssignmentSchema.index({ schoolId: 1, teacherUserId: 1, academicSessionId: 1, status: 1 });
 TeachingAssignmentSchema.index({ schoolId: 1, classId: 1, sectionId: 1, subjectId: 1, status: 1 });
 
+TeachingAssignmentSchema.plugin(branchScoped);
 export const TeachingAssignment = mongoose.models.TeachingAssignment || mongoose.model<ITeachingAssignment>("TeachingAssignment", TeachingAssignmentSchema);

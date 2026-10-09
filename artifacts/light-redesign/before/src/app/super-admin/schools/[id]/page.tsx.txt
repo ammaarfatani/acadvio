@@ -1,0 +1,220 @@
+"use client";
+
+
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import {
+  Building2,
+  Users,
+  CreditCard,
+  Calendar,
+  ShieldCheck,
+  ArrowLeft,
+  Mail,
+  Phone,
+  MapPin,
+  Clock,
+  UserCheck,
+  Award,
+  Layers,
+  CheckCircle2,
+  Lock,
+  Key
+} from "lucide-react";
+import { superAdminApi } from "@/lib/superAdminApi";
+
+export default function SchoolDetailsPage() {
+  const params = useParams();
+  const schoolId = params.id as string;
+
+  const [details, setDetails] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDetails = async () => {
+      try {
+        const res = await superAdminApi.getSchoolDetails(schoolId);
+        if (res?.data) setDetails(res.data);
+      } catch (e) { console.error("Unable to load school details:", e); setDetails(null); } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDetails();
+  }, [schoolId]);
+
+  if (loading || !details) {
+    return <div className="p-8 text-center text-xs text-zinc-500">Loading school tenant details...</div>;
+  }
+
+  const { school, users, subscription, academicSessions, auditLogs } = details;
+
+  return (
+    <div className="space-y-8 pb-12">
+      
+      {/* Top Bar */}
+      <div className="flex items-center justify-between border-b border-zinc-200 pb-4">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/super-admin/schools"
+            className="p-2 bg-white border border-zinc-200 text-zinc-700 hover:text-zinc-950 rounded-xl transition-colors shadow-xs"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Link>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono bg-zinc-100 border border-zinc-200 text-zinc-800 px-2 py-0.5 rounded font-bold">
+                {school.code}.acadivo.com
+              </span>
+              <span className="text-xs font-bold text-amber-700 bg-amber-100 border border-amber-200 px-2.5 py-0.5 rounded-full uppercase">
+                {school.status}
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight mt-1">
+              {school.name}
+            </h1>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-xs">
+            {school.plan} SaaS Tier
+          </span>
+        </div>
+      </div>
+
+      {/* Grid of Info Cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Card 1: Institutional Profile */}
+        <div className="bg-white border border-zinc-200 p-6 rounded-2xl shadow-xs space-y-4">
+          <h3 className="text-base font-bold text-zinc-950 flex items-center gap-2 border-b border-zinc-100 pb-2">
+            <Building2 className="w-5 h-5 text-red-600" />
+            Institutional Info
+          </h3>
+          <div className="space-y-2.5 text-xs text-zinc-700">
+            <div className="flex items-start gap-2">
+              <MapPin className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+              <span>{school.address}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Mail className="w-4 h-4 text-red-500 shrink-0" />
+              <span className="font-mono">{school.email}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Phone className="w-4 h-4 text-red-500 shrink-0" />
+              <span className="font-mono">{school.phone}</span>
+            </div>
+            <div className="pt-2 flex justify-between border-t border-zinc-100 font-medium">
+              <span>Student Scale:</span>
+              <strong className="text-zinc-950">{school.studentCountRange || "500+"}</strong>
+            </div>
+            <div className="flex justify-between font-medium">
+              <span>Teachers Count:</span>
+              <strong className="text-zinc-950">{school.teacherCount || 45}</strong>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 2: Subscription & Trial Dates */}
+        <div className="bg-white border border-zinc-200 p-6 rounded-2xl shadow-xs space-y-4">
+          <h3 className="text-base font-bold text-zinc-950 flex items-center gap-2 border-b border-zinc-100 pb-2">
+            <CreditCard className="w-5 h-5 text-red-600" />
+            Trial & Subscription Ledger
+          </h3>
+          <div className="space-y-2.5 text-xs">
+            <div className="flex justify-between font-medium">
+              <span className="text-zinc-600">SaaS Plan:</span>
+              <span className="font-bold text-zinc-950 uppercase">{school.plan}</span>
+            </div>
+            <div className="flex justify-between font-medium">
+              <span className="text-zinc-600">Monthly Price:</span>
+              <span className="font-mono font-bold text-red-600">PKR {(subscription?.price ?? 0).toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between font-medium">
+              <span className="text-zinc-600">Trial Start:</span>
+              <span className="font-mono text-zinc-700">{school.trialStartedAt ? new Date(school.trialStartedAt).toLocaleDateString() : "N/A"}</span>
+            </div>
+            <div className="flex justify-between font-medium">
+              <span className="text-zinc-600">Trial Expiry:</span>
+              <span className="font-mono font-bold text-amber-700">{school.trialEndsAt ? new Date(school.trialEndsAt).toLocaleDateString() : "N/A"}</span>
+            </div>
+            <div className="pt-2 flex justify-between border-t border-zinc-100 font-medium">
+              <span className="text-zinc-600">Payment Status:</span>
+              <span className="bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded font-bold text-[10px]">
+                {subscription?.paymentStatus || "UNPAID"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: Active Academic Session */}
+        <div className="bg-white border border-zinc-200 p-6 rounded-2xl shadow-xs space-y-4">
+          <h3 className="text-base font-bold text-zinc-950 flex items-center gap-2 border-b border-zinc-100 pb-2">
+            <Calendar className="w-5 h-5 text-red-600" />
+            Academic Calendar
+          </h3>
+          <div className="space-y-2 text-xs">
+            {academicSessions && academicSessions.length > 0 ? (
+              academicSessions.map((sess: any) => (
+                <div key={sess._id} className="p-3 bg-zinc-50 border border-zinc-200 rounded-xl space-y-1">
+                  <div className="flex justify-between font-bold text-zinc-950">
+                    <span>Session: {sess.name}</span>
+                    {sess.isCurrent && <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">CURRENT</span>}
+                  </div>
+                  <div className="text-[11px] text-zinc-500 font-mono">
+                    {new Date(sess.startDate).toLocaleDateString()} — {new Date(sess.endDate).toLocaleDateString()}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-zinc-500">Default session 2026–2027 configured.</div>
+            )}
+          </div>
+        </div>
+
+      </div>
+
+      {/* Users List Table */}
+      <div className="bg-white border border-zinc-200 rounded-2xl shadow-xs overflow-hidden space-y-4">
+        <div className="p-5 border-b border-zinc-200">
+          <h3 className="text-lg font-bold text-zinc-950 flex items-center gap-2">
+            <Users className="w-5 h-5 text-red-600" />
+            Staff Accounts in this School Tenant ({users.length})
+          </h3>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-zinc-950 text-white uppercase text-[10px] font-semibold tracking-wider">
+              <tr>
+                <th className="p-3.5">User Name</th>
+                <th className="p-3.5">Email</th>
+                <th className="p-3.5">User Type</th>
+                <th className="p-3.5">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-200 text-zinc-800">
+              {users.map((u: any) => (
+                <tr key={u._id} className="hover:bg-zinc-50">
+                  <td className="p-3.5 font-bold text-zinc-950">{u.name}</td>
+                  <td className="p-3.5 font-mono text-zinc-600">{u.email}</td>
+                  <td className="p-3.5 font-semibold text-zinc-900">{u.userType}</td>
+                  <td className="p-3.5">
+                    <span className="bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded text-[10px] font-bold">
+                      {u.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  );
+}
+

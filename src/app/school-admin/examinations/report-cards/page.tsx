@@ -1,5 +1,7 @@
 "use client";
 
+
+
 import { useEffect, useState } from "react";
 import { Printer, FileText, CheckCircle2, Star, User, BookOpen, Calendar, Clock, AlertCircle } from "lucide-react";
 import { schoolAdminApi } from "@/lib/schoolAdminApi";
@@ -236,7 +238,7 @@ export default function ReportCardsPage() {
               <span className="font-bold text-zinc-950 text-sm">{currentStudent.name}</span>
             </div>
             <div>
-              <span className="text-[10px] font-bold text-zinc-500 uppercase block">Father's Name</span>
+              <span className="text-[10px] font-bold text-zinc-500 uppercase block">Father&#39;s Name</span>
               <span className="font-semibold text-zinc-800">{currentStudent.parentInfo?.fatherName || "N/A"}</span>
             </div>
             <div>
@@ -327,10 +329,10 @@ export default function ReportCardsPage() {
               3. Class Teacher Remarks & Guidance
             </h3>
             <div className="border border-zinc-300 p-4 bg-amber-50/40 text-xs text-zinc-800 italic font-serif leading-relaxed">
-              "{currentStudent.name} is a dedicated student in {currentClassObj?.name || "class"}.{" "}
+              &quot;{currentStudent.name} is a dedicated student in {currentClassObj?.name || "class"}.{" "}
               {processedResult?.status === "PASSED" || processedResult?.status === "PROMOTED"
                 ? "Demonstrates commendable understanding of core academic subjects and maintains consistent effort."
-                : "Needs focused guidance and additional study practice to improve subject comprehension."}"
+                : "Needs focused guidance and additional study practice to improve subject comprehension."}&quot;
             </div>
           </div>
 

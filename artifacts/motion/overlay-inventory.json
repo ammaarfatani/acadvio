@@ -1,0 +1,62 @@
+[
+  {
+    "file": "src\\components\\ParentRecords.tsx",
+    "overlays": 2
+  },
+  {
+    "file": "src\\components\\ParentResources.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src\\components\\StaffAdminWorkspace.tsx",
+    "overlays": 2
+  },
+  {
+    "file": "src\\components\\StaffAttendanceWorkspace.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src\\app\\finance\\collection\\page.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src\\app\\finance\\expenses\\page.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src\\app\\finance\\structures\\page.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src\\app\\receptionist\\requests\\page.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src\\app\\school-admin\\examinations\\marksheets\\page.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src\\app\\school-admin\\students\\page.tsx",
+    "overlays": 4
+  },
+  {
+    "file": "src\\app\\school-admin\\teachers\\page.tsx",
+    "overlays": 3
+  },
+  {
+    "file": "src\\app\\super-admin\\applications\\page.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src\\app\\super-admin\\schools\\page.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src\\app\\teacher\\my-classes\\page.tsx",
+    "overlays": 1
+  },
+  {
+    "file": "src\\app\\teacher\\students\\page.tsx",
+    "overlays": 1
+  }
+]

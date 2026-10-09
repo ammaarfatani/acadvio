@@ -4,6 +4,7 @@ export enum UserType {
   TEACHER = "TEACHER",
   FINANCE = "FINANCE",
   EXAM_STAFF = "EXAM_STAFF",
+  PARENT = "PARENT",
   RECEPTIONIST = "RECEPTIONIST",
 }
 
@@ -15,6 +16,7 @@ export enum UserStatus {
 }
 
 export const SYSTEM_ROLES = [
+  { name: "Parent / Guardian", code: "ROLE_PARENT", userType: UserType.PARENT, description: "Access to linked children and school notices", isSystemRole: true },
   {
     name: "Platform Super Admin",
     code: "ROLE_SUPER_ADMIN",

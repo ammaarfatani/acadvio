@@ -1,14 +1,17 @@
 "use client";
 
+
+
 import { useState, useEffect } from "react";
-import { Settings, Save, Building2, Palette, ShieldCheck, CheckCircle2, DollarSign, Calendar } from "lucide-react";
+import { Settings, Save, Building2, ShieldCheck, CheckCircle2, DollarSign, Calendar } from "lucide-react";
 import SchoolLogoEditor from "@/components/SchoolLogoEditor";
 import { useAuth } from "@/lib/auth-context";
 import { schoolAdminApi } from "@/lib/schoolAdminApi";
 
 export default function SchoolSettingsPage() {
-  const { refreshUser } = useAuth();
-  const [profile, setProfile] = useState<any>({ theme: "theme-red", currency: "PKR", dateFormat: "DD/MM/YYYY", bankDetails: {} });
+  const { refreshUser,user } = useAuth();
+  const financeEnabled=!!user?.features?.includes("FINANCE");
+  const [profile, setProfile] = useState<any>({ currency: "PKR", dateFormat: "DD/MM/YYYY", bankDetails: {} });
 
   const [savedNotice, setSavedNotice] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -21,7 +24,6 @@ export default function SchoolSettingsPage() {
         if (res?.data) {
           setProfile({
             ...res.data,
-            theme: res.data.theme || "theme-red",
             currency: res.data.currency || "PKR",
             dateFormat: res.data.dateFormat || "DD/MM/YYYY",
             bankDetails: res.data.bankDetails || {},
@@ -39,7 +41,7 @@ export default function SchoolSettingsPage() {
     setSavedNotice(false);
     setSaveError("");
     try {
-      await schoolAdminApi.updateSchoolBranding(profile);
+      await schoolAdminApi.updateSchoolBranding({ name: profile.name, phone: profile.phone, address: profile.address, currency: profile.currency, dateFormat: profile.dateFormat, ...(financeEnabled?{bankDetails:profile.bankDetails}:{}) });
       await refreshUser();
       setSavedNotice(true);
       setTimeout(() => setSavedNotice(false), 3000);
@@ -47,14 +49,6 @@ export default function SchoolSettingsPage() {
       setSaveError(err.message || "Could not save school settings. Please review the form and try again.");
     }
   };
-
-  const themes = [
-    { id: "theme-red", name: "Classic Red & White (Default)", primaryColor: "#dc2626" },
-    { id: "theme-green", name: "Emerald Green & White", primaryColor: "#059669" },
-    { id: "theme-blue", name: "Royal Blue & White", primaryColor: "#2563eb" },
-    { id: "theme-amber", name: "Warm Amber & White", primaryColor: "#d97706" },
-    { id: "theme-purple", name: "Imperial Purple & White", primaryColor: "#7c3aed" },
-  ];
 
   return (
     <div className="space-y-8 pb-12 max-w-4xl">
@@ -64,13 +58,13 @@ export default function SchoolSettingsPage() {
         <h1 className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">
           School Branding & Custom Settings
         </h1>
-        <p className="text-xs text-zinc-500">Customize institutional logo, color theme tokens, bank slip headers, and ERP rules</p>
+        <p className="text-xs text-zinc-500">Manage institutional logo, bank slip headers, and ERP rules</p>
       </div>
 
       {savedNotice && (
         <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl text-xs font-semibold flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-          <span>School branding, theme tokens, and custom settings updated.</span>
+          <span>School branding and settings updated.</span>
         </div>
       )}
       {saveError && <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">{saveError}</div>}
@@ -79,37 +73,6 @@ export default function SchoolSettingsPage() {
       <SchoolLogoEditor/>
       <form onSubmit={handleSaveSettings} className="space-y-6">
         
-        {/* Section 1: Color Theme Selector */}
-        <div className="bg-white border border-zinc-200 p-6 rounded-2xl shadow-xs space-y-4">
-          <h3 className="text-base font-bold text-zinc-950 flex items-center gap-2 border-b border-zinc-100 pb-2">
-            <Palette className="w-5 h-5 text-school-primary" />
-            Portal Color Theme Tokens
-          </h3>
-          <p className="text-xs text-zinc-500">
-            Select your preferred portal color theme. All components, buttons, and PDF reports will dynamically adapt to these CSS theme variables.
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
-            {themes.map((t) => (
-              <label
-                key={t.id}
-                onClick={() => setProfile({ ...profile, theme: t.id })}
-                className={`p-4 rounded-xl border-2 cursor-pointer flex items-center gap-3 transition-all ${
-                  profile.theme === t.id
-                    ? "border-zinc-950 bg-zinc-50 shadow-sm"
-                    : "border-zinc-200 hover:border-zinc-300"
-                }`}
-              >
-                <span
-                  className="w-6 h-6 rounded-full shrink-0 shadow-sm"
-                  style={{ backgroundColor: t.primaryColor }}
-                ></span>
-                <span className="text-xs font-bold text-zinc-900">{t.name}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
         {/* Section 2: School Information & Print Headers */}
         <div className="bg-white border border-zinc-200 p-6 rounded-2xl shadow-xs space-y-4">
           <h3 className="text-base font-bold text-zinc-950 flex items-center gap-2 border-b border-zinc-100 pb-2">
@@ -175,11 +138,11 @@ export default function SchoolSettingsPage() {
         </div>
 
         {/* Section 3: Bank Details for Fee Challans */}
-        <div className="bg-white border border-zinc-200 p-6 rounded-2xl shadow-xs space-y-4">
+        {financeEnabled&&<div className="bg-white border border-zinc-200 p-6 rounded-2xl shadow-xs space-y-4">
           <h3 className="text-base font-bold text-zinc-950 flex items-center gap-2 border-b border-zinc-100 pb-2">
             <DollarSign className="w-5 h-5 text-school-primary" />
             Bank Deposit Slip Details (Printed on Challans)
-          </h3>
+          </h3><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!profile.bankDetails.enabled} onChange={e=>setProfile({...profile,bankDetails:{...profile.bankDetails,enabled:e.target.checked}})}/>Enable parent bank payment submissions</label><label className="block text-sm">Bank branch<input value={profile.bankDetails.branch||""} onChange={e=>setProfile({...profile,bankDetails:{...profile.bankDetails,branch:e.target.value}})} className="mt-1 block w-full rounded-lg border p-2"/></label><label className="block text-sm">Payment instructions<input value={profile.bankDetails.instructions||""} onChange={e=>setProfile({...profile,bankDetails:{...profile.bankDetails,instructions:e.target.value}})} className="mt-1 block w-full rounded-lg border p-2"/></label>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             <div>
@@ -222,7 +185,7 @@ export default function SchoolSettingsPage() {
               />
             </div>
           </div>
-        </div>
+        </div>}
 
         {/* Submit */}
         <div className="pt-2 flex justify-end">
@@ -231,7 +194,7 @@ export default function SchoolSettingsPage() {
             className="px-6 py-3 bg-school-primary hover:bg-school-primary-hover text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2"
           >
             <Save className="w-4 h-4" />
-            <span>Save School Branding & Theme</span>
+            <span>Save School Branding & Settings</span>
           </button>
         </div>
 

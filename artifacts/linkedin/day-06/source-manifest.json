@@ -1,0 +1,45 @@
+{
+  "canvas": [
+    1200,
+    1200
+  ],
+  "sources": [
+    "public/product-showcase/school-admin.jpg",
+    "public/product-showcase/examination.jpg",
+    "public/logo.png"
+  ],
+  "referencePosts": [
+    "C:/Users/DT/Downloads/Acadivo Day 04 LinkedIn post.png",
+    "C:/Users/DT/Downloads/acadivo_day5_before_after.png"
+  ],
+  "reviewedInventory": "asset-inventory.json",
+  "mainScreenshotMasks": [
+    [
+      1085,
+      8,
+      1258,
+      58
+    ],
+    [
+      20,
+      65,
+      245,
+      104
+    ],
+    [
+      283,
+      94,
+      658,
+      116
+    ]
+  ],
+  "examinationCrop": [
+    270,
+    84,
+    1250,
+    490
+  ],
+  "screenshotNumericalDataModified": false,
+  "logoRedrawn": false,
+  "copySpelling": "User-requested ACADVIO retained in post copy; exact original Acadivo logo retained unchanged."
+}

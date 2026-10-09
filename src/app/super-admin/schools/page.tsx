@@ -1,5 +1,8 @@
 "use client";
 
+
+
+import {Presence} from "@/components/Motion";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -257,7 +260,7 @@ export default function SuperAdminSchoolsPage() {
       </div>
 
       {/* MODAL DIALOG FOR ACTIONS */}
-      {modalType && selectedSchool && (
+      <Presence show={Boolean(modalType && selectedSchool)} kind="modal">{modalType && selectedSchool && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-6 shadow-2xl border border-zinc-200">
             <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
@@ -347,7 +350,7 @@ export default function SuperAdminSchoolsPage() {
             </form>
           </div>
         </div>
-      )}
+      )}</Presence>
 
     </div>
   );

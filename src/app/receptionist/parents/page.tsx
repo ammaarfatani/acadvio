@@ -1,5 +1,7 @@
 "use client";
 
+
+
 import { useEffect, useState, useCallback } from "react";
 import { Users, Search, Phone, Mail, MapPin, User, GraduationCap } from "lucide-react";
 import { receptionistApi } from "@/lib/receptionistApi";
@@ -92,7 +94,7 @@ export default function ReceptionistParentsPage() {
         </div>
 
         <div>
-          <label className="block font-bold text-zinc-700 uppercase mb-1">Filter by Student's Class</label>
+          <label className="block font-bold text-zinc-700 uppercase mb-1">Filter by Student&#39;s Class</label>
           <select
             value={selectedClassId}
             onChange={(e) => {

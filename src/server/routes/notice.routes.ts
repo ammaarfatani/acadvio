@@ -1,0 +1,28 @@
+import {Student} from "../models/student.model";
+import {ClassModel,SectionModel} from "../models/classSection.model";
+import { Role } from "../models/role.model";
+import { Branch } from "../models/branch.model";
+import { Router } from "express";
+import { z } from "zod";
+import { authenticate } from "../middlewares/auth.middleware";
+import { validate } from "../middlewares/validate.middleware";
+import { sendSuccess } from "../utils/response.util";
+import { listNotices, saveNotice, readNotice } from "../services/notice.service";
+const router = Router(); router.use(authenticate);
+const id = z.string().regex(/^[a-f0-9]{24}$/i);
+const input = z.object({ schoolId: id.optional(), branchId: id.nullable().optional(), title: z.string().trim().min(3).max(180), content: z.string().trim().min(3).max(10000), category: z.enum(["General", "Academic", "Examination", "Holiday", "Urgent"]).default("General"), targetStudentIds:z.array(id).max(200).default([]), targetClassIds:z.array(id).max(100).default([]), targetSectionIds:z.array(id).max(100).default([]), targetRoles: z.array(z.string().regex(/^[A-Z_]{2,50}$/)).max(30).default([]), priority: z.enum(["NORMAL", "HIGH", "URGENT"]).default("NORMAL"), status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).default("PUBLISHED"), publishAt: z.coerce.date().optional(), expiresAt: z.coerce.date().nullable().optional() }).strict().refine(v => !v.expiresAt || v.expiresAt > (v.publishAt || new Date()), "Expiry must be after publication.");
+router.get("/meta", async (req,res,next) => {try {
+  const schoolId = req.user!.isSuperAdmin ? id.parse(req.query.schoolId) : req.user!.schoolId;
+  const roles = await Role.find({ $or: [{ schoolId: null }, { schoolId }] }).distinct("userType");
+  const branches = await Branch.find({ organizationId:schoolId,...(!req.user!.isSuperAdmin && !req.user!.isOrganizationOwner ? {_id:req.user!.branchId} : {}) }).select("name status").lean();
+  const managing=req.user!.isSuperAdmin||req.user!.permissions?.includes("notices.manage")||req.user!.userType==="SCHOOL_ADMIN"&&req.user!.permissions?.includes("settings.update");
+  const term=z.string().max(100).parse(req.query.studentSearch||""),escaped=term.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+  const studentQuery={schoolId,...(req.query.classId?{classId:id.parse(req.query.classId)}:{}),...(req.query.sectionId?{sectionId:id.parse(req.query.sectionId)}:{}),...(term?{$or:[{name:{$regex:escaped,$options:"i"}},{studentId:{$regex:escaped,$options:"i"}},{admissionNumber:{$regex:escaped,$options:"i"}}]}:{})};
+  const [students,classes,sections]=managing?await Promise.all([Student.find(studentQuery).select("name branchId studentId admissionNumber className sectionName classId sectionId").sort({name:1}).limit(100).lean(),ClassModel.find({schoolId}).select("name branchId").lean(),SectionModel.find({schoolId}).select("name classId branchId").lean()]):[[],[],[]];
+  return sendSuccess(res,{ students,classes,sections,roles:[...new Set([...roles.filter((r:string)=>r!=="SUPER_ADMIN"),"ADMISSION"])],branches });
+}catch(e){next(e);}});
+router.get("/", async (req,res,next) => { try { return sendSuccess(res, await listNotices(req.user!, req.query.manage === "true", req.query.schoolId ? id.parse(req.query.schoolId) : undefined, req.query.studentId===undefined?undefined:id.parse(req.query.studentId))); } catch(e) {next(e);} });
+router.post("/", validate(input), async (req,res,next) => { try { return sendSuccess(res, await saveNotice(req.user!, req.body), "Notice saved."); } catch(e) {next(e);} });
+router.put("/:id", validate(input), async (req,res,next) => { try { return sendSuccess(res, await saveNotice(req.user!, req.body, id.parse(req.params.id)), "Notice updated."); } catch(e) {next(e);} });
+router.patch("/:id/read", async (req,res,next) => { try { return sendSuccess(res, await readNotice(req.user!, id.parse(req.params.id))); } catch(e) {next(e);} });
+export default router;

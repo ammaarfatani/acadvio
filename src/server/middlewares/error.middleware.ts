@@ -7,9 +7,10 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
+  if (err?.name === "ZodError") return sendError(res, "Please review the submitted information.", 400, err.issues.map((issue: any) => issue.message));
   const statusCode = err.statusCode || err.status || 500;
-  if (statusCode >= 500) {
-    console.error("[Central Error Handler]", err);
+  if (statusCode >= 500 && err?.code !== 11000) {
+    console.error("[Central Error Handler]", {name:err?.name || "Error",code:err?.code || "UNEXPECTED"});
   }
 
   if (err?.code === 11000) {

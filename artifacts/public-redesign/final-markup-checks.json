@@ -1,0 +1,32 @@
+[
+  {
+    "path": "/",
+    "status": 200,
+    "marker": "m-screenshot",
+    "present": true
+  },
+  {
+    "path": "/demo",
+    "status": 200,
+    "marker": "m-capture-dialog",
+    "present": true
+  },
+  {
+    "path": "/contact",
+    "status": 200,
+    "marker": "Your full name",
+    "present": true
+  },
+  {
+    "path": "/login",
+    "status": 200,
+    "marker": "m-login-photo",
+    "present": true
+  },
+  {
+    "path": "/payment?plan=PROFESSIONAL&billingCycle=annual",
+    "status": 200,
+    "marker": "m-checkout-progress",
+    "present": true
+  }
+]

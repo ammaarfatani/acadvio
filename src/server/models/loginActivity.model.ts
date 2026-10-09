@@ -1,3 +1,4 @@
+import { branchScoped } from "../utils/branchScope";
 import mongoose, { Schema, Document } from "mongoose";
 import { UserType } from "../constants/roles.constant";
 
@@ -26,6 +27,7 @@ const LoginActivitySchema = new Schema<ILoginActivity>(
   { timestamps: true }
 );
 
+LoginActivitySchema.plugin(branchScoped);
 export const LoginActivity =
   mongoose.models.LoginActivity ||
   mongoose.model<ILoginActivity>("LoginActivity", LoginActivitySchema);

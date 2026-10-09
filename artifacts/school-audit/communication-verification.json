@@ -1,0 +1,15 @@
+{
+  "verifiedAt": "2026-10-07T03:46:02.018Z",
+  "checks": 27,
+  "scopedNotices": true,
+  "securePdfDownload": true,
+  "existingAccountsVerified": 5,
+  "accountIssues": [
+    {
+      "role": "FINANCE",
+      "email": "aa@gmail.com",
+      "issue": "Supplied credentials did not authenticate; account was not changed."
+    }
+  ],
+  "examinationCredentialMismatch": "The supplied examination email belongs to a FINANCE account; its existing role was preserved."
+}

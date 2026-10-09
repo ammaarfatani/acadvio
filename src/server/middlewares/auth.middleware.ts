@@ -1,3 +1,6 @@
+import { branchContext } from "../utils/branchScope";
+import { resolveBranchContext } from "../services/branchContext.service";
+import { routeFeature, hasFeature } from "../../lib/plan-features";
 import { Request, Response, NextFunction } from "express";
 import { verifyAccessToken, JwtPayloadData } from "../utils/jwt.util";
 import { User } from "../models/user.model";
@@ -10,6 +13,10 @@ import { sendError } from "../utils/response.util";
 
 export interface AuthenticatedUser extends JwtPayloadData {
   roleCode?: string;
+  plan?: string;
+  organizationId?: string;
+  branchId?: string | null;
+  isOrganizationOwner?: boolean;
   isSuperAdmin: boolean;
 }
 
@@ -37,6 +44,8 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       return sendError(res, "User account no longer exists.", 401);
     }
 
+    if ((decoded.tokenVersion || 0) !== (user.tokenVersion || 0)) return sendError(res, "Your password changed. Please sign in again.", 401);
+
     const billingRoute = /^\/api\/subscription-payments(?:\/|$)/.test(req.originalUrl.split("?")[0]) || ["/api/auth/me", "/api/auth/logout", "/api/subscriptions/current"].includes(req.originalUrl.split("?")[0]);
     const pendingAdmin = user.userType === UserType.SCHOOL_ADMIN && user.status === UserStatus.PENDING_APPROVAL;
     if (user.status !== UserStatus.ACTIVE && user.userType !== UserType.SUPER_ADMIN && !(pendingAdmin && billingRoute)) {
@@ -47,12 +56,14 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       );
     }
 
+    let school: any;
     if (user.userType !== UserType.SUPER_ADMIN && user.schoolId) {
       await expireTrials(user.schoolId.toString());
-      const school = await School.findById(user.schoolId).select("status");
+      school = await School.findById(user.schoolId).select("status registrationType plan name address phone email");
       if (!school) {
         return sendError(res, "Your school account could not be found. Contact your school administrator.", 403);
       }
+      if (school.status === SubscriptionStatus.PENDING_APPROVAL && school.registrationType !== "paid") return sendError(res, "Your free trial request is under review. You will receive an email once approved.", 403);
       if ((![SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL].includes(school.status)) && !(billingRoute && user.userType === UserType.SCHOOL_ADMIN) && ![SubscriptionStatus.SUSPENDED, SubscriptionStatus.CANCELLED].includes(school.status)) {
         return sendError(
           res,
@@ -65,13 +76,13 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       }
     }
 
-    let userPermissions: string[] = decoded.permissions || [];
+    let userPermissions: string[] = [];
     let roleCode: string | undefined;
 
     if (user.roleId && typeof user.roleId === "object") {
       const roleObj = user.roleId as any;
       roleCode = roleObj.code;
-      if (roleObj.permissions && roleObj.permissions.length > 0) {
+      if (Array.isArray(roleObj.permissions)) {
         userPermissions = roleObj.permissions;
       }
     }
@@ -86,8 +97,19 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       isSuperAdmin: user.userType === UserType.SUPER_ADMIN,
     };
 
+    if (school) {
+      const scope = await resolveBranchContext(user, school, req.get("X-Acadivo-Branch"));
+      Object.assign(scope, { userId: String(user._id), userType: user.userType });
+      const plan = school.status === "TRIAL" ? "FREE_TRIAL" : school.plan;
+      scope.plan = plan;
+      Object.assign(req.user, { plan, organizationId: scope.organizationId, branchId: scope.branchId, isOrganizationOwner: scope.owner });
+      const feature = routeFeature(req.originalUrl.split("?")[0]);
+      if (feature && !hasFeature(plan, feature)) return sendError(res, `Your subscription does not include ${feature.toLowerCase().replaceAll("_", " ")}.`, 403);
+      return branchContext.run(scope, next);
+    }
     next();
   } catch (error: any) {
+    if (error.statusCode) return sendError(res, error.message, error.statusCode);
     if (error.name === "TokenExpiredError") {
       return sendError(res, "Token expired. Please refresh your session.", 401);
     }

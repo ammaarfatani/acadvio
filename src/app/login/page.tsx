@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ShieldCheck, Lock, User, Building2, ArrowRight, Eye, EyeOff } from "lucide-react";
 import PublicLogo from "@/components/PublicLogo";
+import {ProductFrame} from "@/components/Marketing";
 import { useAuth } from "@/lib/auth-context";
 
 export default function LoginPage() {
@@ -47,7 +48,7 @@ export default function LoginPage() {
         password,
         ...(schoolSlug ? { schoolSlug } : schoolDomain ? { schoolCode: schoolDomain } : {}),
       });
-      setUser(response.data.user);
+      setUser((await authApi.getMe()).data);
       const destinations: Record<string, string> = {
         SUPER_ADMIN: "/super-admin",
         SCHOOL_ADMIN: "/school-admin",
@@ -55,8 +56,9 @@ export default function LoginPage() {
         FINANCE: "/finance",
         EXAM_STAFF: "/exam-staff",
         RECEPTIONIST: "/receptionist",
+        PARENT: "/parent",
       };
-      const scopedPortal: Record<string, string> = { SCHOOL_ADMIN: "admin", TEACHER: "teacher", FINANCE: "finance", RECEPTIONIST: "staff", EXAM_STAFF: "exam-staff" };
+      const scopedPortal: Record<string, string> = { PARENT: "parent", SCHOOL_ADMIN: "admin", TEACHER: "teacher", FINANCE: "finance", RECEPTIONIST: "staff", EXAM_STAFF: "exam-staff" };
       const destination = schoolSlug && scopedPortal[response.data.user.userType]
         ? `/${schoolSlug}/${scopedPortal[response.data.user.userType]}`
         : destinations[response.data.user.userType];
@@ -79,20 +81,17 @@ export default function LoginPage() {
   };
 
   const field = "w-full rounded-lg border border-zinc-300 bg-white py-3 pl-10 pr-4 text-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-red-100";
-  return <div className="bg-zinc-50 px-4 py-12 sm:px-6 sm:py-20">
-    <div className="mx-auto grid max-w-5xl overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm lg:grid-cols-2">
-      <div className="hidden flex-col justify-between border-b border-zinc-200 bg-[#f7f7f8] lg:flex p-7 sm:p-10 lg:border-b-0 lg:border-r">
-        <div><Link href="/" aria-label="Acadivo home"><PublicLogo className="w-40"/></Link><p className="mt-10 text-xs font-semibold uppercase tracking-[.15em] text-brand-600">Your school workspace</p><h2 className="mt-4 text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">Welcome back.<br/><span className="text-zinc-400">Let’s get to work.</span></h2><p className="mt-5 max-w-sm text-sm leading-7 text-zinc-600">Students, teaching, attendance, examinations and finance — connected around your school.</p></div>
-        <div className="mt-10"><div className="flex gap-3 border-t border-zinc-200 pt-6"><ShieldCheck size={20} className="mt-0.5 shrink-0 text-brand-600"/><p className="text-sm leading-6 text-zinc-600">Sign in with your staff account. Your role determines which school workspace you can access.</p></div><Link href="/demo" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold">Explore the portals <ArrowRight size={15}/></Link></div>
-      </div>
-      <div className="p-7 sm:p-10"><h1 className="text-2xl font-semibold tracking-tight">{schoolSlug ? "School portal sign in" : "Sign in to Acadivo"}</h1><p className="mt-3 text-sm leading-6 text-zinc-500">{schoolSlug ? `Use your staff account for ${schoolSlug.replace(/-/g, " ")}.` : "Use the email and password provided by your school."}</p>
+  return <div className="m-login">
+    <div className="m-login-grid">
+      <aside className="m-login-visual"><div className="m-login-brand"><Link href="/" aria-label="Acadivo home"><PublicLogo className="w-40"/></Link><span className="text-[#d60811]">School management workspace</span></div><div className="m-login-story"><p className="m-eyebrow">Your school, connected</p><h2>A clear view of<br/>the school day.</h2><p>Student records, attendance, teaching, examinations and fees. The right workspace for each responsibility.</p></div><ProductFrame image="school-admin.jpg" label="School administration" priority/><div className="m-login-trust"><ShieldCheck size={17}/><p>Your account’s role and permissions determine the records you can access.</p></div></aside>
+      <div className="m-login-form"><p className="m-eyebrow">Welcome to Acadivo</p><h1 className="text-2xl font-semibold tracking-tight">{schoolSlug ? "School portal sign in" : "Sign in to Acadivo"}</h1><p className="mt-3 text-sm leading-6 text-zinc-500">{schoolSlug ? `Use your school account for ${schoolSlug.replace(/-/g, " ")}.` : "For school administrators, staff and parents. Use the account provided by your school."}</p>
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
           {!schoolSlug && <div><label htmlFor="school-code" className="block text-sm font-medium">School code <span className="font-normal text-zinc-500">(optional)</span></label><div className="relative mt-2"><Building2 size={17} className="absolute left-3 top-3.5 text-zinc-400"/><input id="school-code" autoComplete="organization" type="text" value={schoolDomain} onChange={event=>setSchoolDomain(event.target.value)} placeholder="Your school identifier" className={field}/></div></div>}
-          <div><label htmlFor="login-email" className="block text-sm font-medium">Staff email</label><div className="relative mt-2"><User size={17} className="absolute left-3 top-3.5 text-zinc-400"/><input id="login-email" type="email" autoComplete="username" required value={email} onChange={event=>setEmail(event.target.value)} placeholder="you@school.edu" className={field}/></div></div>
-          <div><label htmlFor="login-password" className="block text-sm font-medium">Password</label><div className="relative mt-2"><Lock size={17} className="absolute left-3 top-3.5 text-zinc-400"/><input id="login-password" type={showPassword ? "text" : "password"} autoComplete="current-password" required value={password} onChange={event=>setPassword(event.target.value)} className={field+" pr-12"}/><button type="button" aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword} onClick={()=>setShowPassword(!showPassword)} className="absolute right-2 top-1.5 rounded-md p-2 text-zinc-500 hover:bg-zinc-100">{showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}</button></div></div>
+          <div><label htmlFor="login-email" className="block text-sm font-medium">Account email</label><div className="relative mt-2"><User size={17} className="absolute left-3 top-3.5 text-zinc-400"/><input id="login-email" type="email" autoComplete="username" required value={email} onChange={event=>setEmail(event.target.value)} placeholder="you@school.edu" className={field}/></div></div>
+          <div><label htmlFor="login-password" className="block text-sm font-medium">Password</label><div className="relative mt-2"><Lock size={17} className="absolute left-3 top-3.5 text-zinc-400"/><input id="login-password" type={showPassword ? "text" : "password"} autoComplete="current-password" required value={password} onChange={event=>setPassword(event.target.value)} placeholder="Enter your password" className={field+" pr-12"}/><button type="button" aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword} onClick={()=>setShowPassword(!showPassword)} className="absolute right-2 top-1.5 rounded-md p-2 text-zinc-500 hover:bg-zinc-100">{showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}</button></div></div>
           {loginMessage && <div role="alert" className={`rounded-lg border p-3 text-sm leading-6 ${feedbackIsError ? "border-red-200 bg-red-50 text-red-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>{loginMessage}</div>}
           <button type="submit" disabled={isSubmitting} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-5 py-3 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-wait disabled:opacity-60">{isSubmitting ? "Signing in…" : "Sign in"}{!isSubmitting && <ArrowRight size={17}/>}</button>
-        </form><p className="mt-5 text-xs leading-6 text-zinc-500">Need help accessing your account? Contact your school administrator or <Link href="/contact" className="font-medium text-brand-600 underline">AKTech support</Link>.</p><div className="mt-7 border-t border-zinc-200 pt-6"><p className="text-sm text-zinc-600">New to Acadivo?</p><Link href="/free-trial" className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-brand-600">Start your 14-day free trial <ArrowRight size={15}/></Link></div>
+        </form><Link href="/forgot-password" className="mt-4 inline-block text-sm text-brand-600">Forgot password?</Link><p className="mt-5 text-xs leading-6 text-zinc-500">Need help accessing your account? Contact your school administrator or <Link href="/contact" className="font-medium text-brand-600 underline">AKTech support</Link>.</p><div className="mt-7 border-t border-zinc-200 pt-6"><p className="text-sm text-zinc-600">New to Acadivo?</p><Link href="/free-trial" className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-brand-600">Start your 14-day free trial <ArrowRight size={15}/></Link></div>
       </div>
     </div>
   </div>;

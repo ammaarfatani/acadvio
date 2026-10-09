@@ -1,0 +1,9 @@
+{
+  "functionalFilesUnchanged": 141,
+  "changedFunctionalFiles": [],
+  "loginDelivery": {
+    "status": 200,
+    "oldLoginMarkupServed": true,
+    "newPhotoLayoutRemoved": true
+  }
+}

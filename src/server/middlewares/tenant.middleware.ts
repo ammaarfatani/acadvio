@@ -16,9 +16,7 @@ export const enforceSchoolTenant = (req: Request, res: Response, next: NextFunct
     return sendError(res, "Tenant context error: User is not assigned to any school.", 403);
   }
 
-  // Attach derived tenant ID to request query/body safely for downstream controllers
-  req.query.tenantSchoolId = req.user.schoolId;
-  req.body.tenantSchoolId = req.user.schoolId;
+  // Tenant identity is read from authenticated req.user; do not mutate client payloads.
 
   next();
 };

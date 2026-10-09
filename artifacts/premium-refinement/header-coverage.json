@@ -1,0 +1,566 @@
+[
+  {
+    "file": "src\\app\\school-admin\\academics\\classes\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\school-admin\\academics\\sections\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\school-admin\\academics\\sessions\\page.tsx",
+    "status": "composed",
+    "element": "header"
+  },
+  {
+    "file": "src\\app\\school-admin\\academics\\subjects\\page.tsx",
+    "status": "composed",
+    "element": "header"
+  },
+  {
+    "file": "src\\app\\school-admin\\academics\\timetable\\page.tsx",
+    "status": "composed",
+    "element": "header"
+  },
+  {
+    "file": "src\\app\\school-admin\\attendance\\calendar\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\school-admin\\attendance\\devices\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\school-admin\\attendance\\settings\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\school-admin\\attendance\\staff\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\school-admin\\attendance\\students\\page.tsx",
+    "status": "composed",
+    "element": "header"
+  },
+  {
+    "file": "src\\app\\school-admin\\attendance\\teachers\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\school-admin\\communication\\announcements\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\school-admin\\communication\\notifications\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\school-admin\\documents\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\school-admin\\examinations\\certificates\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\school-admin\\examinations\\exams\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\school-admin\\examinations\\marks\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\school-admin\\examinations\\marksheets\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\school-admin\\examinations\\report-cards\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\school-admin\\examinations\\results\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\school-admin\\finance\\challans\\page.tsx",
+    "status": "composed",
+    "element": "header"
+  },
+  {
+    "file": "src\\app\\school-admin\\finance\\collection\\page.tsx",
+    "status": "composed",
+    "element": "header"
+  },
+  {
+    "file": "src\\app\\school-admin\\finance\\expenses\\page.tsx",
+    "status": "composed",
+    "element": "header"
+  },
+  {
+    "file": "src\\app\\school-admin\\finance\\page.tsx",
+    "status": "composed",
+    "element": "header"
+  },
+  {
+    "file": "src\\app\\school-admin\\finance\\payment-requests\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\school-admin\\finance\\receipts\\page.tsx",
+    "status": "composed",
+    "element": "header"
+  },
+  {
+    "file": "src\\app\\school-admin\\finance\\structures\\page.tsx",
+    "status": "composed",
+    "element": "header"
+  },
+  {
+    "file": "src\\app\\school-admin\\my-attendance\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\school-admin\\organization\\branches\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\school-admin\\organization\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\school-admin\\organization\\reports\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\school-admin\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\school-admin\\parents\\page.tsx",
+    "status": "composed",
+    "element": "header"
+  },
+  {
+    "file": "src\\app\\school-admin\\payments\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\school-admin\\payroll\\calendar\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\school-admin\\payroll\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\school-admin\\payroll\\salaries\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\school-admin\\reports\\basic\\page.tsx",
+    "status": "composed",
+    "element": "header"
+  },
+  {
+    "file": "src\\app\\school-admin\\reports\\page.tsx",
+    "status": "composed",
+    "element": "header"
+  },
+  {
+    "file": "src\\app\\school-admin\\salary\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\school-admin\\settings\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\school-admin\\staff\\page.tsx",
+    "status": "composed",
+    "element": "header"
+  },
+  {
+    "file": "src\\app\\school-admin\\students\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\school-admin\\subscription\\page.tsx",
+    "status": "composed",
+    "element": "h1"
+  },
+  {
+    "file": "src\\app\\school-admin\\teachers\\leave-requests\\page.tsx",
+    "status": "composed",
+    "element": "header"
+  },
+  {
+    "file": "src\\app\\school-admin\\teachers\\page.tsx",
+    "status": "composed",
+    "element": "header"
+  },
+  {
+    "file": "src\\app\\teacher\\announcements\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\teacher\\attendance\\page.tsx",
+    "status": "composed",
+    "element": "header"
+  },
+  {
+    "file": "src\\app\\teacher\\attendance\\reports\\page.tsx",
+    "status": "composed",
+    "element": "header"
+  },
+  {
+    "file": "src\\app\\teacher\\leave\\page.tsx",
+    "status": "composed",
+    "element": "header"
+  },
+  {
+    "file": "src\\app\\teacher\\marks\\page.tsx",
+    "status": "composed",
+    "element": "header"
+  },
+  {
+    "file": "src\\app\\teacher\\my-attendance\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\teacher\\my-classes\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\teacher\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\teacher\\profile\\page.tsx",
+    "status": "composed",
+    "element": "header"
+  },
+  {
+    "file": "src\\app\\teacher\\salary\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\teacher\\students\\page.tsx",
+    "status": "composed",
+    "element": "header"
+  },
+  {
+    "file": "src\\app\\teacher\\subjects\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\teacher\\timetable\\page.tsx",
+    "status": "composed",
+    "element": "header"
+  },
+  {
+    "file": "src\\app\\finance\\challans\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\finance\\collection\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\finance\\expenses\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\finance\\my-attendance\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\finance\\notices\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\finance\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\finance\\payment-requests\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\finance\\payroll\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\finance\\receipts\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\finance\\reports\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\finance\\salary\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\finance\\settings\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\finance\\structures\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\exam-staff\\candidates\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\exam-staff\\certificates\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\exam-staff\\exams\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\exam-staff\\marks\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\exam-staff\\my-attendance\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\exam-staff\\notices\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\exam-staff\\notifications\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\exam-staff\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\exam-staff\\profile\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\exam-staff\\reports\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\exam-staff\\results\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\exam-staff\\salary\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\exam-staff\\settings\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\receptionist\\admissions\\page.tsx",
+    "status": "composed",
+    "element": "header"
+  },
+  {
+    "file": "src\\app\\receptionist\\appointments\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\receptionist\\my-attendance\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\receptionist\\notices\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\receptionist\\notifications\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\receptionist\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\receptionist\\parents\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\receptionist\\profile\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\receptionist\\requests\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\receptionist\\salary\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\receptionist\\settings\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\receptionist\\students\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\receptionist\\students\\[id]\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\receptionist\\visitors\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\parent\\academics\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\parent\\children\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\parent\\documents\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\parent\\fees\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\parent\\notices\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\parent\\notifications\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\parent\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\parent\\profile\\page.tsx",
+    "status": "composed",
+    "element": "h1"
+  },
+  {
+    "file": "src\\app\\super-admin\\applications\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\super-admin\\audit-logs\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\super-admin\\notices\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\super-admin\\page.tsx",
+    "status": "composed",
+    "element": "header"
+  },
+  {
+    "file": "src\\app\\super-admin\\payments\\page.tsx",
+    "status": "shared component or welcome"
+  },
+  {
+    "file": "src\\app\\super-admin\\plans\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\super-admin\\schools\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\super-admin\\schools\\[id]\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\super-admin\\settings\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\super-admin\\subscriptions\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src\\app\\super-admin\\users\\page.tsx",
+    "status": "composed",
+    "element": "div"
+  },
+  {
+    "file": "src/components/StaffAdminWorkspace.tsx",
+    "status": "composed",
+    "element": "h1"
+  },
+  {
+    "file": "src/components/StaffAttendanceWorkspace.tsx",
+    "status": "composed",
+    "element": "h1"
+  },
+  {
+    "file": "src/components/ExamSchedulesWorkspace.tsx",
+    "status": "composed",
+    "element": "header"
+  },
+  {
+    "file": "src/components/WorkspaceNotifications.tsx",
+    "status": "composed",
+    "element": "header"
+  }
+]

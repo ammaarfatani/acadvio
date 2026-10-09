@@ -32,7 +32,7 @@ export const sendEmailNotification = async (options: {
     const transporter = nodemailer.createTransport({
       host: SMTP_HOST,
       port,
-      secure: false,
+      secure: port === 465,
       auth: {
         user: SMTP_USER,
         pass: SMTP_PASS,
@@ -53,9 +53,9 @@ export const sendEmailNotification = async (options: {
   } catch (error: any) {
     console.error("[EMAIL] \u{274C} Email sending failed");
     console.error(`[EMAIL] To: ${options.to}`);
-    console.error(`[EMAIL] Error: ${error?.message || String(error)}`);
+    console.error("[EMAIL] SMTP delivery failed.");
     console.error(`[EMAIL] Code: ${error?.code || "Unavailable"}`);
-    console.error(`[EMAIL] Response: ${error?.response || "Unavailable"}`);
+
     return false;
   }
 };

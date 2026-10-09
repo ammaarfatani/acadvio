@@ -1,0 +1,42 @@
+/* One motion system: short feedback, finite entrances, retained overlay exits. */
+:root{--motion-fast:160ms;--motion-panel:220ms;--motion-ease:cubic-bezier(.2,.7,.2,1)}
+.motion-route{min-width:0}
+.motion-presence{display:contents}
+@keyframes motion-enter{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes motion-panel{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes motion-fade{from{opacity:0}to{opacity:1}}
+@keyframes motion-drawer{from{opacity:.6;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}}
+@keyframes motion-dot{0%,70%,100%{opacity:.35;transform:translateY(0)}35%{opacity:1;transform:translateY(-2px)}}
+.motion-presence>*, :where(.portal-shell,.marketing-site) [role=dialog], :where(.portal-shell,.marketing-site) .fixed.inset-0{animation:motion-fade var(--motion-panel) var(--motion-ease)}
+.motion-presence[data-motion=chat]>section{transform-origin:bottom right;animation:motion-panel 260ms var(--motion-ease)}
+.motion-presence[data-motion=drawer] :is(aside,.ui-assistant){animation:motion-drawer 260ms var(--motion-ease)}
+.motion-presence[data-motion=modal]>*>:is(div,form,section),.motion-presence[data-motion=popover]>*{animation:motion-panel var(--motion-panel) var(--motion-ease)}
+.motion-presence[data-state=closed]>*{opacity:0;transition:opacity 200ms ease-in;pointer-events:none;animation:none}
+.motion-presence[data-state=closed][data-motion=chat]>section{transform:translateY(8px) scale(.985);transition:opacity 200ms ease-in,transform 200ms ease-in}
+.motion-presence[data-state=closed][data-motion=drawer] :is(aside,.ui-assistant){transform:translateX(16px);transition:transform 200ms ease-in;animation:none}
+.motion-message{animation:motion-enter 180ms var(--motion-ease)}
+.motion-typing{display:inline-flex;gap:4px;align-items:center;margin-right:8px}
+.motion-typing i{width:4px;height:4px;background:currentColor;border-radius:50%;animation:motion-dot 1.2s ease-in-out infinite}
+.motion-typing i:nth-child(2){animation-delay:140ms}.motion-typing i:nth-child(3){animation-delay:280ms}
+:where(.portal-shell,.marketing-site) :is(button,a,input,select,textarea,summary){transition:color var(--motion-fast),background-color var(--motion-fast),border-color var(--motion-fast),box-shadow var(--motion-fast),opacity var(--motion-fast),transform var(--motion-fast)}
+@media(hover:hover){:where(.portal-shell,.marketing-site) :is(.m-button,.ui-primary-button):hover{transform:translateY(-1px)}:where(.portal-shell,.marketing-site) :is(.m-plan,.ui-panel):hover{border-color:#bec4cd;box-shadow:0 4px 14px #20232a08}}
+:where(.portal-shell,.marketing-site) button:not(:disabled):active{transform:translateY(1px)}
+:where(.portal-shell,.marketing-site) :is([role=alert],[role=tabpanel],[role=tooltip]){animation:motion-enter 180ms var(--motion-ease)}
+:where(.portal-shell,.marketing-site) [role=tooltip]{animation-delay:100ms;animation-fill-mode:backwards}
+:where(.portal-shell,.marketing-site) details[open]>:not(summary){animation:motion-enter 180ms var(--motion-ease)}
+/* Native discrete transitions enhance dialogs/details when supported; older browsers retain native behavior. */
+@supports (transition-behavior:allow-discrete){
+ dialog{opacity:0;transform:translateY(8px) scale(.985);transition:opacity 220ms,transform 220ms,display 220ms allow-discrete,overlay 220ms allow-discrete}
+ dialog[open]{opacity:1;transform:none}
+ dialog::backdrop{background-color:transparent;transition:background-color 220ms,display 220ms allow-discrete,overlay 220ms allow-discrete}
+ dialog[open]::backdrop{background-color:#0007}
+ @starting-style{dialog[open]{opacity:0;transform:translateY(8px) scale(.985)}dialog[open]::backdrop{background-color:transparent}}
+ details::details-content{block-size:0;overflow:clip;opacity:0;transition:block-size 220ms,opacity 180ms,content-visibility 220ms allow-discrete;interpolate-size:allow-keywords}
+ details[open]::details-content{block-size:auto;opacity:1}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.motion-presence[data-state=closed]>*{transform:none!important}}
+@media print{*,*::before,*::after{animation:none!important;transition:none!important}.motion-presence[data-state=closed]>*{display:none!important}}
+
+.motion-presence[data-motion=toast]>*{animation:motion-enter 200ms var(--motion-ease)}
+.ui-chart{animation:motion-enter 220ms var(--motion-ease)}
+.ui-workspace-topbar .absolute.top-11{animation:motion-panel 180ms var(--motion-ease)}

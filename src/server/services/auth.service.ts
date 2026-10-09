@@ -1,3 +1,8 @@
+import { sendEmailNotification } from "../utils/email.util";
+import { env } from "../config/env";
+import { resolveBranchContext } from "./branchContext.service";
+import { branchContext, withoutBranchScope } from "../utils/branchScope";
+import { PLAN_FEATURES } from "../../lib/plan-features";
 import crypto from "crypto";
 import { User } from "../models/user.model";
 import { School } from "../models/school.model";
@@ -35,6 +40,8 @@ export class AuthService {
       await LoginActivity.create({
         userId: user._id,
         schoolId: user.schoolId,
+        organizationId: user.schoolId,
+        branchId: user.branchId || user.schoolId,
         userType: user.userType,
         emailAttempt: input.email,
         action: "LOGIN_FAILED_INVALID_PASSWORD",
@@ -57,7 +64,7 @@ export class AuthService {
     }
 
     // 3. Check user status
-    if (user.status === UserStatus.PENDING_APPROVAL && user.userType !== UserType.SCHOOL_ADMIN) {
+    if (user.status === UserStatus.PENDING_APPROVAL && (user.userType !== UserType.SCHOOL_ADMIN || !user.schoolId || (await School.findById(user.schoolId).select("registrationType"))?.registrationType !== "paid")) {
       throw {
         statusCode: 403,
         message: "Your school is still awaiting approval. You will receive an email once the approval is complete.",
@@ -76,6 +83,7 @@ export class AuthService {
     let schoolSlug: string | null = null;
     let schoolName: string | null = null;
     let schoolStatus: string | null = null;
+    let registrationType: string | undefined;
     if (user.schoolId && user.userType !== UserType.SUPER_ADMIN) {
       await expireTrials(user.schoolId.toString());
       const school = await School.findById(user.schoolId);
@@ -83,7 +91,7 @@ export class AuthService {
         throw { statusCode: 404, message: "Associated school profile not found." };
       }
 
-      if (school.status === SubscriptionStatus.PENDING_APPROVAL && user.userType !== UserType.SCHOOL_ADMIN) {
+      if (school.status === SubscriptionStatus.PENDING_APPROVAL && (school.registrationType !== "paid" || user.userType !== UserType.SCHOOL_ADMIN)) {
         throw {
           statusCode: 403,
           message: "Your school is still awaiting approval. Your account will be available once approval is complete.",
@@ -98,10 +106,12 @@ export class AuthService {
       }
 
       if (![SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL].includes(school.status) && user.userType !== UserType.SCHOOL_ADMIN) throw { statusCode: 403, message: "School access is restricted. Ask your school administrator to upgrade the subscription." };
+      await resolveBranchContext(user, school);
       schoolCode = school.code;
       schoolSlug = school.slug || school.code;
       schoolName = school.name;
       schoolStatus = school.status;
+      registrationType = school.registrationType;
     }
 
     // 5. Extract permissions
@@ -113,16 +123,17 @@ export class AuthService {
     // 6. Generate Tokens
     const accessToken = generateAccessToken({
       userId: user._id.toString(),
+      tokenVersion: user.tokenVersion || 0,
       email: user.email,
       userType: user.userType,
       schoolId: user.schoolId ? user.schoolId.toString() : null,
       permissions,
     });
 
-    const refreshToken = generateRefreshToken({ userId: user._id.toString() });
+    const refreshToken = generateRefreshToken({ userId: user._id.toString(), tokenVersion: user.tokenVersion || 0 });
 
     // Store refresh token hash & last login
-    user.refreshTokenHash = await hashPassword(refreshToken);
+    user.refreshTokenHash = crypto.createHash("sha256").update(refreshToken).digest("hex");
     user.lastLogin = new Date();
     await user.save();
 
@@ -130,6 +141,8 @@ export class AuthService {
     await LoginActivity.create({
       userId: user._id,
       schoolId: user.schoolId,
+      organizationId: user.schoolId,
+      branchId: user.branchId || user.schoolId,
       userType: user.userType,
       emailAttempt: input.email,
       action: "LOGIN_SUCCESS",
@@ -147,10 +160,12 @@ export class AuthService {
         userType: user.userType,
         status: user.status,
         schoolId: user.schoolId,
+        organizationId: user.schoolId,
+        branchId: user.branchId || user.schoolId,
         schoolCode,
         schoolSlug,
         schoolName,
-        school: user.schoolId ? { name: schoolName, code: schoolCode, slug: schoolSlug, status: schoolStatus } : null,
+        school: user.schoolId ? { name: schoolName, code: schoolCode, slug: schoolSlug, status: schoolStatus, registrationType } : null,
         permissions,
         lastLogin: user.lastLogin,
       },
@@ -161,13 +176,19 @@ export class AuthService {
     const decoded = verifyRefreshToken(refreshToken);
 
     const user = await User.findById(decoded.userId).populate("roleId");
-    if (!user || !user.refreshTokenHash) {
+    if (!user || !user.refreshTokenHash || (decoded.tokenVersion || 0) !== (user.tokenVersion || 0)) {
       throw { statusCode: 401, message: "Invalid refresh token session." };
     }
 
-    const isValid = await comparePassword(refreshToken, user.refreshTokenHash);
+    const isValid = /^[a-f0-9]{64}$/.test(user.refreshTokenHash) ? crypto.timingSafeEqual(Buffer.from(user.refreshTokenHash,"hex"),crypto.createHash("sha256").update(refreshToken).digest()) : await comparePassword(refreshToken, user.refreshTokenHash);
     if (!isValid) {
       throw { statusCode: 401, message: "Expired or invalid refresh token." };
+    }
+
+    if (user.userType !== UserType.SUPER_ADMIN) {
+      const school = user.schoolId ? await School.findById(user.schoolId).select("status registrationType") : null;
+      const paidPending = user.userType === UserType.SCHOOL_ADMIN && school?.registrationType === "paid";
+      if ((user.status !== UserStatus.ACTIVE && !(user.status === UserStatus.PENDING_APPROVAL && paidPending)) || !school || (school.status === SubscriptionStatus.PENDING_APPROVAL && !paidPending) || [SubscriptionStatus.SUSPENDED, SubscriptionStatus.CANCELLED].includes(school.status)) throw { statusCode: 403, message: "Your school/account is awaiting approval or access is restricted." };
     }
 
     let permissions: string[] = [];
@@ -177,14 +198,15 @@ export class AuthService {
 
     const newAccessToken = generateAccessToken({
       userId: user._id.toString(),
+      tokenVersion: user.tokenVersion || 0,
       email: user.email,
       userType: user.userType,
       schoolId: user.schoolId ? user.schoolId.toString() : null,
       permissions,
     });
 
-    const newRefreshToken = generateRefreshToken({ userId: user._id.toString() });
-    user.refreshTokenHash = await hashPassword(newRefreshToken);
+    const newRefreshToken = generateRefreshToken({ userId: user._id.toString(), tokenVersion: user.tokenVersion || 0 });
+    user.refreshTokenHash = crypto.createHash("sha256").update(newRefreshToken).digest("hex");
     await user.save();
 
     return {
@@ -193,8 +215,19 @@ export class AuthService {
     };
   }
 
+  static async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    return withoutBranchScope(async () => {
+      const user = await User.findById(userId);
+      if (!user || !await comparePassword(currentPassword, user.passwordHash)) throw { statusCode: 400, message: "Current password is incorrect." };
+      if (await comparePassword(newPassword, user.passwordHash)) throw { statusCode: 400, message: "Choose a different new password." };
+      const updated = await User.findOneAndUpdate({ _id: userId, passwordHash: user.passwordHash }, { $set: { passwordHash: await hashPassword(newPassword) }, $inc: { tokenVersion: 1 }, $unset: { refreshTokenHash: 1, resetPasswordToken: 1, resetPasswordExpires: 1 } });
+      if (!updated) throw { statusCode: 409, message: "Account changed. Sign in and try again." };
+      return { message: "Password changed successfully. Please sign in again." };
+    });
+  }
+
   static async logout(userId: string) {
-    await User.findByIdAndUpdate(userId, { $unset: { refreshTokenHash: 1 } });
+    await withoutBranchScope(() => User.findByIdAndUpdate(userId, { $unset: { refreshTokenHash: 1 } }).exec());
     return { message: "Logged out successfully." };
   }
 
@@ -202,7 +235,7 @@ export class AuthService {
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
       // Return generic message for security
-      return { message: "If an account with that email exists, a password reset token has been generated." };
+      return { message: "If an account with that email exists, password reset instructions have been sent." };
     }
 
     const resetToken = crypto.randomBytes(32).toString("hex");
@@ -210,10 +243,8 @@ export class AuthService {
     user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
     await user.save();
 
-    return {
-      message: "Password reset token generated.",
-      resetToken, // For dev testing
-    };
+    await sendEmailNotification({to:user.email,subject:"Reset your Acadivo password",text:"Use this link to reset your password within one hour: "+env.FRONTEND_URL.replace(/\/$/,"")+"/reset-password#token="+encodeURIComponent(resetToken)});
+    return { message: "If an account with that email exists, password reset instructions have been sent." };
   }
 
   static async resetPassword(token: string, newPassword: string) {
@@ -229,6 +260,7 @@ export class AuthService {
     }
 
     user.passwordHash = await hashPassword(newPassword);
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
     user.refreshTokenHash = undefined;
@@ -238,7 +270,7 @@ export class AuthService {
   }
 
   static async getMe(userId: string) {
-    const user = await User.findById(userId).populate("roleId").populate("schoolId");
+    const user = await withoutBranchScope(() => User.findById(userId).populate("roleId").populate("schoolId").exec());
     if (!user) {
       throw { statusCode: 404, message: "User not found." };
     }
@@ -251,7 +283,12 @@ export class AuthService {
     const schoolRecord: any = user.schoolId && typeof user.schoolId === "object" ? user.schoolId : null;
     const school = schoolRecord ? { ...schoolRecord.toObject(), slug: schoolRecord.slug || schoolRecord.code } : null;
 
+    if (school) delete school.theme;
     return {
+      organizationId: school ? String(school._id) : null,
+      branchId: branchContext.getStore() ? branchContext.getStore()!.branchId : (user.branchId ? String(user.branchId) : school ? String(school._id) : null),
+      isOrganizationOwner: branchContext.getStore()?.owner ?? user.isOrganizationOwner === true,
+      features: school ? PLAN_FEATURES[school.status === "TRIAL" ? "FREE_TRIAL" : school.plan] || [] : [],
       id: user._id,
       name: user.name,
       email: user.email,

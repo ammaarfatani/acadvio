@@ -1,0 +1,319 @@
+"use client";
+
+
+
+import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
+import {
+  GraduationCap,
+  Search,
+  Filter,
+  Eye,
+  Phone,
+  User,
+  AlertCircle,
+  Building2,
+  Calendar,
+} from "lucide-react";
+import { receptionistApi } from "@/lib/receptionistApi";
+import { useAuth } from "@/lib/auth-context";
+
+export default function ReceptionistStudentsPage() {
+  const { user } = useAuth();
+  const base = user?.school?.slug ? `/${user.school.slug}/staff` : "/receptionist";
+
+  const [students, setStudents] = useState<any[]>([]);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [sections, setSections] = useState<any[]>([]);
+
+  const [search, setSearch] = useState("");
+  const [selectedClassId, setSelectedClassId] = useState("");
+  const [selectedSectionId, setSelectedSectionId] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("ACTIVE");
+
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // Load classes
+  useEffect(() => {
+    receptionistApi
+      .getClasses()
+      .then((res) => setClasses(res?.data || []))
+      .catch(() => setClasses([]));
+  }, []);
+
+  // Load sections when class changes
+  useEffect(() => {
+    if (selectedClassId) {
+      receptionistApi
+        .getSections(selectedClassId)
+        .then((res) => setSections(res?.data || []))
+        .catch(() => setSections([]));
+    } else {
+      setSections([]);
+      setSelectedSectionId("");
+    }
+  }, [selectedClassId]);
+
+  const loadStudents = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await receptionistApi.getStudents({
+        search,
+        classId: selectedClassId || undefined,
+        sectionId: selectedSectionId || undefined,
+        status: selectedStatus || undefined,
+        page,
+        limit: 25,
+      });
+      setStudents(res?.data?.students || []);
+      setTotal(res?.data?.total || 0);
+      setPages(res?.data?.pages || 1);
+    } catch (err: any) {
+      setError(err?.message || "Unable to load student directory records.");
+      setStudents([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [search, selectedClassId, selectedSectionId, selectedStatus, page]);
+
+  useEffect(() => {
+    void loadStudents();
+  }, [loadStudents]);
+
+  return (
+    <div className="space-y-6 pb-12">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200 pb-4">
+        <div>
+          <h1 className="text-2xl font-black text-zinc-950 flex items-center gap-2">
+            <GraduationCap className="h-6 w-6 text-school-primary" />
+            Enrolled Students Directory
+          </h1>
+          <p className="text-xs text-zinc-500">
+            Quick front-desk student search, parent contact details, and basic enrollment records.
+          </p>
+        </div>
+      </div>
+
+      {error && (
+        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs font-semibold text-red-800">
+          {error}
+        </p>
+      )}
+
+      {/* FILTER CONTROLS */}
+      <div className="bg-white border border-zinc-200 p-4 rounded-2xl shadow-xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+        {/* Search */}
+        <div>
+          <label className="block font-bold text-zinc-700 uppercase mb-1">Search Roster</label>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Name, roll no, admission no, phone…"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              className="w-full pl-8 pr-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg focus:outline-none"
+            />
+            <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-3" />
+          </div>
+        </div>
+
+        {/* Class Filter */}
+        <div>
+          <label className="block font-bold text-zinc-700 uppercase mb-1">Filter Class</label>
+          <select
+            value={selectedClassId}
+            onChange={(e) => {
+              setSelectedClassId(e.target.value);
+              setPage(1);
+            }}
+            className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg font-semibold focus:outline-none"
+          >
+            <option value="">All Classes</option>
+            {classes.map((cls) => (
+              <option key={cls._id} value={cls._id}>
+                {cls.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Section Filter */}
+        <div>
+          <label className="block font-bold text-zinc-700 uppercase mb-1">Filter Section</label>
+          <select
+            value={selectedSectionId}
+            disabled={!selectedClassId}
+            onChange={(e) => {
+              setSelectedSectionId(e.target.value);
+              setPage(1);
+            }}
+            className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg font-semibold focus:outline-none disabled:opacity-50"
+          >
+            <option value="">All Sections</option>
+            {sections.map((sec) => (
+              <option key={sec._id} value={sec._id}>
+                {sec.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Status Filter */}
+        <div>
+          <label className="block font-bold text-zinc-700 uppercase mb-1">Status</label>
+          <select
+            value={selectedStatus}
+            onChange={(e) => {
+              setSelectedStatus(e.target.value);
+              setPage(1);
+            }}
+            className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg font-semibold focus:outline-none"
+          >
+            <option value="ALL">All Statuses</option>
+            <option value="ACTIVE">Active Students</option>
+            <option value="INACTIVE">Inactive</option>
+            <option value="LEFT">Left / Transferred</option>
+            <option value="GRADUATED">Graduated</option>
+          </select>
+        </div>
+      </div>
+
+      {/* STUDENTS TABLE */}
+      <div className="bg-white border border-zinc-200 rounded-2xl shadow-xs overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs min-w-[850px]">
+            <thead className="bg-zinc-50 border-b border-zinc-200 text-zinc-500 font-bold uppercase tracking-wider text-[11px]">
+              <tr>
+                <th className="py-3 px-4">Student</th>
+                <th className="py-3 px-4">Class & Section</th>
+                <th className="py-3 px-4">Roll No.</th>
+                <th className="py-3 px-4">Admission No.</th>
+                <th className="py-3 px-4">Guardian & Contact</th>
+                <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100">
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-zinc-500">
+                    Loading student records…
+                  </td>
+                </tr>
+              ) : students.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-zinc-500">
+                    No matching student records found.
+                  </td>
+                </tr>
+              ) : (
+                students.map((student) => {
+                  const guardianName =
+                    student.parentInfo?.fatherName ||
+                    student.parentInfo?.guardianName ||
+                    "—";
+                  const guardianPhone =
+                    student.parentInfo?.fatherPhone ||
+                    student.parentInfo?.guardianPhone ||
+                    "—";
+
+                  return (
+                    <tr key={student._id} className="hover:bg-zinc-50/80 transition-colors">
+                      <td className="py-3.5 px-4 font-bold text-zinc-950">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-school-primary/10 text-school-primary font-bold flex items-center justify-center shrink-0">
+                            {student.name.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="truncate">{student.name}</span>
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-zinc-800 font-medium">
+                        {student.className || "Class"}{" "}
+                        {student.sectionName ? `(${student.sectionName})` : ""}
+                      </td>
+
+                      <td className="py-3.5 px-4 font-mono font-bold text-zinc-900">
+                        {student.rollNumber || "—"}
+                      </td>
+
+                      <td className="py-3.5 px-4 font-mono text-zinc-600">
+                        {student.admissionNumber || "—"}
+                      </td>
+
+                      <td className="py-3.5 px-4 text-zinc-700">
+                        <div className="font-semibold text-zinc-900">{guardianName}</div>
+                        <div className="text-[11px] text-zinc-500 font-mono flex items-center gap-1">
+                          <Phone className="w-3 h-3 text-zinc-400" />
+                          <span>{guardianPhone}</span>
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <span
+                          className={`px-2 py-0.5 rounded font-bold text-[10px] ${
+                            student.status === "ACTIVE"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-zinc-100 text-zinc-600"
+                          }`}
+                        >
+                          {student.status}
+                        </span>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-right">
+                        <Link
+                          href={`${base}/students/${student._id}`}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-bold rounded-lg transition-colors text-[11px]"
+                        >
+                          <Eye className="w-3 h-3 text-zinc-500" />
+                          <span>Profile</span>
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* PAGINATION */}
+        <div className="p-4 border-t border-zinc-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-zinc-500">
+          <span>
+            Showing {students.length} of {total} registered students
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1 || loading}
+              className="px-3 py-1.5 border border-zinc-200 rounded-lg hover:bg-zinc-50 disabled:opacity-50 font-semibold"
+            >
+              Previous
+            </button>
+            <span className="font-bold text-zinc-800">
+              Page {page} of {Math.max(1, pages)}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(pages, p + 1))}
+              disabled={page >= pages || loading}
+              className="px-3 py-1.5 border border-zinc-200 rounded-lg hover:bg-zinc-50 disabled:opacity-50 font-semibold"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

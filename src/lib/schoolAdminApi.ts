@@ -1,6 +1,13 @@
 import { apiFetch } from "./api";
 
+import type { ImportEntity } from "./bulk-import";
+
 export const schoolAdminApi = {
+  getBulkTemplate: (entity: ImportEntity) => apiFetch(`/school-admin/${entity}/bulk-import/template`),
+  previewBulkImport: (entity: ImportEntity, data: { filename: string; base64: string }) => apiFetch(`/school-admin/${entity}/bulk-import/preview`, { method: "POST", body: JSON.stringify(data) }),
+  getBulkImport: (entity: ImportEntity, id: string, page = 1) => apiFetch(`/school-admin/${entity}/bulk-import/${id}?page=${page}`),
+  commitBulkImport: (entity: ImportEntity, id: string, skipDuplicates: boolean) => apiFetch(`/school-admin/${entity}/bulk-import/${id}/commit`, { method: "POST", body: JSON.stringify({ skipDuplicates }) }),
+  getBulkImportErrors: (entity: ImportEntity, id: string) => apiFetch(`/school-admin/${entity}/bulk-import/${id}/errors`),
   getDashboardMetrics: () => apiFetch("/school-admin/dashboard"),
   getAcademicSessions: () => apiFetch("/school-admin/academic-sessions"),
   createAcademicSession: (data: any) => apiFetch("/school-admin/academic-sessions", { method: "POST", body: JSON.stringify(data) }),

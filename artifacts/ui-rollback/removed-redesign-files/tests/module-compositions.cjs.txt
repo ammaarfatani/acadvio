@@ -1,0 +1,20 @@
+const fs=require('node:fs'),ts=require('typescript'),assert=require('node:assert/strict'),Module=require('node:module');
+for(const ext of ['.ts','.tsx'])require.extensions[ext]=(m,f)=>m._compile(ts.transpileModule(fs.readFileSync(f,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText,f);
+const React=require('react'),{renderToStaticMarkup}=require('react-dom/server'),{moduleDesign}=require('../src/lib/module-design.ts');
+let pathname='/my-school/school-admin/students',checks=0;
+const routes=[['students','people'],['teachers','people'],['fees','finance'],['staff-attendance','attendance'],['academics/subjects','academic'],['reports','analytics'],['announcements','communication'],['settings','settings'],['','overview']];
+for(const [route,kind] of routes){assert.equal(moduleDesign('/finance-school/school-admin/'+route),kind);checks++;}
+assert.equal(moduleDesign('/attendance-teacher-school/school-admin/settings'),'settings');checks++;
+for(const [route,kind] of routes){assert.equal(moduleDesign('/teacher-school/admin/'+route),kind);checks++;}
+assert.equal(moduleDesign('/teacher-school/staff/announcements'),'communication');checks++;
+assert.equal(moduleDesign('/exam-school/admin/staff-attendance'),'attendance');checks++;
+const original=Module._load;
+Module._load=function(request,parent,isMain){if(request==='next/navigation')return {usePathname:()=>pathname};if(request==='@/lib/auth-context')return {useAuth:()=>({user:{school:{name:'Actual school name'}}})};if(request==='@/lib/module-design')return {moduleDesign};if(request==='next/image')return {__esModule:true,default:({src,alt})=>React.createElement('img',{src,alt})};return original.call(this,request,parent,isMain);};
+const Frame=require('../src/components/ModuleFrame.tsx').default;
+for(const [route,kind] of routes){pathname='/my-school/school-admin/'+route;const html=renderToStaticMarkup(React.createElement(Frame,null,React.createElement('header',null,React.createElement('h1',null,'Existing title'),React.createElement('button',{type:'button'},'Original action'))));assert(html.includes('data-design="'+kind+'"'));assert(html.includes('<h1>Existing title</h1>'));assert(html.includes('Original action'));assert(html.includes('Actual school name'));assert(!/98%|99%|PKR 10,000|123 students/.test(html));if(['overview','people','academic'].includes(kind)){assert(html.includes('alt=""'));assert(html.includes('/brand-editorial/'));}checks++;}
+pathname='/my-school/admin/students';
+const summaryHtml=renderToStaticMarkup(React.createElement(Frame,{summary:[{label:'Matching records',value:0},{label:'Available classes',value:10}]},React.createElement('h1',null,'Students')));
+assert(summaryHtml.includes('<dd>0</dd>'));assert(summaryHtml.includes('<dd>10</dd>'));assert(summaryHtml.includes('Matching records'));checks++;
+Module._load=original;
+for(const asset of ['classroom.webp','learning-desk.webp']){assert(fs.statSync('public/brand-editorial/'+asset).size<70000);checks++;}
+console.log('PASS: '+checks+' module composition, real school context, existing controls, scoped routes and optimized licensed assets checks.');

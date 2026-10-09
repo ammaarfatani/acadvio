@@ -1,0 +1,5 @@
+const fs=require('fs'),path=require('path'),ts=require('typescript');const files=[];function walk(p){for(const e of fs.readdirSync(p,{withFileTypes:true})){const n=path.join(p,e.name);if(e.isDirectory())walk(n);else if(e.name.endsWith('.tsx'))files.push(n);}}walk('src');let count=0;
+for(const file of files){let s=fs.readFileSync(file,'utf8');if(!s.includes('ModuleFrame')||file.endsWith('ModuleFrame.tsx'))continue;const tree=ts.createSourceFile(file,s,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX),edits=[];
+function visit(n){if(ts.isJsxElement(n)&&n.openingElement.tagName.getText(tree)==='ModuleFrame'){edits.push({a:n.openingElement.getStart(tree),b:n.openingElement.end},{a:n.closingElement.getStart(tree),b:n.closingElement.end});count++;}if(ts.isImportDeclaration(n)&&n.moduleSpecifier.getText(tree).includes('/ModuleFrame'))edits.push({a:n.getStart(tree),b:n.end});ts.forEachChild(n,visit);}visit(tree);
+for(const e of edits.sort((a,b)=>b.a-a.a))s=s.slice(0,e.a)+s.slice(e.b);fs.writeFileSync(file,s,'utf8');}
+console.log('Removed redesign header wrappers:',count);

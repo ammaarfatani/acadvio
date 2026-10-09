@@ -1,5 +1,8 @@
 "use client";
 
+
+
+import {Presence} from "@/components/Motion";
 import { useEffect, useState, useCallback, FormEvent } from "react";
 import {
   FileText,
@@ -502,7 +505,7 @@ export default function ReceptionistRequestsPage() {
       </div>
 
       {/* RESOLUTION MODAL */}
-      {resolvingRequest && (
+      <Presence show={Boolean(resolvingRequest)} kind="modal">{resolvingRequest && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <form
             onSubmit={handleUpdateRequest}
@@ -562,7 +565,7 @@ export default function ReceptionistRequestsPage() {
             </div>
           </form>
         </div>
-      )}
+      )}</Presence>
     </div>
   );
 }

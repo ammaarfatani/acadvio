@@ -1,15 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useAuth } from "@/lib/auth-context";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ShieldCheck, ArrowRight, CheckCircle2, Clock, School, User, Lock, Mail, Phone, MapPin, Building2, Sparkles } from "lucide-react";
 
 export function FreeTrialForm({ checkout = false, selectedPlan, onRegistered }: { checkout?: boolean; selectedPlan?: string; onRegistered?: () => Promise<void> } = {}) {
   const searchParams = useSearchParams();
-  const router = useRouter();
-  const { refreshUser } = useAuth();
   const preselectedPlan = checkout ? selectedPlan?.toLowerCase() || searchParams.get("plan") || "professional" : "";
 
   const [formData, setFormData] = useState({
@@ -27,7 +24,7 @@ export function FreeTrialForm({ checkout = false, selectedPlan, onRegistered }: 
 
   const [submitted, setSubmitted] = useState(false);
 
-  const [schoolSlug, setSchoolSlug] = useState("");
+  const submitting = useRef(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -44,7 +41,8 @@ export function FreeTrialForm({ checkout = false, selectedPlan, onRegistered }: 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return;
+    if (submitting.current) return;
+    submitting.current = true;
     setLoading(true);
     setErrorMsg(null);
     try {
@@ -63,18 +61,17 @@ export function FreeTrialForm({ checkout = false, selectedPlan, onRegistered }: 
       };
       
       const { authApi } = await import("@/lib/api");
-      const res = await authApi.registerSchool(payload);
-      setSchoolSlug(res.data?.schoolSlug || res.data?.schoolCode || "");
+      await authApi.registerSchool(payload);
       setSubmitted(true);
-      await authApi.login({ email: formData.adminEmail, password: formData.password });
-      if (checkout) await onRegistered?.();
-      else {
-        await refreshUser();
-        router.replace(res.data?.schoolSlug ? "/"+res.data.schoolSlug+"/admin" : "/school-admin");
+      setFormData(previous => ({ ...previous, password: "" }));
+      if (checkout) {
+        await authApi.login({ email: formData.adminEmail, password: formData.password });
+        await onRegistered?.();
       }
     } catch (err: any) {
       setErrorMsg(err.message || "We couldn't submit your school registration. Please review the form and try again.");
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   };
@@ -83,7 +80,7 @@ export function FreeTrialForm({ checkout = false, selectedPlan, onRegistered }: 
     return <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-center space-y-4"><h2 className="text-xl font-bold">School account registered</h2><p className="text-sm text-zinc-600">Continue to submit your payment screenshot. Your CRM access remains pending until approval.</p>{errorMsg && <p role="alert" className="text-sm text-red-700">{errorMsg}</p>}<Link href={"/login?next="+encodeURIComponent("/payment?plan="+preselectedPlan.toUpperCase()+"&billingCycle="+(searchParams.get("billingCycle") || "monthly"))} className="inline-block rounded-lg bg-red-600 px-4 py-3 text-sm font-semibold text-white">Sign in to continue payment</Link></div>;
   }
   if (submitted) {
-    return <div className="mx-auto max-w-2xl rounded-2xl border border-zinc-200 bg-white p-8 text-center space-y-4"><h2 className="text-2xl font-black">Your 14-Day Free Trial Is Active</h2><p className="text-sm text-zinc-600">Your school account is ready. All your records stay saved when the trial ends.</p>{errorMsg && <p role="alert" className="text-sm text-red-700">{errorMsg}</p>}<Link href={schoolSlug ? "/"+schoolSlug+"/login" : "/login"} className="inline-block rounded-lg bg-red-600 px-5 py-3 text-sm font-bold text-white">Sign in to your school</Link></div>;
+    return <div role="status" className="mx-auto max-w-2xl rounded-2xl border border-zinc-200 bg-white p-8 text-center space-y-4"><h2 className="text-2xl font-black">Your school registration has been submitted.</h2><p className="text-sm text-zinc-600">Your free trial request is currently under review. You will receive an email once your school has been approved.</p><p className="text-sm text-zinc-600">Please check your email for further updates.</p></div>;
   }
   return (
     <div className="max-w-3xl mx-auto bg-white border border-zinc-200 rounded-2xl p-6 sm:p-10 shadow-xl space-y-8">
@@ -92,9 +89,11 @@ export function FreeTrialForm({ checkout = false, selectedPlan, onRegistered }: 
       <div className="p-4 rounded-xl bg-zinc-950 text-white text-xs flex items-start gap-3 border border-zinc-800">
         <ShieldCheck className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
         <div className="space-y-1">
-          <div className="font-bold text-white text-sm">Account Activation & Security Verification</div>
+          <div className="font-bold text-[#d60811] text-sm">
+  Account Activation & Security Verification
+</div>
           <p className="text-zinc-300 leading-relaxed">
-            {checkout ? "CRM access will be activated after your subscription payment is verified." : "Start one standard 14-day free trial. No paid plan selection or payment is required."}
+            {checkout ? "CRM access will be activated after your subscription payment is verified." : "Your 14-day free trial starts after Super Admin approval. No paid plan selection or payment is required."}
           </p>
         </div>
       </div>

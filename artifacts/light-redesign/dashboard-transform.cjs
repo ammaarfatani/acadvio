@@ -1,0 +1,21 @@
+const fs=require('fs'),ts=require('typescript');
+const root='D:/CRM/school-crm/';
+const replacements=[];
+function find(sf,predicate){let result;function visit(n){if(!result&&predicate(n)){result=n;return;}ts.forEachChild(n,visit);}visit(sf);if(!result)throw new Error('JSX target missing');return result;}
+function cls(n){if(!ts.isJsxElement(n))return '';const a=n.openingElement.attributes.properties.find(a=>ts.isJsxAttribute(a)&&a.name.text==='className');return a&&a.initializer&&ts.isStringLiteral(a.initializer)?a.initializer.text:'';}
+function change(file,role,predicate,heading){let s=fs.readFileSync(root+file,'utf8');let sf=ts.createSourceFile(file,s,99,true,ts.ScriptKind.TSX);const n=find(sf,n=>ts.isJsxElement(n)&&predicate(n));const elements=n.children.filter(ts.isJsxElement);let action;
+ if(role==='teacher'){const content=elements.find(n=>cls(n).includes('relative z-10'));action=content.children.filter(ts.isJsxElement).at(-1).getText(sf);}else action=elements.length>1?elements.at(-1).getText(sf):undefined;
+ const replacement=heading(action);s=s.slice(0,n.getStart(sf))+replacement+s.slice(n.end);
+ s=s.replace(/("use client";)/,'$1\nimport {PageHeading} from "@/components/ProductUI";');
+ const rootClass=role==='school-admin'?'mx-auto max-w-7xl space-y-7 pb-12 text-zinc-900':role==='parent'?'space-y-6':'space-y-6 pb-12';
+ s=s.replace('className="'+rootClass+'"','className="ui-dashboard ui-dashboard--'+role+' '+rootClass+'"');
+ fs.writeFileSync(root+file,s);replacements.push(file);
+}
+change('src/app/super-admin/page.tsx','super-admin',n=>n.openingElement.tagName.getText()==='header',actions=>`<PageHeading eyebrow="Platform management" title="Platform overview" description="School registrations, active subscriptions and verified payment revenue." actions={${actions}}/>`);
+change('src/app/school-admin/page.tsx','school-admin',n=>n.openingElement.tagName.getText()==='header',actions=>`<PageHeading eyebrow={data?.school?.name || user?.school?.name || "Your school"} title="School overview" description="Today’s attendance, student records and academic setup, in one view." actions={${actions}}/>`);
+change('src/app/teacher/page.tsx','teacher',n=>cls(n).includes('bg-zinc-900')&&cls(n).includes('relative overflow-hidden'),actions=>`<PageHeading eyebrow="Teaching workspace" title={<>Welcome back, {data?.teacher?.name || user?.name || "Teacher"}</>} description={<>{user?.school?.name || "School"}{data?.teacher?.employeeId ? " · Employee ID: "+data.teacher.employeeId : ""}</>} detail={data?.currentSessionName ? <>Academic session · {data.currentSessionName}</> : undefined} actions={${actions}}/>`);
+change('src/app/finance/page.tsx','finance',n=>cls(n).includes('bg-gradient-to-r'),actions=>`<PageHeading eyebrow="School finance" title="Fee collection & accounts" description="Challans, receipts, expenses and outstanding balances." detail={<>Net collection surplus · <strong>PKR {metrics.netCollectionPKR.toLocaleString()}</strong></>} actions={${actions}}/>`);
+change('src/app/exam-staff/page.tsx','exam-staff',n=>cls(n).includes('flex flex-col sm:flex-row sm:items-center justify-between'),actions=>`<PageHeading eyebrow="Examination workspace" title="Examinations & results" description="Schedules, marks verification and published results across your classes." actions={${actions}}/>`);
+change('src/app/receptionist/page.tsx','receptionist',n=>cls(n).includes('flex flex-col sm:flex-row sm:items-center justify-between'),actions=>`<PageHeading eyebrow="Reception & admissions" title="Your school’s front desk" description={<>Welcome, {user?.name || "Staff Member"}. Admissions, visitors and appointments for {schoolName}.</>} actions={${actions}}/>`);
+change('src/app/parent/page.tsx','parent',n=>n.openingElement.tagName.getText()==='header',()=>`<PageHeading eyebrow="Family workspace" title="Your child’s school day" description={<>{data.student.name} · {data.student.className}{data.student.sectionName ? " / "+data.student.sectionName : ""} · {data.student.academicSessionName || "Academic year not assigned"}</>}/>`);
+console.log('Rebuilt seven dashboard headings; original action JSX and permission checks preserved:',replacements);

@@ -1,3 +1,4 @@
+import { branchScoped } from "../utils/branchScope";
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IClassTeacherAssignment extends Document {
@@ -22,4 +23,5 @@ const ClassTeacherAssignmentSchema = new Schema<IClassTeacherAssignment>({
 
 ClassTeacherAssignmentSchema.index({ schoolId: 1, academicSessionId: 1, sectionId: 1 }, { unique: true });
 ClassTeacherAssignmentSchema.index({ schoolId: 1, academicSessionId: 1, teacherUserId: 1 });
+ClassTeacherAssignmentSchema.plugin(branchScoped);
 export const ClassTeacherAssignment = mongoose.models.ClassTeacherAssignment || mongoose.model<IClassTeacherAssignment>("ClassTeacherAssignment", ClassTeacherAssignmentSchema);

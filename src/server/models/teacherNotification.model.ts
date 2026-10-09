@@ -1,3 +1,4 @@
+import { branchScoped } from "../utils/branchScope";
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface ITeacherNotification extends Document {
@@ -22,4 +23,5 @@ const TeacherNotificationSchema = new Schema<ITeacherNotification>({
 }, { timestamps: { createdAt: true, updatedAt: false } });
 
 TeacherNotificationSchema.index({ schoolId: 1, teacherUserId: 1, createdAt: -1 });
+TeacherNotificationSchema.plugin(branchScoped);
 export const TeacherNotification = mongoose.models.TeacherNotification || mongoose.model<ITeacherNotification>("TeacherNotification", TeacherNotificationSchema);

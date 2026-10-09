@@ -1,5 +1,7 @@
 "use client";
 
+
+
 import { useEffect, useState } from "react";
 import { GraduationCap, Save, CheckCircle2, AlertCircle, RefreshCw, Sparkles, Filter, FileText } from "lucide-react";
 import { schoolAdminApi } from "@/lib/schoolAdminApi";

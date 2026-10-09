@@ -1,0 +1,43 @@
+{
+  "protectedBusinessFiles": 141,
+  "changedFiles": [
+    "src\\app\\about\\page.tsx",
+    "src\\app\\exam-staff\\page.tsx",
+    "src\\app\\finance\\page.tsx",
+    "src\\app\\layout.tsx",
+    "src\\app\\login\\page.tsx",
+    "src\\app\\page.tsx",
+    "src\\app\\parent\\page.tsx",
+    "src\\app\\receptionist\\page.tsx",
+    "src\\app\\school-admin\\page.tsx",
+    "src\\app\\school-admin\\students\\page.tsx",
+    "src\\app\\school-admin\\teachers\\page.tsx",
+    "src\\app\\super-admin\\page.tsx",
+    "src\\app\\teacher\\page.tsx",
+    "src\\components\\AcadivoAssistant.tsx",
+    "src\\components\\DataChart.tsx",
+    "src\\components\\Marketing.tsx",
+    "src\\components\\OrganizationWorkspace.tsx",
+    "src\\components\\PortalShell.tsx",
+    "src\\components\\PricingTable.tsx",
+    "src\\components\\PublicLogo.tsx",
+    "src\\components\\StaffAdminWorkspace.tsx",
+    "src\\components\\StaffAttendanceWorkspace.tsx",
+    "src\\components\\WorkforceUI.tsx",
+    "src\\components\\WorkspaceAnalytics.tsx"
+  ],
+  "sourcePagesReviewed": 129,
+  "roles": [
+    "SUPER_ADMIN",
+    "SCHOOL_ADMIN",
+    "TEACHER",
+    "FINANCE",
+    "EXAM_STAFF",
+    "RECEPTIONIST",
+    "PARENT"
+  ],
+  "apiCallsPreserved": true,
+  "loginHandlerPreserved": true,
+  "sharedTrialPaymentsPreserved": true,
+  "visualVerification": false
+}

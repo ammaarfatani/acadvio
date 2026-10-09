@@ -1,3 +1,4 @@
+import { branchScoped } from "../utils/branchScope";
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IStudentLifecycleEvent extends Document {
@@ -32,4 +33,5 @@ const StudentLifecycleEventSchema = new Schema<IStudentLifecycleEvent>({
 }, { timestamps: { createdAt: true, updatedAt: false } });
 
 StudentLifecycleEventSchema.index({ schoolId: 1, studentId: 1, effectiveAt: -1 });
+StudentLifecycleEventSchema.plugin(branchScoped);
 export const StudentLifecycleEvent = mongoose.models.StudentLifecycleEvent || mongoose.model<IStudentLifecycleEvent>("StudentLifecycleEvent", StudentLifecycleEventSchema);

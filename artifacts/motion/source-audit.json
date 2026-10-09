@@ -1,0 +1,43 @@
+{
+  "protectedBusinessFiles": 141,
+  "changedFiles": [
+    "src\\app\\finance\\collection\\page.tsx",
+    "src\\app\\finance\\expenses\\page.tsx",
+    "src\\app\\finance\\structures\\page.tsx",
+    "src\\app\\layout.tsx",
+    "src\\app\\receptionist\\admissions\\page.tsx",
+    "src\\app\\receptionist\\requests\\page.tsx",
+    "src\\app\\school-admin\\academics\\sessions\\page.tsx",
+    "src\\app\\school-admin\\examinations\\marksheets\\page.tsx",
+    "src\\app\\school-admin\\students\\page.tsx",
+    "src\\app\\school-admin\\teachers\\leave-requests\\page.tsx",
+    "src\\app\\school-admin\\teachers\\page.tsx",
+    "src\\app\\super-admin\\applications\\page.tsx",
+    "src\\app\\super-admin\\schools\\page.tsx",
+    "src\\app\\teacher\\my-classes\\page.tsx",
+    "src\\app\\teacher\\students\\page.tsx",
+    "src\\components\\AcadivoAssistant.tsx",
+    "src\\components\\AppChrome.tsx",
+    "src\\components\\FeeVerification.tsx",
+    "src\\components\\Navbar.tsx",
+    "src\\components\\ParentRecords.tsx",
+    "src\\components\\ParentResources.tsx",
+    "src\\components\\PortalShell.tsx",
+    "src\\components\\StaffAdminWorkspace.tsx",
+    "src\\components\\StaffAttendanceWorkspace.tsx",
+    "src\\components\\SubscriptionPayments.tsx",
+    "src\\components\\WebsiteGuide.tsx"
+  ],
+  "sourcePagesReviewed": 129,
+  "roles": [
+    "SUPER_ADMIN",
+    "SCHOOL_ADMIN",
+    "TEACHER",
+    "FINANCE",
+    "EXAM_STAFF",
+    "RECEPTIONIST",
+    "PARENT"
+  ],
+  "apiCallsPreserved": true,
+  "visualVerification": false
+}

@@ -1,0 +1,130 @@
+$OutputEncoding=[System.Text.UTF8Encoding]::new($false)
+$premiumFoundation = @'
+from pathlib import Path
+import json
+from PIL import Image
+from collections import Counter
+r=Path('D:/CRM/school-crm')
+css=r/'src/app/globals.css';s=css.read_text(encoding='utf-8');start=s.index('/* Acadivo shared product foundation. */');end=s.index('@media (prefers-reduced-motion: reduce)',start);s=s[:start]+'''/* Acadivo enterprise foundation. Logo artwork is never recolored. */
+:root { --ui-brand:#e0000b; --ui-ink:#090a0e; --ui-canvas:#f3f2ef; --ui-surface:#fff; --ui-muted:#eeede9; --ui-border:#dededb; --ui-radius:16px; --ui-elevation:0 3px 16px -8px rgb(9 10 14 / .14); --ui-motion:160ms; }
+body { font-family:"Segoe UI",Arial,sans-serif; }
+:focus-visible { outline:2px solid var(--ui-brand); outline-offset:3px; }
+.portal-content { scrollbar-gutter:stable; }
+.portal-content button:disabled { cursor:not-allowed; }
+@media screen {
+ .portal-shell { --school-primary:var(--ui-brand); --school-primary-hover:#b40009; --school-primary-light:#fff1f0; background:var(--ui-canvas); color:var(--ui-ink); }
+ .portal-content { background:radial-gradient(ellipse at 100% 0,rgba(224,0,11,.035),transparent 42%),var(--ui-canvas); }
+ .portal-content h1 { font-size:clamp(1.6rem,2.3vw,2.2rem); font-weight:700; letter-spacing:-.035em; line-height:1.18; }
+ .portal-content h2,.portal-content h3 { letter-spacing:-.02em; }
+ .portal-content .font-black,.portal-content .font-extrabold { font-weight:700; }
+ .portal-content :where(article,section,form,div).bg-white.border { border-color:var(--ui-border); box-shadow:var(--ui-elevation); }
+ .portal-content .rounded-2xl { border-radius:20px; }
+ .portal-content .rounded-xl { border-radius:14px; }
+ .portal-content :where(header):has(h1),.workspace-hero { position:relative; padding:26px 28px; border:1px solid #dfddda; border-radius:20px; background:linear-gradient(110deg,#ffffff 10%,#faf3f1 100%); box-shadow:0 4px 24px -14px rgba(9,10,14,.18); }
+ .portal-content :where(header):has(h1)::before { content:""; position:absolute; top:26px; bottom:26px; left:0; width:3px; border-radius:0 3px 3px 0; background:var(--ui-brand); }
+ .workspace-hero-dark { background:linear-gradient(120deg,#090a0e,#24252b); color:white; border-color:#34353b; }
+ .workspace-hero-dark h1 { color:white; }
+ .portal-content :where(input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea) { font-size:14px; border-color:#d8d8d4; border-radius:10px; background-color:#fff; min-height:42px; transition:border-color var(--ui-motion),box-shadow var(--ui-motion); }
+ .portal-content :where(input,select,textarea):focus { outline:none; border-color:var(--ui-brand); box-shadow:0 0 0 3px rgb(224 0 11 / .09); }
+ .portal-content input[type=checkbox],.portal-content input[type=radio] { accent-color:var(--ui-brand); width:16px; height:16px; }
+ .portal-content :where(button,a)[class*=rounded] { transition:background-color var(--ui-motion),border-color var(--ui-motion),box-shadow var(--ui-motion),transform var(--ui-motion); }
+ .portal-content :where(button,a)[class*=bg-red-600],.portal-content :where(button,a)[class*=bg-brand-600],.portal-content :where(button,a)[class*=bg-school-primary] { box-shadow:0 3px 7px rgb(224 0 11 / .14); }
+ .portal-content table { font-variant-numeric:tabular-nums; border-collapse:separate; border-spacing:0; }
+ .portal-content th { padding-top:14px; padding-bottom:14px; background:#eeede9; color:#515158; font-size:12px; letter-spacing:.025em; font-weight:600; }
+ .portal-content td { border-color:#ebeae7; line-height:1.5; }
+ .portal-content tbody tr { transition:background-color var(--ui-motion); }
+ .portal-content tbody tr:hover { background:#fbf4f3; }
+ .portal-content :where([role=dialog],.fixed>section,.fixed>article,.fixed>div.bg-white) { box-shadow:0 24px 70px rgb(9 10 14 / .22); }
+ .portal-content [role=alert] { border-left:3px solid #c8101b; }
+ .portal-content .grid:has(>article>p.text-2xl)>article:nth-child(4n+1),.portal-content .grid:has(>article>p.text-3xl)>article:nth-child(4n+1) { background:linear-gradient(135deg,#fff,#fcece9); }
+ .portal-content .grid:has(>article>p.text-2xl)>article:nth-child(4n+2),.portal-content .grid:has(>article>p.text-3xl)>article:nth-child(4n+2) { background:linear-gradient(135deg,#fff,#eeede8); }
+ .portal-desktop { width:280px; background:linear-gradient(165deg,#090a0e,#202127); border-right:1px solid #303137; transition:width 180ms ease; }
+ .portal-column { margin-left:280px; transition:margin-left 180ms ease; }
+ .portal-brand { border-bottom-color:#323238; padding:24px 20px 20px; }
+ .portal-brand-logo { display:inline-flex; align-items:center; background:#fff; padding:11px 13px; border-radius:12px; }
+ .portal-brand .portal-school-context { color:#fff; }
+ .portal-brand .portal-school-context p:first-child { color:#f1f1f3; }
+ .portal-brand .portal-school-context p:last-child,.portal-brand>p { color:#a5a5af; }
+ .portal-navigation h2 { color:#9696a2; font-size:10px; letter-spacing:.14em; }
+ .portal-navigation a { color:#c3c3ce; padding:10px 12px; gap:11px; border-radius:10px; min-height:41px; }
+ .portal-navigation a:hover { color:white; background:#2b2c33; }
+ .portal-navigation a[aria-current=page] { color:white; background:linear-gradient(100deg,#cf0010,#e0000b); box-shadow:0 4px 13px rgba(224,0,11,.18); }
+ .portal-navigation a[aria-current=page] svg { color:white; }
+ .portal-navigation a[aria-current=page]>span:last-child:not(.portal-nav-label) { background:white; }
+ .portal-sidebar-footer { border-color:#33343b; padding:16px; }
+ .portal-sidebar-footer button { border-color:#40414a; background:linear-gradient(110deg,#292a32,#212229); color:#fff; border-radius:12px; min-height:44px; }
+ .portal-sidebar-footer button:hover { background:#373841; }
+ .portal-topbar { background:rgba(255,255,255,.94); border-color:#dfdfdb; box-shadow:0 2px 8px rgb(9 10 14 / .025); }
+ .portal-topbar header { height:76px; }
+ .portal-topbar input { border-radius:11px; background:#f5f4f1; }
+ .portal-mobile { background:linear-gradient(165deg,#090a0e,#202127); color:white; }
+ .portal-mobile button[aria-label="Close navigation"] { color:white; }
+ .portal-shell[data-collapsed=true] .portal-desktop { width:80px; }
+ .portal-shell[data-collapsed=true] .portal-column { margin-left:80px; }
+ .portal-shell[data-collapsed=true] .portal-desktop .portal-brand { padding:24px 8px; }
+ .portal-shell[data-collapsed=true] .portal-desktop .portal-brand-logo { padding:8px 5px; }
+ .portal-shell[data-collapsed=true] .portal-desktop .portal-brand-logo>span { width:54px; }
+ .portal-shell[data-collapsed=true] .portal-desktop :is(.portal-school-context,.portal-nav-label,.portal-navigation h2,.portal-sidebar-footer span,.portal-sidebar-footer .ml-auto) { display:none; }
+ .portal-shell[data-collapsed=true] .portal-desktop .portal-navigation a { justify-content:center; padding:12px 4px; }
+ .portal-shell[data-collapsed=true] .portal-desktop .portal-navigation a>span:last-child:not(.portal-nav-label) { display:none; }
+ .portal-shell[data-collapsed=true] .portal-sidebar-footer { padding:12px; }
+ .portal-shell[data-collapsed=true] .portal-desktop .portal-sidebar-footer button { justify-content:center; padding:10px; }
+ .premium-metric { position:relative; overflow:hidden; min-width:0; border:1px solid var(--ui-border); border-radius:18px; padding:22px; background:linear-gradient(140deg,#fff,#f9f7f4); box-shadow:var(--ui-elevation); transition:transform var(--ui-motion),box-shadow var(--ui-motion); }
+ .premium-metric:hover { transform:translateY(-2px); box-shadow:0 12px 28px -16px rgb(9 10 14 / .25); }
+ .premium-metric[data-tone=brand] { background:linear-gradient(140deg,#fff8f7,#fce5e1); border-color:#efcdc7; }
+ .premium-metric[data-tone=ink] { background:linear-gradient(135deg,#17181e,#30313a); color:white; border-color:#30313a; }
+ .premium-metric[data-tone=ink] .text-zinc-500 { color:#c5c5cf; }
+ .workspace-welcome { position:relative; display:flex; align-items:center; justify-content:space-between; gap:24px; overflow:hidden; border:1px solid #d9d6d0; border-radius:22px; padding:30px; background:linear-gradient(115deg,#fff,#ece9e2); }
+ .workspace-welcome-visual { flex:none; width:140px; opacity:.9; }
+ .workspace-welcome h1 { max-width:900px; }
+ .premium-chart { background:linear-gradient(155deg,#fff 40%,#f8f5f1); border:1px solid var(--ui-border); border-radius:18px; padding:24px; box-shadow:var(--ui-elevation); }
+ .premium-chart svg { overflow:visible; }
+ .premium-chart details { border-color:#e3e0dc; }
+ .premium-empty { display:flex; align-items:center; justify-content:center; gap:16px; padding:28px; background:#f5f3ef; border:1px dashed #d5d2cd; border-radius:14px; }
+ .premium-skeleton { background:linear-gradient(110deg,#e7e5df 25%,#f4f2ed 45%,#e7e5df 65%); background-size:220% 100%; animation:premium-shimmer 1.5s ease infinite; border-radius:16px; }
+ @keyframes premium-shimmer { to { background-position:-220% 0; } }
+ .premium-assistant { animation:premium-slide 180ms ease-out; background:#f5f3f0; }
+ @keyframes premium-slide { from { opacity:0;transform:translateX(18px); } to { opacity:1;transform:translateX(0); } }
+ .premium-assistant-header { background:linear-gradient(120deg,#090a0e,#272830); color:white; padding:24px; }
+ .premium-assistant-header .text-zinc-500 { color:#b9b9c4; }
+ .premium-assistant-header button:hover { background:#34353e; }
+ .premium-chat-user { margin-left:36px; padding:16px; border-radius:16px 16px 4px 16px; background:#24252c; color:white; }
+ .premium-chat-user .text-zinc-500 { color:#bfc0cb; }
+ .premium-chat-answer { margin-right:20px; padding:18px; border:1px solid #dedbd5; border-radius:16px 16px 16px 4px; background:white; box-shadow:0 3px 14px -10px #19191b; }
+ .premium-chat-prompt { display:flex; justify-content:space-between; align-items:center; gap:12px; width:100%; border:1px solid #dcd8d2; border-radius:12px; padding:14px; text-align:left; background:#fff; font-size:14px; }
+ .premium-chat-prompt:hover { border-color:#d99898; background:#fff8f6; }
+ .premium-chat-composer { border:1px solid #d5d1ca; border-radius:14px; background:white; padding:10px; box-shadow:0 4px 16px -10px #222; }
+ .premium-chat-composer:focus-within { border-color:var(--ui-brand); box-shadow:0 0 0 3px rgb(224 0 11 / .08); }
+ .premium-typing { display:inline-flex; align-items:center; gap:5px; }
+ .premium-typing i { width:5px;height:5px;border-radius:50%;background:var(--ui-brand);animation:premium-dot 900ms ease-in-out infinite; }
+ .premium-typing i:nth-child(2){animation-delay:140ms}.premium-typing i:nth-child(3){animation-delay:280ms}
+ @keyframes premium-dot { 50% { opacity:.3;transform:translateY(-3px); } }
+ #website-guide { border-radius:20px; border-color:#d7d3cc; background:#f5f3f0; box-shadow:0 18px 60px rgb(9 10 14 / .22); }
+ #website-guide>div:first-child { background:linear-gradient(110deg,#111217,#30313a); color:white; padding:20px; }
+ #website-guide>div:first-child .text-zinc-500 { color:#b9b9c4; }
+ #website-guide>div:last-child { background:#fff; padding:16px; }
+ #website-guide [role=log]>div { animation:premium-slide 150ms ease-out; }
+ @media(max-width:767px) {
+  .portal-column,.portal-shell[data-collapsed=true] .portal-column { margin-left:0; }
+  .portal-topbar header { height:64px; }
+  .portal-content { padding:16px; }
+  .portal-content :where(header):has(h1),.workspace-hero { padding:22px 20px; }
+  .workspace-welcome { padding:24px 20px; align-items:flex-start; }
+  .workspace-welcome-visual { display:none; }
+  .premium-metric,.premium-chart { padding:18px; }
+ }
+}
+''' + s[end:];css.write_text(s,encoding='utf-8')
+(r/'src/components/PremiumUI.tsx').write_text('''import {ReactNode} from "react";
+import {BookOpen,ArrowUpRight,LucideIcon} from "lucide-react";
+export function AcademicIllustration(){return <svg className="workspace-welcome-visual" viewBox="0 0 160 140" fill="none" aria-hidden="true"><path d="M22 99L80 128L139 98L80 70Z" fill="#090a0e" opacity=".08"/><path d="M28 73L80 99L133 72L80 46Z" fill="#fff" stroke="#cbc7bf"/><path d="M28 73V87L80 113V99Z" fill="#ded9cf"/><path d="M80 99V113L133 86V72Z" fill="#c8c3b9"/><path d="M37 50L80 73L124 50L80 27Z" fill="#fff" stroke="#cbc7bf"/><path d="M37 50V60L80 84V73Z" fill="#f5cbc8"/><path d="M80 73V84L124 60V50Z" fill="#e0000b"/><path d="M57 22L81 9L106 22L81 36Z" fill="#090a0e"/><path d="M68 31V43C81 51 93 44 95 41V30" stroke="#090a0e" strokeWidth="3"/><path d="M106 22V42" stroke="#e0000b" strokeWidth="2"/><circle cx="106" cy="45" r="3" fill="#e0000b"/></svg>}
+export function WorkspaceWelcome({eyebrow,title,description,actions,context}:{eyebrow:string;title:ReactNode;description:ReactNode;actions?:ReactNode;context?:ReactNode}){return <section className="workspace-welcome"><div className="min-w-0 flex-1"><p className="mb-3 text-xs font-semibold uppercase tracking-[.16em] text-brand-600">{eyebrow}</p><h1>{title}</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-600">{description}</p>{context&&<div className="mt-3 text-xs text-zinc-500">{context}</div>}{actions&&<div className="mt-5 flex flex-wrap items-center gap-3">{actions}</div>}</div><AcademicIllustration/></section>}
+export function MetricCard({label,value,icon:Icon=BookOpen,tone="neutral",children}:{label:string;value:ReactNode;icon?:LucideIcon;tone?:"neutral"|"brand"|"ink";children?:ReactNode}){return <article className="premium-metric" data-tone={tone}><div className="flex items-center justify-between"><span className="rounded-xl bg-white/70 p-2.5 text-brand-600"><Icon size={20}/></span><ArrowUpRight size={16} className="opacity-40" aria-hidden="true"/></div><p className="mt-4 text-sm text-zinc-500">{label}</p><p className="mt-2 break-words text-3xl font-semibold tracking-tight">{value}</p>{children}</article>}
+export function RecordSkeleton({count=4}:{count?:number}){return <div role="status" aria-label="Loading records" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{Array.from({length:count},(_,i)=><div key={i} className="premium-skeleton h-32"/>)}<span className="sr-only">Loading records…</span></div>}
+export function EmptyRecords({message}:{message:string}){return <div className="premium-empty"><BookOpen size={24} className="shrink-0 text-brand-600" aria-hidden="true"/><p className="text-sm leading-6 text-zinc-600">{message}</p></div>}
+''',encoding='utf-8')
+logo=Image.open(r/'public/logo.png').convert('RGBA');counts=Counter((a,b,c) for a,b,c,alpha in logo.getdata() if alpha>240 and a>180 and b<70 and c<70)
+out=r/'artifacts/premium-redesign';out.mkdir(parents=True,exist_ok=True);(out/'brand-audit.json').write_text(json.dumps({'logo':'public/logo.png','redPixels':counts.most_common(5),'charcoal':'#090a0e','accessibleActionRed':'#e0000b','logoUnmodified':True},indent=2))
+print('Design foundation and shared components written; logo retained.')
+'@
+$premiumFoundation | & 'C:/Users/DT/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe' -

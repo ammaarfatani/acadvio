@@ -40,3 +40,23 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 /.next-payment-qa/
+
+/.next-bulk-import-verification/
+
+/.next-approval-verification/
+
+/.next-enterprise-check/
+/.next-enterprise-ui/
+
+# Documented configuration templates contain no credentials
+!.env.example
+
+# All disposable Next verification builds
+/.next-*/
+
+/connectors/attendance/data/
+
+.next-parent-check/
+
+# Synthetic demo login credentials and record ownership manifest
+/artifacts/school-audit/*.private.json

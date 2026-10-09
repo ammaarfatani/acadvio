@@ -1,5 +1,10 @@
 "use client";
 
+
+
+import {Presence} from "@/components/Motion";
+import AnnualMarksheet from "@/components/AnnualMarksheet";
+import {apiFetch} from "@/lib/api";
 import { useEffect, useState } from "react";
 import { Printer, GraduationCap, AlertCircle, Building2 } from "lucide-react";
 import { schoolAdminApi } from "@/lib/schoolAdminApi";
@@ -33,7 +38,7 @@ interface ProcessedResultItem {
 }
 
 export default function MarksheetsPage() {
-  const { user } = useAuth();
+  const { user } = useAuth();const [annual,setAnnual]=useState<any>(null);
   const searchParams = useSearchParams();
 
   const [exams, setExams] = useState<any[]>([]);
@@ -127,7 +132,7 @@ export default function MarksheetsPage() {
   const schoolPhone = schoolProfile?.phone || user?.school?.phone || "";
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-6 pb-12"><Presence show={Boolean(annual)} kind="modal">{annual&&<AnnualMarksheet data={annual} schoolName={schoolProfile?.name||user?.school?.name} onClose={()=>setAnnual(null)}/>}</Presence><button disabled={!selectedStudentId} className="no-print rounded-lg border bg-white px-4 py-2 text-sm disabled:opacity-40" onClick={async()=>{try{setAnnual((await apiFetch("/exams/marksheet/"+selectedStudentId)).data);}catch(e:any){setError(e.message);}}}>Mid-Term & Final Term marksheet</button>
       {/* Action Toolbar */}
       <div className="print:hidden bg-white border border-zinc-200 p-4 rounded-xl shadow-xs flex flex-col sm:flex-row justify-between items-center gap-4">
         <div>

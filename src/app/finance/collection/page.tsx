@@ -1,5 +1,8 @@
 "use client";
 
+
+
+import {Presence} from "@/components/Motion";
 import { useEffect, useState } from "react";
 import { DollarSign, Search, CheckCircle2, Printer, X } from "lucide-react";
 import Link from "next/link";
@@ -232,7 +235,7 @@ export default function FeeCollectionPage() {
       </div>
 
       {/* Collect Payment Modal */}
-      {selectedChallan && (
+      <Presence show={Boolean(selectedChallan)} kind="modal">{selectedChallan && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
             <div className="flex justify-between items-center border-b border-zinc-200 pb-3">
@@ -296,7 +299,7 @@ export default function FeeCollectionPage() {
             </form>
           </div>
         </div>
-      )}
+      )}</Presence>
     </div>
   );
 }

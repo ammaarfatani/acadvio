@@ -159,7 +159,7 @@ export const receptionistApi = {
   // 7. Notifications
   getNotifications: () => apiFetch("/receptionist/notifications"),
 
-  // 8. Theme & Settings
+  // 8. School settings
   getSchoolProfile: () => apiFetch("/schools/profile"),
   updateSchoolBranding: (brandingData: any) =>
     apiFetch("/schools/branding", {

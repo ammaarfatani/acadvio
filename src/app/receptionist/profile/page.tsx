@@ -1,5 +1,7 @@
 "use client";
 
+
+
 import { User, ShieldCheck, Mail, Building2, Calendar, Phone, CreditCard } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 

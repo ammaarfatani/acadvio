@@ -1,0 +1,13 @@
+const fs=require('node:fs'),ts=require('typescript'),assert=require('node:assert/strict');
+for(const ext of ['.ts','.tsx'])require.extensions[ext]=(m,f)=>m._compile(ts.transpileModule(fs.readFileSync(f,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText,f);
+const React=require('react'),{renderToStaticMarkup}=require('react-dom/server'),Chart=require('../src/components/DataChart.tsx').default,{WorkspaceWelcome,MetricCard}=require('../src/components/PremiumUI.tsx');let checks=0;
+const ok=(condition,message)=>{assert(condition,message);checks++;};
+const chart=props=>renderToStaticMarkup(React.createElement(Chart,{title:'Actual record values',...props}));
+const empty=chart({data:[],kind:'line'});ok(empty.includes('No recorded data available'),'Empty chart communicates unavailable records');
+const zero=chart({data:[{label:'Recorded October',value:0}],kind:'line'});ok(zero.includes('Recorded October'),'Recorded zero remains visible');ok(zero.includes('One recorded period'),'Single point does not imply a trend');ok(!zero.includes('No recorded data available'),'Zero is not missing data');
+const negative=chart({data:[{label:'Net deficit',value:-1250},{label:'Net surplus',value:500}],kind:'line',unit:'PKR'});ok(negative.includes('-1,250'),'Negative financial value preserved');ok(!/NaN|Infinity/.test(negative),'Negative chart scale stays finite');ok(negative.includes('tabindex="0"'),'Chart data points support keyboard access');
+const donut=chart({data:[{label:'PAID',value:2},{label:'PENDING',value:1}],kind:'donut'});ok(donut.includes('recorded entries'),'Donut identifies its real total');ok(donut.includes('PAID: 2')&&donut.includes('PENDING: 1'),'Status values remain intact');
+const invalid=chart({data:[{label:'Unavailable',value:NaN}],kind:'bar'});ok(invalid.includes('No recorded data available'),'Non-finite values cannot fabricate a chart');
+const welcome=renderToStaticMarkup(React.createElement(WorkspaceWelcome,{eyebrow:'School',title:'Welcome',description:'Existing records'}));ok(welcome.includes('<h1>Welcome</h1>'),'Welcome retains page heading semantics');ok(welcome.includes('aria-hidden="true"'),'Illustration stays decorative for assistive technology');
+const metric=renderToStaticMarkup(React.createElement(MetricCard,{label:'Students',value:0,tone:'ink'}));ok(metric.includes('>0</p>'),'Zero metric is not replaced with invented content');
+console.log('PASS: '+checks+' chart data integrity, empty/zero/negative values and accessible component checks.');

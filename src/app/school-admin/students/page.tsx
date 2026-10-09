@@ -1,4 +1,8 @@
 "use client";
+import {Presence} from "@/components/Motion";
+import {PageHeading} from "@/components/ProductUI";
+
+
 
 import { useEffect, useState } from "react";
 import {
@@ -24,7 +28,10 @@ import { schoolAdminApi } from "@/lib/schoolAdminApi";
 import { useAuth } from "@/lib/auth-context";
 import { StudentHistoryModal } from "@/components/StudentHistoryModal";
 
+import { BulkImportModal } from "@/components/BulkImportModal";
+
 export default function StudentsPage() {
+  const [bulkOpen, setBulkOpen] = useState(false);
   const { user } = useAuth();
   const [students, setStudents] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
@@ -59,6 +66,7 @@ export default function StudentsPage() {
     fatherPhone: "",
     fatherCnic: "",
     fatherOccupation: "",
+    guardianEmail:"", motherName:"", motherPhone:"", parentPassword:"",
     emergencyName: "",
     emergencyPhone: "",
     emergencyRelation: "",
@@ -119,8 +127,9 @@ export default function StudentsPage() {
           fatherName: formData.fatherName,
           fatherPhone: formData.fatherPhone,
           fatherCnic: formData.fatherCnic,
-          fatherOccupation: formData.fatherOccupation,
+          fatherOccupation: formData.fatherOccupation,guardianEmail:formData.guardianEmail,motherName:formData.motherName,motherPhone:formData.motherPhone,
         },
+        ...(!editingStudent&&formData.guardianEmail&&formData.parentPassword?{parentAccount:{password:formData.parentPassword}}:{}),
         emergencyContact: {
           name: formData.emergencyName,
           phone: formData.emergencyPhone,
@@ -129,7 +138,7 @@ export default function StudentsPage() {
       };
 
       if (editingStudent) await schoolAdminApi.updateStudent(editingStudent._id, payload);
-      else await schoolAdminApi.createStudent(payload);
+      else {const created=await schoolAdminApi.createStudent(payload);if(created.data?.primaryParent?.initialPassword){setNotice("Student admitted. Primary parent login: "+created.data.primaryParent.email+". Initial password: "+created.data.primaryParent.initialPassword+". Share securely with the parent.");setEditingStudent(null);setModalOpen(false);await fetchStudents();return;}}
       setNotice(editingStudent ? `Student '${formData.name}' updated successfully.` : `New student '${formData.name}' admitted successfully. Admission number generated.`);
       setEditingStudent(null);
       setModalOpen(false);
@@ -156,22 +165,16 @@ export default function StudentsPage() {
   return (
     <div className="space-y-6 pb-12">
       
+      <Presence show={Boolean(bulkOpen)} kind="modal">{bulkOpen && <BulkImportModal entity="students" onClose={() => setBulkOpen(false)} onImported={fetchStudents} />}</Presence>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200 pb-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">
-            Student Data Directory & Admissions
-          </h1>
-          <p className="text-xs text-zinc-500">Manage student profiles, admission numbers, parent records, and printable enrollment forms</p>
-        </div>
+      <PageHeading eyebrow="School directory" title="Students & admissions" description="Student profiles, guardian contacts, enrollment and admission records." actions={<div className="flex flex-wrap gap-2"><button onClick={() => setBulkOpen(true)} className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-xs font-bold text-zinc-800"><FileSpreadsheet size={16} />Bulk Upload</button>
         <button
-          onClick={() => { setEditingStudent(null); setFormData({ name: "", dob: "", gender: "Male", className: "", classId: "", rollNumber: "", sectionId: "", academicSessionId: sessions.find((s) => s.isCurrent)?._id || "", address: "", phone: "", fatherName: "", fatherPhone: "", fatherCnic: "", fatherOccupation: "", emergencyName: "", emergencyPhone: "", emergencyRelation: "" }); setModalOpen(true); }}
+          onClick={() => { setEditingStudent(null); setFormData({ name: "", dob: "", gender: "Male", className: "", classId: "", rollNumber: "", sectionId: "", academicSessionId: sessions.find((s) => s.isCurrent)?._id || "", address: "", phone: "", fatherName: "", fatherPhone: "", fatherCnic: "", fatherOccupation: "",guardianEmail:"",motherName:"",motherPhone:"",parentPassword:"", emergencyName: "", emergencyPhone: "", emergencyRelation: "" }); setModalOpen(true); }}
           className="bg-school-primary hover:bg-school-primary-hover text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xs transition-colors flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
           <span>New Student Admission</span>
-        </button>
-      </div>
+        </button></div>}/>
 
       {notice && (
         <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl text-xs font-semibold flex items-center justify-between">
@@ -181,7 +184,7 @@ export default function StudentsPage() {
       )}
 
       {/* Filters & Search */}
-      <div className="bg-white border border-zinc-200 p-4 rounded-2xl shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="ui-data-toolbar bg-white border border-zinc-200 p-4 rounded-2xl shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-2.5" />
           <input
@@ -193,7 +196,7 @@ export default function StudentsPage() {
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <span className="text-xs text-zinc-500 font-semibold shrink-0">Class Filter:</span>
           <select
             value={classFilter}
@@ -245,7 +248,7 @@ export default function StudentsPage() {
                     <td className="p-3.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
-                          onClick={() => { setEditingStudent(s); setFormData({ name: s.name || "", dob: s.dob ? new Date(s.dob).toISOString().slice(0,10) : "", gender: s.gender || "Male", className: s.className || "", classId: s.classId, rollNumber: s.rollNumber || "", sectionId: s.sectionId || "", academicSessionId: s.academicSessionId || "", address: s.address || "", phone: s.phone || "", fatherName: s.parentInfo?.fatherName || "", fatherPhone: s.parentInfo?.fatherPhone || "", fatherCnic: s.parentInfo?.fatherCnic || "", fatherOccupation: s.parentInfo?.fatherOccupation || "", emergencyName: s.emergencyContact?.name || "", emergencyPhone: s.emergencyContact?.phone || "", emergencyRelation: s.emergencyContact?.relation || "" }); if (s.classId) schoolAdminApi.getSections(s.classId).then((res: any) => setSections(res?.data || [])); setModalOpen(true); }}
+                          onClick={() => { setEditingStudent(s); setFormData({ name: s.name || "", dob: s.dob ? new Date(s.dob).toISOString().slice(0,10) : "", gender: s.gender || "Male", className: s.className || "", classId: s.classId, rollNumber: s.rollNumber || "", sectionId: s.sectionId || "", academicSessionId: s.academicSessionId || "", address: s.address || "", phone: s.phone || "", fatherName: s.parentInfo?.fatherName || "", fatherPhone: s.parentInfo?.fatherPhone || "", fatherCnic: s.parentInfo?.fatherCnic || "", fatherOccupation: s.parentInfo?.fatherOccupation || "", guardianEmail:s.parentInfo?.guardianEmail||"",motherName:s.parentInfo?.motherName||"",motherPhone:s.parentInfo?.motherPhone||"",parentPassword:"", emergencyName: s.emergencyContact?.name || "", emergencyPhone: s.emergencyContact?.phone || "", emergencyRelation: s.emergencyContact?.relation || "" }); if (s.classId) schoolAdminApi.getSections(s.classId).then((res: any) => setSections(res?.data || [])); setModalOpen(true); }}
                           className="p-1.5 text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100 rounded-lg"
                           title="Edit student"
                         >
@@ -276,7 +279,7 @@ export default function StudentsPage() {
       </div>
 
       {/* ADMISSION FORM MODAL */}
-      {modalOpen && (
+      <Presence show={Boolean(modalOpen)} kind="modal">{modalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-6 shadow-2xl border border-zinc-200 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
@@ -352,8 +355,9 @@ export default function StudentsPage() {
                 </div>
               </div>
 
-              <div className="space-y-3 pt-2">
-                <h4 className="text-xs font-bold text-school-primary uppercase tracking-wider">2. Parent / Guardian Records (Data Only)</h4>
+              <section className="rounded-xl border border-red-100 bg-red-50/30 p-4"><h4 className="text-sm font-semibold">Primary parent portal</h4><p className="mt-1 text-xs text-zinc-600">Enter one primary parent email. Admission creates the account or links an existing parent in this branch. Father and mother details stay in the student record.</p><div className="mt-4 grid gap-3 sm:grid-cols-2"><label className="grid gap-1 text-xs font-semibold">Primary parent email<input type="email" value={formData.guardianEmail} onChange={e=>setFormData({...formData,guardianEmail:e.target.value})} placeholder="parent@example.com" className="rounded-lg border bg-white p-3"/></label>{!editingStudent&&<label className="grid gap-1 text-xs font-semibold">Initial parent password (optional)<input type="password" minLength={8} value={formData.parentPassword} onChange={e=>setFormData({...formData,parentPassword:e.target.value})} placeholder="Leave blank to generate a secure password" className="rounded-lg border bg-white p-3"/></label>}<label className="grid gap-1 text-xs font-semibold">Mother name<input value={formData.motherName} onChange={e=>setFormData({...formData,motherName:e.target.value})} placeholder="Enter mother's full name" className="rounded-lg border bg-white p-3"/></label><label className="grid gap-1 text-xs font-semibold">Mother phone<input value={formData.motherPhone} onChange={e=>setFormData({...formData,motherPhone:e.target.value})} placeholder="03XX-XXXXXXX" className="rounded-lg border bg-white p-3"/></label></div></section>
+<div className="space-y-3 pt-2">
+                <h4 className="text-xs font-bold text-school-primary uppercase tracking-wider">2. Parent / Guardian Information</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold text-zinc-700 mb-1">Father / Guardian Full Name *</label>
@@ -420,10 +424,10 @@ export default function StudentsPage() {
             </form>
           </div>
         </div>
-      )}
+      )}</Presence>
 
       {/* PRINTABLE ADMISSION FORM VIEW */}
-      {printAdmissionForm && (
+      <Presence show={Boolean(printAdmissionForm)} kind="modal">{printAdmissionForm && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full p-8 space-y-6 shadow-2xl border border-zinc-950 font-sans max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b-2 border-zinc-950 pb-4">
@@ -461,17 +465,17 @@ export default function StudentsPage() {
             </div>
           </div>
         </div>
-      )}
+      )}</Presence>
 
       {/* STUDENT HISTORY MODAL */}
-      {viewStudent && (
+      <Presence show={Boolean(viewStudent)} kind="modal">{viewStudent && (
         <StudentHistoryModal
           studentId={viewStudent._id}
           isOpen={!!viewStudent}
           onClose={() => setViewStudent(null)}
           portalType="admin"
         />
-      )}
+      )}</Presence>
 
     </div>
   );

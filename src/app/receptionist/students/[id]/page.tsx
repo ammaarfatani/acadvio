@@ -1,5 +1,7 @@
 "use client";
 
+
+
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -174,22 +176,22 @@ export default function ReceptionistStudentDetailPage() {
 
             <div className="space-y-2.5">
               <div>
-                <span className="text-[10px] font-bold uppercase text-zinc-400">Father's Name</span>
+                <span className="text-[10px] font-bold uppercase text-zinc-400">Father&#39;s Name</span>
                 <p className="font-semibold text-zinc-900">{pInfo.fatherName || "—"}</p>
               </div>
 
               <div>
-                <span className="text-[10px] font-bold uppercase text-zinc-400">Father's Phone</span>
+                <span className="text-[10px] font-bold uppercase text-zinc-400">Father&#39;s Phone</span>
                 <p className="font-semibold text-zinc-900 font-mono">{pInfo.fatherPhone || "—"}</p>
               </div>
 
               <div>
-                <span className="text-[10px] font-bold uppercase text-zinc-400">Father's CNIC</span>
+                <span className="text-[10px] font-bold uppercase text-zinc-400">Father&#39;s CNIC</span>
                 <p className="font-semibold text-zinc-900 font-mono">{pInfo.fatherCnic || "—"}</p>
               </div>
 
               <div>
-                <span className="text-[10px] font-bold uppercase text-zinc-400">Mother's Name</span>
+                <span className="text-[10px] font-bold uppercase text-zinc-400">Mother&#39;s Name</span>
                 <p className="font-semibold text-zinc-900">{pInfo.motherName || "—"}</p>
               </div>
 
