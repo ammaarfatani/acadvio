@@ -11,6 +11,7 @@ export const financeApi = {
     }),
   getStudentLedger: (studentId: string) => apiFetch(`/finance/ledger/${studentId}`),
   getChallans: (status?: string) => apiFetch(`/finance/challans${status && status !== "ALL" ? `?status=${encodeURIComponent(status)}` : ""}`),
+  getReceiptById: (id: string) => apiFetch(`/finance/payments/${encodeURIComponent(id)}/receipt`),
   getReceipt: (challanId: string) => apiFetch(`/finance/receipts/${encodeURIComponent(challanId)}`),
   collectPayment: (paymentData: any) =>
     apiFetch("/finance/collect-payment", {

@@ -1,0 +1,19 @@
+"use client";
+import {useEffect,useRef,useState} from "react";
+import {ShieldAlert,X} from "lucide-react";
+type Request={title:string;message:string;confirmLabel?:string;danger?:boolean;reason?:boolean;resolve:(accepted:boolean|string)=>void};
+export function confirmAction(message:string,options:{title?:string;confirmLabel?:string;danger?:boolean}={}){
+ return new Promise<boolean>(resolve=>window.dispatchEvent(new CustomEvent("acadivo:confirm",{detail:{message,title:options.title||"Confirm action",confirmLabel:options.confirmLabel||"Confirm",danger:options.danger,resolve:(value:boolean|string)=>resolve(value===true)}})));
+}
+export function requestReason(message:string,title="Provide a reason"){
+ return new Promise<string|null>(resolve=>window.dispatchEvent(new CustomEvent("acadivo:confirm",{detail:{message,title,confirmLabel:"Continue",reason:true,resolve:(value:boolean|string)=>resolve(typeof value==="string"?value:null)}})));
+}
+export default function ConfirmationHost(){
+ const [reason,setReason]=useState("");
+ const [request,setRequest]=useState<Request|null>(null);const current=useRef<Request|null>(null),dialog=useRef<HTMLDivElement>(null),cancel=useRef<HTMLButtonElement>(null);
+ useEffect(()=>{const listener=(event:Event)=>{const next=(event as CustomEvent<Request>).detail;if(current.current){next.resolve(false);return;}current.current=next;setReason("");setRequest(next);};window.addEventListener("acadivo:confirm",listener);return()=>{window.removeEventListener("acadivo:confirm",listener);current.current?.resolve(false);};},[]);
+ function finish(value:boolean){const active=current.current;current.current=null;setRequest(null);active?.resolve(value&&active.reason?reason.trim():value);}
+ useEffect(()=>{if(!request)return;const origin=document.activeElement as HTMLElement;cancel.current?.focus();const key=(event:KeyboardEvent)=>{if(event.key==="Escape"){event.preventDefault();request.resolve(false);current.current=null;setRequest(null);}if(event.key==="Tab"){const items=dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled)');if(!items?.length)return;const first=items[0],last=items[items.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}};document.addEventListener("keydown",key);return()=>{document.removeEventListener("keydown",key);if(origin?.isConnected)origin.focus();};},[request]);
+ if(!request)return null;
+ return <div className="fixed inset-0 z-[150] grid place-items-center overflow-y-auto bg-black/40 p-4"><div ref={dialog} role="alertdialog" aria-modal="true" aria-labelledby="confirmation-title" aria-describedby="confirmation-description" className="w-full max-w-md rounded-lg border bg-white p-6 shadow-xl"><div className="flex items-start justify-between gap-3"><span className="rounded-md bg-red-50 p-2 text-red-700"><ShieldAlert size={21}/></span><button aria-label="Close confirmation" className="p-1" onClick={()=>finish(false)}><X size={18}/></button></div><h2 id="confirmation-title" className="mt-4 text-lg font-bold">{request.title}</h2><p id="confirmation-description" className="mt-2 text-sm leading-6 text-zinc-600">{request.message}</p>{request.reason&&<label className="mt-4 block text-xs font-semibold">Reason<textarea autoFocus value={reason} maxLength={1000} onChange={e=>setReason(e.target.value)} className="mt-2 w-full rounded-md border p-3 text-sm"/></label>}<div className="mt-6 flex justify-end gap-3"><button ref={cancel} className="rounded-md border px-4 py-2 text-sm font-semibold" onClick={()=>finish(false)}>Cancel</button><button disabled={!!request.reason&&!reason.trim()} className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white" onClick={()=>finish(true)}>{request.confirmLabel}</button></div></div></div>;
+}

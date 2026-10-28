@@ -1,9 +1,11 @@
 "use client";
+import { useRecordRefresh } from "@/lib/use-record-refresh";
+import { invoiceTotals } from "@/lib/fee-math";
+import { StudentAvatar } from "@/components/StudentAvatar";
 
-
-
-import {Presence} from "@/components/Motion";
-import { useEffect, useState } from "react";
+import { Presence } from "@/components/Motion";
+import { confirmAction, requestReason } from "@/components/ConfirmationHost";
+import { useEffect, useRef, useState } from "react";
 import { DollarSign, Search, CheckCircle2, Printer, X } from "lucide-react";
 import Link from "next/link";
 import { financeApi } from "@/lib/financeApi";
@@ -12,6 +14,7 @@ interface ChallanRecord {
   id: string;
   challanNo: string;
   studentName: string;
+  studentId: string;
   rollNo: string;
   admissionNo: string;
   className: string;
@@ -28,6 +31,7 @@ interface ChallanRecord {
 }
 
 export default function FeeCollectionPage() {
+  const requestId = useRef("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [notice, setNotice] = useState<string | null>(null);
@@ -36,64 +40,114 @@ export default function FeeCollectionPage() {
   const [loadError, setLoadError] = useState("");
 
   const loadChallans = async () => {
-    setLoading(true); setLoadError("");
+    setLoading(true);
+    setLoadError("");
     try {
       const response = await financeApi.getChallans();
-      setChallans((response.data || []).map((item: any) => ({
-        id: String(item._id), challanNo: item.challanNumber, studentName: item.studentName, rollNo: item.rollNumber,
-        admissionNo: item.admissionNumber || "", className: item.className, month: item.month,
-        dueDate: item.dueDate, previousBalance: item.previousBalance || 0,
-        currentCharges: Object.entries(item.feeBreakdown || {}).reduce((sum: number, [key, value]) => key === "discount" ? sum : sum + Number(value || 0), 0),
-        discount: item.feeBreakdown?.discount || 0, lateFee: item.feeBreakdown?.lateFeeFine || 0,
-        totalAmount: item.totalAmountPKR, paidAmount: item.paidAmountPKR, remainingAmount: item.remainingAmountPKR, status: item.status,
-      })));
-    } catch (error: any) { setLoadError(error?.message || "Unable to load fee challans."); setChallans([]); }
-    finally { setLoading(false); }
+      setChallans(
+        (response.data || []).map((item: any) => ({
+          id: String(item._id),
+          studentId: String(item.studentId?._id || item.studentId),
+          challanNo: item.challanNumber,
+          studentName: item.studentName,
+          rollNo: item.rollNumber,
+          admissionNo: item.admissionNumber || "",
+          className: item.className,
+          month: item.month,
+          dueDate: item.dueDate,
+          previousBalance: item.previousBalance || 0,
+          currentCharges: Object.entries(item.feeBreakdown || {}).reduce(
+            (sum: number, [key, value]) =>
+              ["discount", "scholarship", "arrears", "lateFeeFine"].includes(
+                key,
+              )
+                ? sum
+                : sum + Number(value || 0),
+            0,
+          ),
+          discount:
+            Number(item.feeBreakdown?.discount || 0) +
+            Number(item.feeBreakdown?.scholarship || 0),
+          lateFee: item.feeBreakdown?.lateFeeFine || 0,
+          totalAmount: item.totalAmountPKR,
+          paidAmount: item.paidAmountPKR,
+          remainingAmount: item.remainingAmountPKR,
+          status: item.status,
+        })),
+      );
+    } catch (error: any) {
+      setLoadError(error?.message || "Unable to load fee challans.");
+      setChallans([]);
+    } finally {
+      setLoading(false);
+    }
   };
-  useEffect(() => { void loadChallans(); }, []);
+  useEffect(() => {
+    void loadChallans();
+  }, []);
 
+  useRecordRefresh(loadChallans, ["finance"]);
   // Modal Collect State
-  const [selectedChallan, setSelectedChallan] = useState<ChallanRecord | null>(null);
+  const [selectedChallan, setSelectedChallan] = useState<ChallanRecord | null>(
+    null,
+  );
   const [payAmount, setPayAmount] = useState<number>(0);
-  const [payMethod, setPayMethod] = useState<"Cash" | "Bank Transfer" | "Online" | "Cheque" | "Other">("Cash");
+  const [payMethod, setPayMethod] = useState<
+    "Cash" | "Bank Transfer" | "Online" | "Cheque" | "Other"
+  >("Cash");
   const [submitting, setSubmitting] = useState(false);
 
   const handleOpenCollect = (c: ChallanRecord) => {
+    requestId.current = "";
     setSelectedChallan(c);
     setPayAmount(c.remainingAmount);
   };
 
   const handleCollectSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedChallan || payAmount <= 0) return;
+    if (!selectedChallan || payAmount <= 0 || submitting) return;
 
     // Confirmation dialog check
-    const confirmChoice = window.confirm(`Confirm collecting PKR ${payAmount.toLocaleString()} via ${payMethod} for ${selectedChallan.studentName}?`);
+    const confirmChoice = await confirmAction(
+      `Confirm collecting PKR ${payAmount.toLocaleString()} via ${payMethod} for ${selectedChallan.studentName}?`,
+    );
     if (!confirmChoice) return;
 
     setSubmitting(true);
     try {
+      requestId.current ||= crypto.randomUUID();
       await financeApi.collectPayment({
+        requestId: requestId.current,
         challanId: selectedChallan.id,
         amountPKR: payAmount,
         paymentMethod: payMethod,
       });
       await loadChallans();
       setSelectedChallan(null);
-      setNotice(`Payment of PKR ${payAmount.toLocaleString()} collected successfully! Official receipt generated.`);
+      requestId.current = "";
+      setNotice(
+        `Payment of PKR ${payAmount.toLocaleString()} collected successfully! Official receipt generated.`,
+      );
       setTimeout(() => setNotice(null), 4000);
-    } catch {
-      // The shared API feedback displays the error; keep the selected challan open.
+    } catch (e: any) {
+      setLoadError(e.message);
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleVoidChallan = async (c: ChallanRecord) => {
-    const reason = prompt(`Enter reason for VOIDING Challan ${c.challanNo}:`, "Incorrect billing component");
+    const reason = await requestReason(
+      `Enter the reason for voiding challan ${c.challanNo}.`,
+      "Void fee challan",
+    );
     if (!reason) return;
 
-    try { await financeApi.voidChallan(c.id, reason); } catch { return; }
+    try {
+      await financeApi.voidChallan(c.id, reason);
+    } catch {
+      return;
+    }
 
     await loadChallans();
     setNotice(`Challan ${c.challanNo} voided and audit log recorded.`);
@@ -101,11 +155,22 @@ export default function FeeCollectionPage() {
   };
 
   const filtered = challans.filter((c) => {
-    const matchesSearch = c.studentName.toLowerCase().includes(search.toLowerCase()) || c.rollNo.includes(search) || c.challanNo.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch =
+      c.studentName.toLowerCase().includes(search.toLowerCase()) ||
+      c.rollNo.includes(search) ||
+      c.challanNo.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === "ALL" || c.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
+  const totals = invoiceTotals(
+    filtered.map((c) => ({
+      totalAmountPKR: c.totalAmount,
+      paidAmountPKR: c.paidAmount,
+      remainingAmountPKR: c.remainingAmount,
+      status: c.status,
+    })),
+  );
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
@@ -115,11 +180,21 @@ export default function FeeCollectionPage() {
             <DollarSign className="h-6 w-6 text-red-600" />
             Fee Collection & Student Ledger Desk
           </h1>
-          <p className="text-xs text-zinc-500">Collect payments, generate instant receipts, manage student fee accounts and void records</p>
+          <p className="text-xs text-zinc-500">
+            Collect payments, generate instant receipts, manage student fee
+            accounts and void records
+          </p>
         </div>
       </div>
 
-      {loadError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{loadError}</p>}
+      {loadError && (
+        <p
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+        >
+          {loadError}
+        </p>
+      )}
       {notice && (
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
@@ -127,20 +202,45 @@ export default function FeeCollectionPage() {
         </div>
       )}
 
+      <div className="grid gap-3 sm:grid-cols-3">
+        {[
+          ["Total fees", totals.charged],
+          ["Collected", totals.paid],
+          ["Pending", totals.pending],
+        ].map(([label, value]) => (
+          <div key={String(label)} className="rounded-lg border bg-white p-4">
+            <p className="text-xs text-zinc-500">{label}</p>
+            <strong className="mt-2 block text-xl">
+              PKR{" "}
+              {Number(value).toLocaleString("en-PK", {
+                minimumFractionDigits: 2,
+              })}
+            </strong>
+          </div>
+        ))}
+      </div>
+      <p className="text-xs text-zinc-500">
+        Totals follow the search and status filters; voided invoices are
+        excluded.
+      </p>
       {/* Search & Filter Bar */}
       <div className="bg-white border border-zinc-200 p-4 rounded-xl shadow-xs flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          {["ALL", "PENDING", "PARTIAL", "PAID", "OVERDUE", "VOIDED"].map((st) => (
-            <button
-              key={st}
-              onClick={() => setStatusFilter(st)}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                statusFilter === st ? "bg-red-600 text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
-              }`}
-            >
-              {st}
-            </button>
-          ))}
+          {["ALL", "PENDING", "PARTIAL", "PAID", "OVERDUE", "VOIDED"].map(
+            (st) => (
+              <button
+                key={st}
+                onClick={() => setStatusFilter(st)}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  statusFilter === st
+                    ? "bg-red-600 text-white"
+                    : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                }`}
+              >
+                {st}
+              </button>
+            ),
+          )}
         </div>
 
         <div className="relative w-full sm:w-72">
@@ -175,132 +275,206 @@ export default function FeeCollectionPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200">
-              {loading ? <tr><td colSpan={11} className="p-8 text-center text-zinc-500">Loading fee challans…</td></tr> : filtered.length === 0 ? <tr><td colSpan={11} className="p-8 text-center text-zinc-500">No fee challans found.</td></tr> : filtered.map((c) => (
-                <tr key={c.id} className="hover:bg-zinc-50">
-                  <td className="p-3.5 font-mono font-bold text-zinc-800">{c.challanNo}</td>
-                  <td className="p-3.5">
-                    <span className="font-bold text-zinc-950 block">{c.studentName}</span>
-                    <span className="text-[10px] text-zinc-500 font-mono">Roll: {c.rollNo} ({c.className})</span>
-                  </td>
-                  <td className="p-3.5 text-center font-mono text-zinc-700 text-[11px]">{c.month}</td>
-                  <td className="p-3.5 text-center font-mono text-zinc-500">PKR {c.previousBalance}</td>
-                  <td className="p-3.5 text-center font-mono text-zinc-800 font-semibold">PKR {c.currentCharges.toLocaleString()}</td>
-                  <td className="p-3.5 text-center font-mono text-emerald-700 font-semibold">-PKR {c.discount}</td>
-                  <td className="p-3.5 text-center font-mono font-bold text-zinc-950">PKR {c.totalAmount.toLocaleString()}</td>
-                  <td className="p-3.5 text-center font-mono font-bold text-emerald-700">PKR {c.paidAmount.toLocaleString()}</td>
-                  <td className="p-3.5 text-center font-mono font-bold text-red-600">PKR {c.remainingAmount.toLocaleString()}</td>
-                  <td className="p-3.5 text-center">
-                    {c.status === "PAID" ? (
-                      <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded">PAID</span>
-                    ) : c.status === "PARTIAL" ? (
-                      <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded">PARTIAL</span>
-                    ) : c.status === "VOIDED" ? (
-                      <span className="bg-zinc-100 text-zinc-500 text-[10px] font-bold px-2 py-0.5 rounded">VOIDED</span>
-                    ) : (
-                      <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded">PENDING</span>
-                    )}
-                  </td>
-                  <td className="p-3.5 text-right space-x-1">
-                    {c.status !== "PAID" && c.status !== "VOIDED" && (
-                      <button
-                        onClick={() => handleOpenCollect(c)}
-                        className="px-2.5 py-1 text-[11px] font-bold bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
-                      >
-                        Collect
-                      </button>
-                    )}
-                    {c.paidAmount > 0 && (
-                      <Link
-                        href={`/finance/receipts?challanId=${c.id}`}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold bg-zinc-900 text-white rounded hover:bg-zinc-800"
-                      >
-                        <Printer className="h-3 w-3" /> Receipt
-                      </Link>
-                    )}
-                    {c.status !== "VOIDED" && (
-                      <button
-                        onClick={() => handleVoidChallan(c)}
-                        className="px-2 py-1 text-[10px] font-bold text-red-600 hover:bg-red-50 rounded"
-                        title="Void Challan"
-                      >
-                        Void
-                      </button>
-                    )}
+              {loading ? (
+                <tr>
+                  <td colSpan={11} className="p-8 text-center text-zinc-500">
+                    Loading fee challans…
                   </td>
                 </tr>
-              ))}
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={11} className="p-8 text-center text-zinc-500">
+                    No fee challans found.
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((c) => (
+                  <tr key={c.id} className="hover:bg-zinc-50">
+                    <td className="p-3.5 font-mono font-bold text-zinc-800">
+                      {c.challanNo}
+                    </td>
+                    <td className="p-3.5">
+                      <span className="flex items-center gap-2 font-bold text-zinc-950">
+                        <StudentAvatar
+                          student={{ _id: c.studentId, name: c.studentName }}
+                        />
+                        {c.studentName}
+                      </span>
+                      <span className="text-[10px] text-zinc-500 font-mono">
+                        Roll: {c.rollNo} ({c.className})
+                      </span>
+                    </td>
+                    <td className="p-3.5 text-center font-mono text-zinc-700 text-[11px]">
+                      {c.month}
+                    </td>
+                    <td className="p-3.5 text-center font-mono text-zinc-500">
+                      PKR {c.previousBalance}
+                    </td>
+                    <td className="p-3.5 text-center font-mono text-zinc-800 font-semibold">
+                      PKR {c.currentCharges.toLocaleString()}
+                    </td>
+                    <td className="p-3.5 text-center font-mono text-emerald-700 font-semibold">
+                      -PKR {c.discount}
+                    </td>
+                    <td className="p-3.5 text-center font-mono font-bold text-zinc-950">
+                      PKR {c.totalAmount.toLocaleString()}
+                    </td>
+                    <td className="p-3.5 text-center font-mono font-bold text-emerald-700">
+                      PKR {c.paidAmount.toLocaleString()}
+                    </td>
+                    <td className="p-3.5 text-center font-mono font-bold text-red-600">
+                      PKR {c.remainingAmount.toLocaleString()}
+                    </td>
+                    <td className="p-3.5 text-center">
+                      {c.status === "PAID" ? (
+                        <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded">
+                          PAID
+                        </span>
+                      ) : c.status === "PARTIAL" ? (
+                        <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded">
+                          PARTIAL
+                        </span>
+                      ) : c.status === "VOIDED" ? (
+                        <span className="bg-zinc-100 text-zinc-500 text-[10px] font-bold px-2 py-0.5 rounded">
+                          VOIDED
+                        </span>
+                      ) : (
+                        <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded">
+                          PENDING
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-3.5 text-right space-x-1">
+                      {c.status !== "PAID" && c.status !== "VOIDED" && (
+                        <button
+                          onClick={() => handleOpenCollect(c)}
+                          className="px-2.5 py-1 text-[11px] font-bold bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
+                        >
+                          Collect
+                        </button>
+                      )}
+                      {c.paidAmount > 0 && (
+                        <Link
+                          href={`/finance/receipts?challanId=${c.id}`}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold bg-zinc-900 text-white rounded hover:bg-zinc-800"
+                        >
+                          <Printer className="h-3 w-3" /> Receipt
+                        </Link>
+                      )}
+                      {c.status !== "VOIDED" && (
+                        <button
+                          onClick={() => handleVoidChallan(c)}
+                          className="px-2 py-1 text-[10px] font-bold text-red-600 hover:bg-red-50 rounded"
+                          title="Void Challan"
+                        >
+                          Void
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
       {/* Collect Payment Modal */}
-      <Presence show={Boolean(selectedChallan)} kind="modal">{selectedChallan && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
-            <div className="flex justify-between items-center border-b border-zinc-200 pb-3">
-              <h3 className="text-lg font-bold text-zinc-950">Collect Fee Payment</h3>
-              <button onClick={() => setSelectedChallan(null)} className="text-zinc-400 hover:text-zinc-600">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="bg-zinc-50 border border-zinc-200 p-3 rounded-xl text-xs space-y-1">
-              <div>Student: <strong className="text-zinc-950">{selectedChallan.studentName}</strong> (Roll {selectedChallan.rollNo})</div>
-              <div>Challan #: <span className="font-mono text-zinc-700">{selectedChallan.challanNo}</span></div>
-              <div>Remaining Dues: <strong className="font-mono text-red-600">PKR {selectedChallan.remainingAmount.toLocaleString()}</strong></div>
-            </div>
-
-            <form onSubmit={handleCollectSubmit} className="space-y-4 text-xs">
-              <div>
-                <label className="block font-bold text-zinc-700 uppercase mb-1">Payment Method</label>
-                <select
-                  value={payMethod}
-                  onChange={(e: any) => setPayMethod(e.target.value)}
-                  className="w-full border border-zinc-300 rounded-lg p-2.5 bg-zinc-50 focus:outline-none font-bold text-zinc-900"
-                >
-                  <option value="Cash">Cash Counter Collection</option>
-                  <option value="Bank Transfer">Bank Online Transfer</option>
-                  <option value="Online">Credit/Debit Card Online</option>
-                  <option value="Cheque">Bank Cheque / Pay Order</option>
-                  <option value="Other">Other Gateway</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-bold text-zinc-700 uppercase mb-1">Amount to Collect (PKR)</label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  max={selectedChallan.remainingAmount}
-                  value={payAmount}
-                  onChange={(e) => setPayAmount(Number(e.target.value))}
-                  className="w-full border border-zinc-300 rounded-lg p-2.5 font-mono font-black text-base focus:outline-none"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t border-zinc-200">
+      <Presence show={Boolean(selectedChallan)} kind="modal">
+        {selectedChallan && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+              <div className="flex justify-between items-center border-b border-zinc-200 pb-3">
+                <h3 className="text-lg font-bold text-zinc-950">
+                  Collect Fee Payment
+                </h3>
                 <button
-                  type="button"
                   onClick={() => setSelectedChallan(null)}
-                  className="px-4 py-2 font-semibold bg-zinc-100 hover:bg-zinc-200 text-zinc-800 rounded-lg"
+                  className="text-zinc-400 hover:text-zinc-600"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 font-bold bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-xs"
-                >
-                  {submitting ? "Processing..." : "Confirm & Collect Payment"}
+                  <X className="h-5 w-5" />
                 </button>
               </div>
-            </form>
+
+              <div className="bg-zinc-50 border border-zinc-200 p-3 rounded-xl text-xs space-y-1">
+                <div>
+                  Student:{" "}
+                  <strong className="text-zinc-950">
+                    {selectedChallan.studentName}
+                  </strong>{" "}
+                  (Roll {selectedChallan.rollNo})
+                </div>
+                <div>
+                  Challan #:{" "}
+                  <span className="font-mono text-zinc-700">
+                    {selectedChallan.challanNo}
+                  </span>
+                </div>
+                <div>
+                  Remaining Dues:{" "}
+                  <strong className="font-mono text-red-600">
+                    PKR {selectedChallan.remainingAmount.toLocaleString()}
+                  </strong>
+                </div>
+              </div>
+
+              <form
+                onSubmit={handleCollectSubmit}
+                className="space-y-4 text-xs"
+              >
+                <div>
+                  <label className="block font-bold text-zinc-700 uppercase mb-1">
+                    Payment Method
+                  </label>
+                  <select
+                    value={payMethod}
+                    onChange={(e: any) => setPayMethod(e.target.value)}
+                    className="w-full border border-zinc-300 rounded-lg p-2.5 bg-zinc-50 focus:outline-none font-bold text-zinc-900"
+                  >
+                    <option value="Cash">Cash Counter Collection</option>
+                    <option value="Bank Transfer">Bank Online Transfer</option>
+                    <option value="Online">Credit/Debit Card Online</option>
+                    <option value="Cheque">Bank Cheque / Pay Order</option>
+                    <option value="Other">Other Gateway</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-zinc-700 uppercase mb-1">
+                    Amount to Collect (PKR)
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    max={selectedChallan.remainingAmount}
+                    value={payAmount}
+                    onChange={(e) => setPayAmount(Number(e.target.value))}
+                    className="w-full border border-zinc-300 rounded-lg p-2.5 font-mono font-black text-base focus:outline-none"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2 border-t border-zinc-200">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedChallan(null)}
+                    className="px-4 py-2 font-semibold bg-zinc-100 hover:bg-zinc-200 text-zinc-800 rounded-lg"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-4 py-2 font-bold bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-xs"
+                  >
+                    {submitting ? "Processing..." : "Confirm & Collect Payment"}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}</Presence>
+        )}
+      </Presence>
     </div>
   );
 }
-

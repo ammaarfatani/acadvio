@@ -9,6 +9,9 @@ import { env } from "./config/env";
 
 export const createApp = (): Express => {
   const app = express();
+  app.disable("x-powered-by");
+  const proxyHops = process.env.TRUST_PROXY_HOPS;
+  if (proxyHops && /^[12]$/.test(proxyHops)) app.set("trust proxy", Number(proxyHops));
 
   // 1. Security Headers
   app.use(
@@ -20,10 +23,11 @@ export const createApp = (): Express => {
   // 2. CORS Configuration
   app.use(
     cors({
-      origin: [env.FRONTEND_URL, "http://localhost:3000", "http://127.0.0.1:3000"],
+      origin: env.NODE_ENV === "production" ? [env.FRONTEND_URL] : [env.FRONTEND_URL, "http://localhost:3000", "http://127.0.0.1:3000"],
       credentials: true,
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-Acadivo-Branch"],
+      exposedHeaders:["Content-Disposition","Content-Length","X-Report-Records"],
     })
   );
 
@@ -54,7 +58,7 @@ export const createApp = (): Express => {
   app.use((req, res) => {
     res.status(404).json({
       success: false,
-      message: `API endpoint '${req.originalUrl}' not found.`,
+      message: "The requested resource was not found.",
       errors: ["Resource not found."],
     });
   });

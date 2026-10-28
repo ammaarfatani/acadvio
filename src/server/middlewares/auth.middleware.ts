@@ -14,6 +14,7 @@ import { sendError } from "../utils/response.util";
 export interface AuthenticatedUser extends JwtPayloadData {
   roleCode?: string;
   plan?: string;
+  billingPlan?: string;
   organizationId?: string;
   branchId?: string | null;
   isOrganizationOwner?: boolean;
@@ -59,10 +60,11 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     let school: any;
     if (user.userType !== UserType.SUPER_ADMIN && user.schoolId) {
       await expireTrials(user.schoolId.toString());
-      school = await School.findById(user.schoolId).select("status registrationType plan name address phone email");
+      school = await School.findById(user.schoolId).select("status registrationType plan name address phone email accountStatus");
       if (!school) {
         return sendError(res, "Your school account could not be found. Contact your school administrator.", 403);
       }
+      if(school.accountStatus==="DEACTIVATED" && !(billingRoute&&user.userType===UserType.SCHOOL_ADMIN))return sendError(res,"Your organization is deactivated. Contact Acadivo support; school administrators can still access billing.",403);
       if (school.status === SubscriptionStatus.PENDING_APPROVAL && school.registrationType !== "paid") return sendError(res, "Your free trial request is under review. You will receive an email once approved.", 403);
       if ((![SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL].includes(school.status)) && !(billingRoute && user.userType === UserType.SCHOOL_ADMIN) && ![SubscriptionStatus.SUSPENDED, SubscriptionStatus.CANCELLED].includes(school.status)) {
         return sendError(
@@ -102,7 +104,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       Object.assign(scope, { userId: String(user._id), userType: user.userType });
       const plan = school.status === "TRIAL" ? "FREE_TRIAL" : school.plan;
       scope.plan = plan;
-      Object.assign(req.user, { plan, organizationId: scope.organizationId, branchId: scope.branchId, isOrganizationOwner: scope.owner });
+      Object.assign(req.user, { plan, billingPlan: school.plan, organizationId: scope.organizationId, branchId: scope.branchId, isOrganizationOwner: scope.owner });
       const feature = routeFeature(req.originalUrl.split("?")[0]);
       if (feature && !hasFeature(plan, feature)) return sendError(res, `Your subscription does not include ${feature.toLowerCase().replaceAll("_", " ")}.`, 403);
       return branchContext.run(scope, next);

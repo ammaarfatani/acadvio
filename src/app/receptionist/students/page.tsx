@@ -1,4 +1,5 @@
 "use client";
+import {StudentAvatar} from "@/components/StudentAvatar";
 
 
 
@@ -231,10 +232,8 @@ export default function ReceptionistStudentsPage() {
                     <tr key={student._id} className="hover:bg-zinc-50/80 transition-colors">
                       <td className="py-3.5 px-4 font-bold text-zinc-950">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-school-primary/10 text-school-primary font-bold flex items-center justify-center shrink-0">
-                            {student.name.charAt(0).toUpperCase()}
-                          </div>
-                          <span className="truncate">{student.name}</span>
+                          <StudentAvatar student={student} size={32}/>
+                          <span className="truncate">{student.name}<small className="block font-normal text-zinc-500">B-Form: {student.bFormNumber||"Not provided"}</small></span>
                         </div>
                       </td>
 

@@ -1,0 +1,2955 @@
+[
+  {
+    "path": "/",
+    "issues": [
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(255, 255, 255)",
+        "gradient": false,
+        "limit": 3,
+        "ratio": 1,
+        "section": "m-section p-platform",
+        "tag": "H3",
+        "text": "From the first paper to the final marksheet."
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(255, 244, 244)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.02,
+        "tag": "SMALL",
+        "text": "Your school, explained."
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(244, 245, 247)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.04,
+        "tag": "STRONG",
+        "text": "Ask Acadivo"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "m-eyebrow",
+        "color": "rgb(255, 244, 244)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 1.08,
+        "section": "m-section p-platform",
+        "tag": "P",
+        "text": "EXAMINATIONS & RESULTS"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "m-text-link",
+        "color": "rgb(255, 244, 244)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 1.08,
+        "section": "m-section p-platform",
+        "tag": "A",
+        "text": "Explore examinations"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(255, 199, 202)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 1.47,
+        "section": "m-section p-platform",
+        "tag": "P",
+        "text": "Schedule examinations, enter marks, review results and print school documents from th"
+      },
+      {
+        "bg": [
+          255,
+          240,
+          241
+        ],
+        "cls": "",
+        "color": "rgb(139, 146, 155)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 2.84,
+        "section": "m-onboarding m-section m-onboarding-compact",
+        "tag": "SPAN",
+        "text": "02"
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "",
+        "color": "rgb(141, 141, 141)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 2.94,
+        "section": "m-section p-problem",
+        "tag": "P",
+        "text": "Different tasks. Different places."
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(139, 146, 155)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.14,
+        "section": "m-onboarding m-section m-onboarding-compact",
+        "tag": "SPAN",
+        "text": "01"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(139, 146, 155)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.14,
+        "section": "m-onboarding m-section m-onboarding-compact",
+        "tag": "SPAN",
+        "text": "03"
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "",
+        "color": "rgb(143, 133, 136)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.16,
+        "section": "m-section p-problem",
+        "tag": "SPAN",
+        "text": "THE DISCONNECTED DAY"
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(140, 140, 140)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.19,
+        "section": "p-hero",
+        "tag": "SPAN",
+        "text": "ACTUAL PRODUCT CAPTURES"
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(136, 136, 136)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.37,
+        "section": "p-hero",
+        "tag": "SPAN",
+        "text": "Designed around"
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "",
+        "color": "rgb(125, 125, 125)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.77,
+        "section": "p-hero",
+        "tag": "SPAN",
+        "text": "Acadivo / School administration"
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "",
+        "color": "rgb(125, 125, 125)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.77,
+        "section": "p-hero",
+        "tag": "SPAN",
+        "text": "Acadivo / Fees & finance"
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "",
+        "color": "rgb(125, 125, 125)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.77,
+        "section": "p-hero",
+        "tag": "SPAN",
+        "text": "Acadivo / Examinations"
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "",
+        "color": "rgb(125, 125, 125)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.77,
+        "section": "p-hero",
+        "tag": "SPAN",
+        "text": "Acadivo / School insights"
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "",
+        "color": "rgb(125, 125, 125)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.77,
+        "section": "m-section p-platform",
+        "tag": "SPAN",
+        "text": "Acadivo / Teacher workspace"
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "",
+        "color": "rgb(125, 125, 125)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.77,
+        "section": "m-section p-platform",
+        "tag": "SPAN",
+        "text": "Acadivo / Examinations"
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "",
+        "color": "rgb(125, 125, 125)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 3.77,
+        "section": "m-section p-finance",
+        "tag": "SPAN",
+        "text": "Acadivo / Finance"
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "",
+        "color": "rgb(114, 123, 135)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.8,
+        "section": "m-section p-start",
+        "tag": "P",
+        "text": "Sessions, classes, subjects and school branding."
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "",
+        "color": "rgb(114, 123, 135)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.8,
+        "section": "m-section p-start",
+        "tag": "P",
+        "text": "Student records, linked parents and staff roles."
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "",
+        "color": "rgb(114, 123, 135)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.8,
+        "section": "m-section p-start",
+        "tag": "P",
+        "text": "Attendance, timetables, examinations and fees."
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "",
+        "color": "rgb(114, 123, 135)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.8,
+        "section": "m-section p-start",
+        "tag": "P",
+        "text": "Reports built from your school’s records."
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(121, 129, 140)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 3.94,
+        "section": "m-section p-finance",
+        "tag": "FIGCAPTION",
+        "text": "Real product capture · School-specific records"
+      },
+      {
+        "bg": [
+          255,
+          240,
+          241
+        ],
+        "cls": "",
+        "color": "rgb(113, 121, 133)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.98,
+        "section": "m-onboarding m-section m-onboarding-compact",
+        "tag": "P",
+        "text": "Follow the setup order for sessions, classes, people and the workflows included in yo"
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "",
+        "color": "rgb(117, 117, 117)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.23,
+        "section": "p-hero",
+        "tag": "SPAN",
+        "text": "Students · Attendance · Fees · Results"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(113, 121, 133)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.4,
+        "section": "m-onboarding m-section m-onboarding-compact",
+        "tag": "P",
+        "text": "Clear instructions for school admins, teachers, finance, examinations, reception and "
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(113, 121, 133)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.4,
+        "section": "m-onboarding m-section m-onboarding-compact",
+        "tag": "P",
+        "text": "Contact AKTech for onboarding guidance and a walkthrough of the responsibilities your"
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "text-xs text-zinc-500 font-medium",
+        "color": "rgb(113, 113, 122)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.43,
+        "section": "m-section p-pricing",
+        "tag": "P",
+        "text": "Local-currency quotes available · International payment setup pending"
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "m-eyebrow",
+        "color": "rgb(224, 0, 11)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.45,
+        "section": "m-section p-platform",
+        "tag": "P",
+        "text": "A PLATFORM. NOT A PILE OF TOOLS."
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "m-text-link",
+        "color": "rgb(224, 0, 11)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.45,
+        "section": "m-section p-platform",
+        "tag": "A",
+        "text": "Explore all features"
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "m-eyebrow",
+        "color": "rgb(224, 0, 11)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.45,
+        "section": "m-section p-start",
+        "tag": "P",
+        "text": "A CLEAR WAY IN"
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "m-text-link",
+        "color": "rgb(224, 0, 11)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.45,
+        "section": "m-section p-start",
+        "tag": "A",
+        "text": "Open the portal handbook"
+      }
+    ]
+  },
+  {
+    "path": "/features",
+    "issues": [
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(255, 244, 244)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.02,
+        "tag": "SMALL",
+        "text": "Your school, explained."
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(244, 245, 247)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.04,
+        "tag": "STRONG",
+        "text": "Ask Acadivo"
+      },
+      {
+        "bg": [
+          255,
+          240,
+          241
+        ],
+        "cls": "",
+        "color": "rgb(139, 146, 155)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 2.84,
+        "section": "m-onboarding m-section m-onboarding-compact",
+        "tag": "SPAN",
+        "text": "02"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(139, 146, 155)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.14,
+        "section": "m-onboarding m-section m-onboarding-compact",
+        "tag": "SPAN",
+        "text": "01"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(139, 146, 155)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.14,
+        "section": "m-onboarding m-section m-onboarding-compact",
+        "tag": "SPAN",
+        "text": "03"
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "",
+        "color": "rgb(125, 125, 125)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 3.77,
+        "section": "m-features-hero m-section",
+        "tag": "SPAN",
+        "text": "Acadivo / School reporting"
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "",
+        "color": "rgb(125, 125, 125)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.77,
+        "section": "m-section m-module ",
+        "tag": "SPAN",
+        "text": "Acadivo / Admissions & records"
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "",
+        "color": "rgb(125, 125, 125)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.77,
+        "section": "m-section m-module m-module-reverse",
+        "tag": "SPAN",
+        "text": "Acadivo / Academics"
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "",
+        "color": "rgb(125, 125, 125)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 3.77,
+        "section": "m-section m-charcoal",
+        "tag": "SPAN",
+        "text": "Acadivo / Examinations"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(121, 129, 140)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 3.94,
+        "section": "m-features-hero m-section",
+        "tag": "FIGCAPTION",
+        "text": "Real product capture · School-specific records"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(121, 129, 140)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.94,
+        "section": "m-section m-module ",
+        "tag": "FIGCAPTION",
+        "text": "Real product capture · School-specific records"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(121, 129, 140)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.94,
+        "section": "m-section m-module m-module-reverse",
+        "tag": "FIGCAPTION",
+        "text": "Real product capture · School-specific records"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(121, 129, 140)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 3.94,
+        "section": "m-section m-charcoal",
+        "tag": "FIGCAPTION",
+        "text": "Real product capture · School-specific records"
+      },
+      {
+        "bg": [
+          255,
+          240,
+          241
+        ],
+        "cls": "",
+        "color": "rgb(113, 121, 133)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.98,
+        "section": "m-onboarding m-section m-onboarding-compact",
+        "tag": "P",
+        "text": "Follow the setup order for sessions, classes, people and the workflows included in yo"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(113, 121, 133)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.4,
+        "section": "m-onboarding m-section m-onboarding-compact",
+        "tag": "P",
+        "text": "Clear instructions for school admins, teachers, finance, examinations, reception and "
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(113, 121, 133)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.4,
+        "section": "m-onboarding m-section m-onboarding-compact",
+        "tag": "P",
+        "text": "Contact AKTech for onboarding guidance and a walkthrough of the responsibilities your"
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "m-eyebrow",
+        "color": "rgb(224, 0, 11)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 4.45,
+        "section": "m-features-hero m-section",
+        "tag": "P",
+        "text": "The product / Connected modules"
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "m-eyebrow",
+        "color": "rgb(224, 0, 11)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 4.45,
+        "section": "m-features-hero m-section",
+        "tag": "P",
+        "text": "Built on your school structure"
+      }
+    ]
+  },
+  {
+    "path": "/pricing",
+    "issues": [
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(255, 244, 244)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.02,
+        "tag": "SMALL",
+        "text": "Your school, explained."
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(244, 245, 247)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.04,
+        "tag": "STRONG",
+        "text": "Ask Acadivo"
+      },
+      {
+        "bg": [
+          255,
+          252,
+          252
+        ],
+        "cls": "text-zinc-300 font-mono",
+        "color": "rgb(212, 212, 216)",
+        "gradient": false,
+        "limit": 3,
+        "ratio": 1.45,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "—"
+      },
+      {
+        "bg": [
+          255,
+          252,
+          252
+        ],
+        "cls": "text-zinc-300 font-mono",
+        "color": "rgb(212, 212, 216)",
+        "gradient": false,
+        "limit": 3,
+        "ratio": 1.45,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "—"
+      },
+      {
+        "bg": [
+          255,
+          252,
+          252
+        ],
+        "cls": "text-zinc-300 font-mono",
+        "color": "rgb(212, 212, 216)",
+        "gradient": false,
+        "limit": 3,
+        "ratio": 1.45,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "—"
+      },
+      {
+        "bg": [
+          255,
+          252,
+          252
+        ],
+        "cls": "text-zinc-300 font-mono",
+        "color": "rgb(212, 212, 216)",
+        "gradient": false,
+        "limit": 3,
+        "ratio": 1.45,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "—"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "text-zinc-300 font-mono",
+        "color": "rgb(212, 212, 216)",
+        "gradient": false,
+        "limit": 3,
+        "ratio": 1.48,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "—"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "text-zinc-300 font-mono",
+        "color": "rgb(212, 212, 216)",
+        "gradient": false,
+        "limit": 3,
+        "ratio": 1.48,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "—"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "text-zinc-300 font-mono",
+        "color": "rgb(212, 212, 216)",
+        "gradient": false,
+        "limit": 3,
+        "ratio": 1.48,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "—"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "text-zinc-300 font-mono",
+        "color": "rgb(212, 212, 216)",
+        "gradient": false,
+        "limit": 3,
+        "ratio": 1.48,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "—"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "text-zinc-300 font-mono",
+        "color": "rgb(212, 212, 216)",
+        "gradient": false,
+        "limit": 3,
+        "ratio": 1.48,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "—"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "text-zinc-300 font-mono",
+        "color": "rgb(212, 212, 216)",
+        "gradient": false,
+        "limit": 3,
+        "ratio": 1.48,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "—"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "text-zinc-300 font-mono",
+        "color": "rgb(212, 212, 216)",
+        "gradient": false,
+        "limit": 3,
+        "ratio": 1.48,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "—"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "text-zinc-300 font-mono",
+        "color": "rgb(212, 212, 216)",
+        "gradient": false,
+        "limit": 3,
+        "ratio": 1.48,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "—"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "text-zinc-300 font-mono",
+        "color": "rgb(212, 212, 216)",
+        "gradient": false,
+        "limit": 3,
+        "ratio": 1.48,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "—"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "text-zinc-300 font-mono",
+        "color": "rgb(212, 212, 216)",
+        "gradient": false,
+        "limit": 3,
+        "ratio": 1.48,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "—"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "text-zinc-300 font-mono",
+        "color": "rgb(212, 212, 216)",
+        "gradient": false,
+        "limit": 3,
+        "ratio": 1.48,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "—"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "text-zinc-300 font-mono",
+        "color": "rgb(212, 212, 216)",
+        "gradient": false,
+        "limit": 3,
+        "ratio": 1.48,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "—"
+      },
+      {
+        "bg": [
+          255,
+          240,
+          241
+        ],
+        "cls": "",
+        "color": "rgb(139, 146, 155)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 2.84,
+        "section": "m-onboarding m-section ",
+        "tag": "SPAN",
+        "text": "02"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(139, 146, 155)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.14,
+        "section": "m-onboarding m-section ",
+        "tag": "SPAN",
+        "text": "01"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(139, 146, 155)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.14,
+        "section": "m-onboarding m-section ",
+        "tag": "SPAN",
+        "text": "03"
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "",
+        "color": "rgb(114, 123, 135)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.8,
+        "section": "m-section m-rose",
+        "tag": "P",
+        "text": "Select a plan and billing cycle."
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "",
+        "color": "rgb(114, 123, 135)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.8,
+        "section": "m-section m-rose",
+        "tag": "P",
+        "text": "Pay using the UBL account shown at checkout."
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "",
+        "color": "rgb(114, 123, 135)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.8,
+        "section": "m-section m-rose",
+        "tag": "P",
+        "text": "Upload your payment screenshot."
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "",
+        "color": "rgb(114, 123, 135)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.8,
+        "section": "m-section m-rose",
+        "tag": "P",
+        "text": "Access activates after manual approval."
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "m-hero-note",
+        "color": "rgb(116, 123, 134)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.91,
+        "section": "m-pricing-hero",
+        "tag": "P",
+        "text": "Bank transfer · Screenshot submission · Manual verification"
+      },
+      {
+        "bg": [
+          255,
+          240,
+          241
+        ],
+        "cls": "",
+        "color": "rgb(113, 121, 133)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.98,
+        "section": "m-onboarding m-section ",
+        "tag": "P",
+        "text": "Follow the setup order for sessions, classes, people and the workflows included in yo"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(113, 121, 133)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.4,
+        "section": "m-onboarding m-section ",
+        "tag": "P",
+        "text": "Clear instructions for school admins, teachers, finance, examinations, reception and "
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(113, 121, 133)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.4,
+        "section": "m-onboarding m-section ",
+        "tag": "P",
+        "text": "Contact AKTech for onboarding guidance and a walkthrough of the responsibilities your"
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "m-eyebrow",
+        "color": "rgb(224, 0, 11)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.45,
+        "section": "m-section m-rose",
+        "tag": "P",
+        "text": "How payment works in Pakistan"
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "m-step",
+        "color": "rgb(224, 0, 11)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.45,
+        "section": "m-section m-rose",
+        "tag": "SPAN",
+        "text": "0 1"
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "m-step",
+        "color": "rgb(224, 0, 11)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.45,
+        "section": "m-section m-rose",
+        "tag": "SPAN",
+        "text": "0 2"
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "m-step",
+        "color": "rgb(224, 0, 11)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.45,
+        "section": "m-section m-rose",
+        "tag": "SPAN",
+        "text": "0 3"
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "m-step",
+        "color": "rgb(224, 0, 11)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.45,
+        "section": "m-section m-rose",
+        "tag": "SPAN",
+        "text": "0 4"
+      }
+    ]
+  },
+  {
+    "path": "/demo",
+    "issues": [
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(255, 244, 244)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.02,
+        "tag": "SMALL",
+        "text": "Your school, explained."
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(244, 245, 247)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.04,
+        "tag": "STRONG",
+        "text": "Ask Acadivo"
+      },
+      {
+        "bg": [
+          255,
+          240,
+          241
+        ],
+        "cls": "",
+        "color": "rgb(139, 146, 155)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 2.84,
+        "section": "m-onboarding m-section ",
+        "tag": "SPAN",
+        "text": "02"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(139, 146, 155)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.14,
+        "section": "m-onboarding m-section ",
+        "tag": "SPAN",
+        "text": "01"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(139, 146, 155)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.14,
+        "section": "m-onboarding m-section ",
+        "tag": "SPAN",
+        "text": "03"
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "shrink-0 rounded-lg border px-4 py-3 text-sm font-semibold border-zinc-200 bg-white text-zinc-600 ho",
+        "color": "rgb(125, 134, 147)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.5,
+        "section": "m-section",
+        "tag": "BUTTON",
+        "text": "Teacher"
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "shrink-0 rounded-lg border px-4 py-3 text-sm font-semibold border-zinc-200 bg-white text-zinc-600 ho",
+        "color": "rgb(125, 134, 147)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.5,
+        "section": "m-section",
+        "tag": "BUTTON",
+        "text": "Examination"
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "shrink-0 rounded-lg border px-4 py-3 text-sm font-semibold border-zinc-200 bg-white text-zinc-600 ho",
+        "color": "rgb(125, 134, 147)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.5,
+        "section": "m-section",
+        "tag": "BUTTON",
+        "text": "Finance"
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "shrink-0 rounded-lg border px-4 py-3 text-sm font-semibold border-zinc-200 bg-white text-zinc-600 ho",
+        "color": "rgb(125, 134, 147)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.5,
+        "section": "m-section",
+        "tag": "BUTTON",
+        "text": "Receptionist"
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "",
+        "color": "rgb(125, 125, 125)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.77,
+        "section": "m-demo-hero m-section",
+        "tag": "SPAN",
+        "text": "Acadivo / Finance portal"
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "",
+        "color": "rgb(114, 123, 135)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.8,
+        "section": "m-section m-rose",
+        "tag": "P",
+        "text": "Sessions, classes, subjects and school branding."
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "",
+        "color": "rgb(114, 123, 135)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.8,
+        "section": "m-section m-rose",
+        "tag": "P",
+        "text": "Student records, linked parents and staff roles."
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "",
+        "color": "rgb(114, 123, 135)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.8,
+        "section": "m-section m-rose",
+        "tag": "P",
+        "text": "Attendance, timetables, examinations and fees."
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "",
+        "color": "rgb(114, 123, 135)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.8,
+        "section": "m-section m-rose",
+        "tag": "P",
+        "text": "Reports built from your school’s records."
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(121, 129, 140)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.94,
+        "section": "m-demo-hero m-section",
+        "tag": "FIGCAPTION",
+        "text": "Real product capture · School-specific records"
+      },
+      {
+        "bg": [
+          255,
+          240,
+          241
+        ],
+        "cls": "",
+        "color": "rgb(113, 121, 133)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.98,
+        "section": "m-onboarding m-section ",
+        "tag": "P",
+        "text": "Follow the setup order for sessions, classes, people and the workflows included in yo"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(113, 121, 133)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.4,
+        "section": "m-onboarding m-section ",
+        "tag": "P",
+        "text": "Clear instructions for school admins, teachers, finance, examinations, reception and "
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(113, 121, 133)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.4,
+        "section": "m-onboarding m-section ",
+        "tag": "P",
+        "text": "Contact AKTech for onboarding guidance and a walkthrough of the responsibilities your"
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "m-eyebrow",
+        "color": "rgb(224, 0, 11)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.45,
+        "section": "m-section m-rose",
+        "tag": "P",
+        "text": "Getting started"
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "m-step",
+        "color": "rgb(224, 0, 11)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.45,
+        "section": "m-section m-rose",
+        "tag": "SPAN",
+        "text": "0 1"
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "m-step",
+        "color": "rgb(224, 0, 11)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.45,
+        "section": "m-section m-rose",
+        "tag": "SPAN",
+        "text": "0 2"
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "m-step",
+        "color": "rgb(224, 0, 11)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.45,
+        "section": "m-section m-rose",
+        "tag": "SPAN",
+        "text": "0 3"
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "m-step",
+        "color": "rgb(224, 0, 11)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.45,
+        "section": "m-section m-rose",
+        "tag": "SPAN",
+        "text": "0 4"
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "m-text-link",
+        "color": "rgb(224, 0, 11)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.45,
+        "section": "m-section m-rose",
+        "tag": "A",
+        "text": "Compare subscriptions ↗"
+      }
+    ]
+  },
+  {
+    "path": "/guide",
+    "issues": [
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(255, 244, 244)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.02,
+        "tag": "SMALL",
+        "text": "Your school, explained."
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(244, 245, 247)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.04,
+        "tag": "STRONG",
+        "text": "Ask Acadivo"
+      },
+      {
+        "bg": [
+          247,
+          247,
+          248
+        ],
+        "cls": "",
+        "color": "rgb(119, 128, 139)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "1"
+      },
+      {
+        "bg": [
+          247,
+          247,
+          248
+        ],
+        "cls": "",
+        "color": "rgb(119, 128, 139)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "2"
+      },
+      {
+        "bg": [
+          247,
+          247,
+          248
+        ],
+        "cls": "",
+        "color": "rgb(119, 128, 139)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "3"
+      },
+      {
+        "bg": [
+          247,
+          247,
+          248
+        ],
+        "cls": "",
+        "color": "rgb(119, 128, 139)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "4"
+      },
+      {
+        "bg": [
+          247,
+          247,
+          248
+        ],
+        "cls": "",
+        "color": "rgb(119, 128, 139)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "5"
+      },
+      {
+        "bg": [
+          247,
+          247,
+          248
+        ],
+        "cls": "",
+        "color": "rgb(119, 128, 139)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "1"
+      },
+      {
+        "bg": [
+          247,
+          247,
+          248
+        ],
+        "cls": "",
+        "color": "rgb(119, 128, 139)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "2"
+      },
+      {
+        "bg": [
+          247,
+          247,
+          248
+        ],
+        "cls": "",
+        "color": "rgb(119, 128, 139)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "3"
+      },
+      {
+        "bg": [
+          247,
+          247,
+          248
+        ],
+        "cls": "",
+        "color": "rgb(119, 128, 139)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "4"
+      },
+      {
+        "bg": [
+          247,
+          247,
+          248
+        ],
+        "cls": "",
+        "color": "rgb(119, 128, 139)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "1"
+      },
+      {
+        "bg": [
+          247,
+          247,
+          248
+        ],
+        "cls": "",
+        "color": "rgb(119, 128, 139)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "2"
+      },
+      {
+        "bg": [
+          247,
+          247,
+          248
+        ],
+        "cls": "",
+        "color": "rgb(119, 128, 139)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "3"
+      },
+      {
+        "bg": [
+          247,
+          247,
+          248
+        ],
+        "cls": "",
+        "color": "rgb(119, 128, 139)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "4"
+      },
+      {
+        "bg": [
+          247,
+          247,
+          248
+        ],
+        "cls": "",
+        "color": "rgb(119, 128, 139)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "1"
+      },
+      {
+        "bg": [
+          247,
+          247,
+          248
+        ],
+        "cls": "",
+        "color": "rgb(119, 128, 139)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "2"
+      },
+      {
+        "bg": [
+          247,
+          247,
+          248
+        ],
+        "cls": "",
+        "color": "rgb(119, 128, 139)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "3"
+      },
+      {
+        "bg": [
+          247,
+          247,
+          248
+        ],
+        "cls": "",
+        "color": "rgb(119, 128, 139)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "4"
+      },
+      {
+        "bg": [
+          247,
+          247,
+          248
+        ],
+        "cls": "",
+        "color": "rgb(119, 128, 139)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "1"
+      },
+      {
+        "bg": [
+          247,
+          247,
+          248
+        ],
+        "cls": "",
+        "color": "rgb(119, 128, 139)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "2"
+      },
+      {
+        "bg": [
+          247,
+          247,
+          248
+        ],
+        "cls": "",
+        "color": "rgb(119, 128, 139)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "3"
+      },
+      {
+        "bg": [
+          247,
+          247,
+          248
+        ],
+        "cls": "",
+        "color": "rgb(119, 128, 139)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "4"
+      },
+      {
+        "bg": [
+          247,
+          247,
+          248
+        ],
+        "cls": "",
+        "color": "rgb(119, 128, 139)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "1"
+      },
+      {
+        "bg": [
+          247,
+          247,
+          248
+        ],
+        "cls": "",
+        "color": "rgb(119, 128, 139)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "2"
+      },
+      {
+        "bg": [
+          247,
+          247,
+          248
+        ],
+        "cls": "",
+        "color": "rgb(119, 128, 139)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "3"
+      },
+      {
+        "bg": [
+          247,
+          247,
+          248
+        ],
+        "cls": "",
+        "color": "rgb(119, 128, 139)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "4"
+      },
+      {
+        "bg": [
+          247,
+          247,
+          248
+        ],
+        "cls": "",
+        "color": "rgb(119, 128, 139)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "m-section",
+        "tag": "SPAN",
+        "text": "5"
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "",
+        "color": "rgb(125, 125, 125)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.77,
+        "section": "m-section m-guide-hero",
+        "tag": "SPAN",
+        "text": "Acadivo / School insights"
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "",
+        "color": "rgb(113, 121, 134)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.03,
+        "section": "",
+        "tag": "P",
+        "text": "Your school plan and account permissions determine which modules appear. This guide d"
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "",
+        "color": "rgb(113, 121, 134)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.03,
+        "section": "",
+        "tag": "P",
+        "text": "Keep passwords and bank-transfer proofs private. Your public website guide cannot rea"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(113, 121, 132)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.4,
+        "section": "m-section",
+        "tag": "P",
+        "text": "Build the school structure before everyday records are added."
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(113, 121, 132)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.4,
+        "section": "m-section",
+        "tag": "P",
+        "text": "Work from your assigned classes and students."
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(113, 121, 132)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.4,
+        "section": "m-section",
+        "tag": "P",
+        "text": "Keep charges, collections and verification connected."
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(113, 121, 132)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.4,
+        "section": "m-section",
+        "tag": "P",
+        "text": "Follow the examination from schedule to published documents."
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(113, 121, 132)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.4,
+        "section": "m-section",
+        "tag": "P",
+        "text": "Give front-desk records a clear next step."
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(113, 121, 132)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.4,
+        "section": "m-section",
+        "tag": "P",
+        "text": "Follow the records linked to your family."
+      }
+    ]
+  },
+  {
+    "path": "/about",
+    "issues": [
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(255, 244, 244)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.02,
+        "tag": "SMALL",
+        "text": "Your school, explained."
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(244, 245, 247)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.04,
+        "tag": "STRONG",
+        "text": "Ask Acadivo"
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "",
+        "color": "rgb(255, 255, 255)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.09,
+        "section": "m-section ac-about-beliefs",
+        "tag": "H3",
+        "text": "Clarity over clutter."
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "",
+        "color": "rgb(255, 255, 255)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.09,
+        "section": "m-section ac-about-beliefs",
+        "tag": "H3",
+        "text": "Access follows responsibility."
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "",
+        "color": "rgb(255, 255, 255)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.09,
+        "section": "m-section ac-about-beliefs",
+        "tag": "H3",
+        "text": "A confident start."
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "",
+        "color": "rgb(169, 169, 169)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 2.15,
+        "section": "m-section ac-about-beliefs",
+        "tag": "P",
+        "text": "A focused workspace should make the school day easier to understand."
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "",
+        "color": "rgb(169, 169, 169)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 2.15,
+        "section": "m-section ac-about-beliefs",
+        "tag": "P",
+        "text": "Roles and permissions determine which school records each account can use."
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "",
+        "color": "rgb(169, 169, 169)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 2.15,
+        "section": "m-section ac-about-beliefs",
+        "tag": "P",
+        "text": "Portal-use guides and onboarding guidance are included with every plan."
+      },
+      {
+        "bg": [
+          255,
+          240,
+          241
+        ],
+        "cls": "",
+        "color": "rgb(139, 146, 155)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 2.84,
+        "section": "m-onboarding m-section m-onboarding-compact",
+        "tag": "SPAN",
+        "text": "02"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(139, 146, 155)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.14,
+        "section": "m-onboarding m-section m-onboarding-compact",
+        "tag": "SPAN",
+        "text": "01"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(139, 146, 155)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.14,
+        "section": "m-onboarding m-section m-onboarding-compact",
+        "tag": "SPAN",
+        "text": "03"
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "",
+        "color": "rgb(125, 125, 125)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 3.77,
+        "section": "ac-about-hero m-section",
+        "tag": "SPAN",
+        "text": "Acadivo / School insights"
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "",
+        "color": "rgb(125, 125, 125)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 3.77,
+        "section": "ac-about-hero m-section",
+        "tag": "SPAN",
+        "text": "Acadivo / Admissions & reception"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(121, 129, 140)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 3.94,
+        "section": "ac-about-hero m-section",
+        "tag": "FIGCAPTION",
+        "text": "Real product capture · School-specific records"
+      },
+      {
+        "bg": [
+          255,
+          240,
+          241
+        ],
+        "cls": "",
+        "color": "rgb(113, 121, 133)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.98,
+        "section": "m-onboarding m-section m-onboarding-compact",
+        "tag": "P",
+        "text": "Follow the setup order for sessions, classes, people and the workflows included in yo"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(113, 121, 133)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.4,
+        "section": "m-onboarding m-section m-onboarding-compact",
+        "tag": "P",
+        "text": "Clear instructions for school admins, teachers, finance, examinations, reception and "
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(113, 121, 133)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.4,
+        "section": "m-onboarding m-section m-onboarding-compact",
+        "tag": "P",
+        "text": "Contact AKTech for onboarding guidance and a walkthrough of the responsibilities your"
+      },
+      {
+        "bg": [
+          240,
+          241,
+          244
+        ],
+        "cls": "m-eyebrow",
+        "color": "rgb(224, 0, 11)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 4.45,
+        "section": "ac-about-hero m-section",
+        "tag": "P",
+        "text": "ACADIVO / THE THINKING BEHIND THE PLATFORM"
+      }
+    ]
+  },
+  {
+    "path": "/contact",
+    "issues": [
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(255, 244, 244)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.02,
+        "tag": "SMALL",
+        "text": "Your school, explained."
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(244, 245, 247)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.04,
+        "tag": "STRONG",
+        "text": "Ask Acadivo"
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(133, 141, 152)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.18,
+        "section": "",
+        "tag": "SMALL",
+        "text": "Email us"
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(133, 141, 152)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.18,
+        "section": "",
+        "tag": "SMALL",
+        "text": "Call us"
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(133, 141, 152)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.18,
+        "section": "",
+        "tag": "SMALL",
+        "text": "Location"
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(133, 141, 152)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.18,
+        "section": "",
+        "tag": "SMALL",
+        "text": "AKTech Digital Solutions"
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(121, 129, 140)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "",
+        "tag": "P",
+        "text": "Admissions and front desk work, connected to the school."
+      }
+    ]
+  },
+  {
+    "path": "/login",
+    "issues": [
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(255, 244, 244)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.02,
+        "tag": "SMALL",
+        "text": "Your school, explained."
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(244, 245, 247)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.04,
+        "tag": "STRONG",
+        "text": "Ask Acadivo"
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "",
+        "color": "rgb(125, 125, 125)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.77,
+        "section": "m-login-visual",
+        "tag": "SPAN",
+        "text": "Acadivo / School administration"
+      },
+      {
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "cls": "",
+        "color": "rgb(121, 129, 140)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.94,
+        "section": "m-login-visual",
+        "tag": "FIGCAPTION",
+        "text": "Real product capture · School-specific records"
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "mt-3 text-sm leading-6 text-zinc-500",
+        "color": "rgb(113, 113, 122)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.43,
+        "tag": "P",
+        "text": "For school administrators, staff and parents. Use the account provided by your school"
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "font-normal text-zinc-500",
+        "color": "rgb(113, 113, 122)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.43,
+        "tag": "SPAN",
+        "text": "(optional)"
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "mt-5 text-xs leading-6 text-zinc-500",
+        "color": "rgb(113, 113, 122)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.43,
+        "tag": "P",
+        "text": "Need help accessing your account? Contact your school administrator or ."
+      }
+    ]
+  },
+  {
+    "path": "/free-trial",
+    "issues": [
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(255, 244, 244)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.02,
+        "tag": "SMALL",
+        "text": "Your school, explained."
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(244, 245, 247)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.04,
+        "tag": "STRONG",
+        "text": "Ask Acadivo"
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(121, 129, 140)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "",
+        "tag": "P",
+        "text": "Keep your school and admin information accurate."
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(121, 129, 140)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "",
+        "tag": "P",
+        "text": "Your request is reviewed before portal access is enabled."
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(121, 129, 140)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.74,
+        "section": "",
+        "tag": "P",
+        "text": "You’ll receive an update when your school is approved."
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "text-zinc-300 leading-relaxed",
+        "color": "rgb(123, 123, 123)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.88,
+        "tag": "P",
+        "text": "Your 14-day free trial starts after Super Admin approval. No paid plan selection or p"
+      }
+    ]
+  },
+  {
+    "path": "/forgot-password",
+    "issues": [
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(255, 244, 244)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.02,
+        "tag": "SMALL",
+        "text": "Your school, explained."
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(244, 245, 247)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.04,
+        "tag": "STRONG",
+        "text": "Ask Acadivo"
+      }
+    ]
+  },
+  {
+    "path": "/reset-password",
+    "issues": [
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(255, 244, 244)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.02,
+        "tag": "SMALL",
+        "text": "Your school, explained."
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(244, 245, 247)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.04,
+        "tag": "STRONG",
+        "text": "Ask Acadivo"
+      }
+    ]
+  },
+  {
+    "path": "/payment?plan=STARTER&billingCycle=monthly&market=PK",
+    "issues": [
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(255, 244, 244)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.02,
+        "tag": "SMALL",
+        "text": "Your school, explained."
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(244, 245, 247)",
+        "gradient": true,
+        "limit": 4.5,
+        "ratio": 1.04,
+        "tag": "STRONG",
+        "text": "Ask Acadivo"
+      },
+      {
+        "bg": [
+          244,
+          245,
+          247
+        ],
+        "cls": "",
+        "color": "rgb(122, 122, 122)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 3.93,
+        "tag": "P",
+        "text": "Pakistan supports UBL transfer and manual review within 24 hours. International settl"
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(114, 123, 135)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.07,
+        "tag": "LI",
+        "text": "01 / Selected plan"
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(114, 123, 135)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.07,
+        "tag": "LI",
+        "text": "02 / Available payment method"
+      },
+      {
+        "bg": [
+          248,
+          249,
+          251
+        ],
+        "cls": "",
+        "color": "rgb(114, 123, 135)",
+        "gradient": false,
+        "limit": 4.5,
+        "ratio": 4.07,
+        "tag": "LI",
+        "text": "03 / Screenshot & review"
+      }
+    ]
+  }
+]

@@ -1,0 +1,8 @@
+Hello Test Administrator,
+
+Development preview for an existing transactional event. This uses synthetic test data only.
+
+View Subscription: https://app.example.invalid/school-admin/subscription
+
+Acadivo | School management
+Support: hello@aktech.tech

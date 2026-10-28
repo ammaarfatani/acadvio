@@ -1,0 +1,6 @@
+PASS: pending registration, no trial/session/email, login/refresh/stale-token denial, admin application details, concurrent manual approval, 14 days from approval, one approval email and approved portal access
+[Central Error Handler] { name: 'Error', code: 'UNEXPECTED' }
+[Central Error Handler] { name: 'Error', code: 'UNEXPECTED' }
+PASS: rejection persisted with reason, duplicate registration race, registration rollback and approval rollback without email
+PASS: existing approved school login/dashboard and paid registration billing-only flow preserved
+All free-trial approval checks passed. Existing production records were not modified and no real emails were sent.

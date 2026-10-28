@@ -1,9 +1,17 @@
 "use client";
-
-
+import { StudentAvatar } from "@/components/StudentAvatar";
 
 import { useEffect, useState } from "react";
-import { GraduationCap, Save, CheckCircle2, AlertCircle, RefreshCw, Sparkles, Filter, FileText } from "lucide-react";
+import {
+  GraduationCap,
+  Save,
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw,
+  Sparkles,
+  Filter,
+  FileText,
+} from "lucide-react";
 import { schoolAdminApi } from "@/lib/schoolAdminApi";
 
 interface StudentMark {
@@ -98,11 +106,14 @@ export default function MarksEntryPage() {
           setSelectedSubject("");
         }
       })
-      .catch((err: any) => console.error("Failed to load class sections/subjects:", err));
+      .catch((err: any) =>
+        console.error("Failed to load class sections/subjects:", err),
+      );
   }, [selectedClass]);
 
   // 3. Load Marks when Exam, Class, Section, or Subject selection changes
   useEffect(() => {
+    if (saving) return;
     if (!selectedExam || !selectedClass || !selectedSubject) {
       setStudents([]);
       return;
@@ -115,11 +126,13 @@ export default function MarksEntryPage() {
       .getMarks(selectedExam, selectedClass, selectedSubject, selectedSection)
       .then((res: any) => {
         const dataPayload = res?.data || res;
-        const markList = dataPayload?.marks || (Array.isArray(dataPayload) ? dataPayload : []);
+        const markList =
+          dataPayload?.marks || (Array.isArray(dataPayload) ? dataPayload : []);
 
         setStudents(markList);
         if (dataPayload?.maxMarks) setMaxMarks(dataPayload.maxMarks);
-        if (dataPayload?.passingMarks) setPassingMarks(dataPayload.passingMarks);
+        if (dataPayload?.passingMarks)
+          setPassingMarks(dataPayload.passingMarks);
       })
       .catch((err: any) => {
         setError(err?.message || "Unable to retrieve marks records.");
@@ -154,7 +167,7 @@ export default function MarksEntryPage() {
       students.map((s) => ({
         ...s,
         obtainedMarks: s.obtainedMarks === "" ? passingMarks : s.obtainedMarks,
-      }))
+      })),
     );
   };
 
@@ -176,6 +189,14 @@ export default function MarksEntryPage() {
         subjectId: selectedSubject,
         marks: students,
       });
+      const saved = await schoolAdminApi.getMarks(
+        selectedExam,
+        selectedClass,
+        selectedSubject,
+        selectedSection,
+      );
+      const payload = saved?.data || saved;
+      setStudents(payload.marks || (Array.isArray(payload) ? payload : []));
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 4000);
     } catch (err: any) {
@@ -188,10 +209,19 @@ export default function MarksEntryPage() {
   // Stats calculation
   const totalStudents = students.length;
   const enteredMarks = students.filter((s) => s.obtainedMarks !== "").length;
-  const validMarks = students.map((s) => (s.obtainedMarks !== "" ? Number(s.obtainedMarks) : 0));
-  const avgMarks = enteredMarks > 0 ? (validMarks.reduce((a, b) => a + b, 0) / enteredMarks).toFixed(1) : "0";
-  const passCount = students.filter((s) => typeof s.obtainedMarks === "number" && s.obtainedMarks >= passingMarks).length;
-  const passPercentage = totalStudents > 0 ? Math.round((passCount / totalStudents) * 100) : 0;
+  const validMarks = students.map((s) =>
+    s.obtainedMarks !== "" ? Number(s.obtainedMarks) : 0,
+  );
+  const avgMarks =
+    enteredMarks > 0
+      ? (validMarks.reduce((a, b) => a + b, 0) / enteredMarks).toFixed(1)
+      : "0";
+  const passCount = students.filter(
+    (s) =>
+      typeof s.obtainedMarks === "number" && s.obtainedMarks >= passingMarks,
+  ).length;
+  const passPercentage =
+    totalStudents > 0 ? Math.round((passCount / totalStudents) * 100) : 0;
 
   const currentExamObj = exams.find((e) => e._id === selectedExam);
   const currentClassObj = classes.find((c) => c._id === selectedClass);
@@ -207,7 +237,10 @@ export default function MarksEntryPage() {
             <GraduationCap className="h-6 w-6 text-red-600" />
             Teacher Marks Entry Grid
           </h1>
-          <p className="text-xs text-zinc-500">Record and validate subject marks for examination sessions using real database records</p>
+          <p className="text-xs text-zinc-500">
+            Record and validate subject marks for examination sessions using
+            real database records
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -224,7 +257,11 @@ export default function MarksEntryPage() {
             disabled={saving || students.length === 0}
             className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-xs disabled:opacity-50"
           >
-            {saving ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            {saving ? (
+              <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Save className="h-3.5 w-3.5" />
+            )}
             {saving ? "Saving..." : "Save Marks Sheet"}
           </button>
         </div>
@@ -233,7 +270,10 @@ export default function MarksEntryPage() {
       {saveSuccess && (
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-          <span>Marks for <strong>{currentSubjectObj?.name || "Subject"}</strong> saved successfully! Roster pass rate updated.</span>
+          <span>
+            Marks for <strong>{currentSubjectObj?.name || "Subject"}</strong>{" "}
+            saved successfully! Roster pass rate updated.
+          </span>
         </div>
       )}
 
@@ -247,14 +287,18 @@ export default function MarksEntryPage() {
       {/* Filter Bar */}
       <div className="bg-white border border-zinc-200 p-4 rounded-xl shadow-xs grid grid-cols-1 sm:grid-cols-4 gap-4">
         <div>
-          <label className="block text-[11px] font-bold text-zinc-600 uppercase tracking-wider mb-1">Exam Term *</label>
+          <label className="block text-[11px] font-bold text-zinc-600 uppercase tracking-wider mb-1">
+            Exam Term *
+          </label>
           <select
             value={selectedExam}
             onChange={(e) => setSelectedExam(e.target.value)}
             disabled={loadingInitial || exams.length === 0}
             className="w-full text-xs font-semibold border border-zinc-300 rounded-lg p-2.5 bg-zinc-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 disabled:opacity-60"
           >
-            {exams.length === 0 && <option value="">No active exams found</option>}
+            {exams.length === 0 && (
+              <option value="">No active exams found</option>
+            )}
             {exams.map((exam) => (
               <option key={exam._id} value={exam._id}>
                 {exam.title}
@@ -264,7 +308,9 @@ export default function MarksEntryPage() {
         </div>
 
         <div>
-          <label className="block text-[11px] font-bold text-zinc-600 uppercase tracking-wider mb-1">Class *</label>
+          <label className="block text-[11px] font-bold text-zinc-600 uppercase tracking-wider mb-1">
+            Class *
+          </label>
           <select
             value={selectedClass}
             onChange={(e) => setSelectedClass(e.target.value)}
@@ -281,7 +327,9 @@ export default function MarksEntryPage() {
         </div>
 
         <div>
-          <label className="block text-[11px] font-bold text-zinc-600 uppercase tracking-wider mb-1">Section</label>
+          <label className="block text-[11px] font-bold text-zinc-600 uppercase tracking-wider mb-1">
+            Section
+          </label>
           <select
             value={selectedSection}
             onChange={(e) => setSelectedSection(e.target.value)}
@@ -298,14 +346,18 @@ export default function MarksEntryPage() {
         </div>
 
         <div>
-          <label className="block text-[11px] font-bold text-zinc-600 uppercase tracking-wider mb-1">Subject *</label>
+          <label className="block text-[11px] font-bold text-zinc-600 uppercase tracking-wider mb-1">
+            Subject *
+          </label>
           <select
             value={selectedSubject}
             onChange={(e) => setSelectedSubject(e.target.value)}
             disabled={!selectedClass || subjects.length === 0}
             className="w-full text-xs font-semibold border border-zinc-300 rounded-lg p-2.5 bg-zinc-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 disabled:opacity-60"
           >
-            {subjects.length === 0 && <option value="">No subjects assigned</option>}
+            {subjects.length === 0 && (
+              <option value="">No subjects assigned</option>
+            )}
             {subjects.map((sub) => (
               <option key={sub._id} value={sub._id}>
                 {sub.name} {sub.code ? `(${sub.code})` : ""}
@@ -318,20 +370,39 @@ export default function MarksEntryPage() {
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-white border border-zinc-200 p-4 rounded-xl">
-          <span className="text-[11px] font-semibold text-zinc-500 uppercase">Enrolled Students</span>
-          <p className="text-xl font-black text-zinc-950 mt-1">{totalStudents}</p>
+          <span className="text-[11px] font-semibold text-zinc-500 uppercase">
+            Enrolled Students
+          </span>
+          <p className="text-xl font-black text-zinc-950 mt-1">
+            {totalStudents}
+          </p>
         </div>
         <div className="bg-white border border-zinc-200 p-4 rounded-xl">
-          <span className="text-[11px] font-semibold text-zinc-500 uppercase">Marks Recorded</span>
-          <p className="text-xl font-black text-zinc-950 mt-1">{enteredMarks} / {totalStudents}</p>
+          <span className="text-[11px] font-semibold text-zinc-500 uppercase">
+            Marks Recorded
+          </span>
+          <p className="text-xl font-black text-zinc-950 mt-1">
+            {enteredMarks} / {totalStudents}
+          </p>
         </div>
         <div className="bg-white border border-zinc-200 p-4 rounded-xl">
-          <span className="text-[11px] font-semibold text-zinc-500 uppercase">Class Average</span>
-          <p className="text-xl font-black text-zinc-950 mt-1">{avgMarks} <span className="text-xs text-zinc-400 font-normal">/ {maxMarks}</span></p>
+          <span className="text-[11px] font-semibold text-zinc-500 uppercase">
+            Class Average
+          </span>
+          <p className="text-xl font-black text-zinc-950 mt-1">
+            {avgMarks}{" "}
+            <span className="text-xs text-zinc-400 font-normal">
+              / {maxMarks}
+            </span>
+          </p>
         </div>
         <div className="bg-white border border-zinc-200 p-4 rounded-xl">
-          <span className="text-[11px] font-semibold text-zinc-500 uppercase">Subject Pass Rate</span>
-          <p className="text-xl font-black text-emerald-600 mt-1">{passPercentage}%</p>
+          <span className="text-[11px] font-semibold text-zinc-500 uppercase">
+            Subject Pass Rate
+          </span>
+          <p className="text-xl font-black text-emerald-600 mt-1">
+            {passPercentage}%
+          </p>
         </div>
       </div>
 
@@ -339,11 +410,16 @@ export default function MarksEntryPage() {
       <div className="bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-xs">
         <div className="p-4 border-b border-zinc-200 bg-zinc-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
           <span className="text-xs font-bold text-zinc-950 uppercase tracking-wide">
-            {currentSubjectObj?.name || "Subject"} Marks Sheet — {currentClassObj?.name || "Class"}
-            {currentSectionObj ? ` (Section ${currentSectionObj.name})` : " (All Sections)"}
+            {currentSubjectObj?.name || "Subject"} Marks Sheet —{" "}
+            {currentClassObj?.name || "Class"}
+            {currentSectionObj
+              ? ` (Section ${currentSectionObj.name})`
+              : " (All Sections)"}
             {currentExamObj ? ` • ${currentExamObj.title}` : ""}
           </span>
-          <span className="text-[11px] font-medium text-zinc-500">Max Marks: {maxMarks} | Passing: {passingMarks}</span>
+          <span className="text-[11px] font-medium text-zinc-500">
+            Max Marks: {maxMarks} | Passing: {passingMarks}
+          </span>
         </div>
 
         {loadingMarks ? (
@@ -367,22 +443,44 @@ export default function MarksEntryPage() {
               <tbody className="divide-y divide-zinc-200">
                 {students.map((student, idx) => {
                   const obtained = student.obtainedMarks;
-                  const isPass = typeof obtained === "number" && obtained >= student.passingMarks;
-                  const isFail = typeof obtained === "number" && obtained < student.passingMarks;
+                  const isPass =
+                    typeof obtained === "number" &&
+                    obtained >= student.passingMarks;
+                  const isFail =
+                    typeof obtained === "number" &&
+                    obtained < student.passingMarks;
 
                   return (
-                    <tr key={student.studentId} className="hover:bg-zinc-50/80 transition-colors">
-                      <td className="p-3 font-mono font-bold text-center text-zinc-700">{student.rollNo || "—"}</td>
-                      <td className="p-3 font-bold text-zinc-950">{student.name}</td>
-                      <td className="p-3 font-mono text-center text-zinc-500">{student.maxMarks || maxMarks}</td>
-                      <td className="p-3 font-mono text-center text-zinc-500">{student.passingMarks || passingMarks}</td>
+                    <tr
+                      key={student.studentId}
+                      className="hover:bg-zinc-50/80 transition-colors"
+                    >
+                      <td className="p-3 font-mono font-bold text-center text-zinc-700">
+                        {student.rollNo || "—"}
+                      </td>
+                      <td className="p-3 font-bold text-zinc-950">
+                        <span className="inline-flex items-center gap-2">
+                          <StudentAvatar
+                            student={{ ...student, _id: student.studentId }}
+                          />
+                          {student.name}
+                        </span>
+                      </td>
+                      <td className="p-3 font-mono text-center text-zinc-500">
+                        {student.maxMarks || maxMarks}
+                      </td>
+                      <td className="p-3 font-mono text-center text-zinc-500">
+                        {student.passingMarks || passingMarks}
+                      </td>
                       <td className="p-3 text-center">
                         <input
                           type="number"
                           min="0"
                           max={maxMarks}
                           value={student.obtainedMarks}
-                          onChange={(e) => handleMarkChange(idx, e.target.value)}
+                          onChange={(e) =>
+                            handleMarkChange(idx, e.target.value)
+                          }
                           placeholder={`0 - ${maxMarks}`}
                           className={`w-28 text-center font-mono font-bold text-sm border rounded-lg p-1.5 focus:outline-none focus:ring-2 ${
                             isFail
@@ -393,18 +491,26 @@ export default function MarksEntryPage() {
                       </td>
                       <td className="p-3 text-center">
                         {obtained === "" ? (
-                          <span className="text-[10px] font-bold text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded">PENDING</span>
+                          <span className="text-[10px] font-bold text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded">
+                            PENDING
+                          </span>
                         ) : isPass ? (
-                          <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">PASS</span>
+                          <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">
+                            PASS
+                          </span>
                         ) : (
-                          <span className="text-[10px] font-bold text-red-800 bg-red-100 px-2 py-0.5 rounded">FAIL</span>
+                          <span className="text-[10px] font-bold text-red-800 bg-red-100 px-2 py-0.5 rounded">
+                            FAIL
+                          </span>
                         )}
                       </td>
                       <td className="p-3">
                         <input
                           type="text"
                           value={student.remarks}
-                          onChange={(e) => handleRemarkChange(idx, e.target.value)}
+                          onChange={(e) =>
+                            handleRemarkChange(idx, e.target.value)
+                          }
                           placeholder="Optional remarks..."
                           className="w-full text-xs border border-zinc-200 rounded p-1.5 focus:outline-none focus:border-zinc-400 bg-transparent"
                         />
@@ -418,8 +524,13 @@ export default function MarksEntryPage() {
         ) : (
           <div className="p-12 text-center text-zinc-500">
             <FileText className="mx-auto h-10 w-10 text-zinc-300" />
-            <p className="mt-2 text-sm font-semibold text-zinc-700">No student marks recorded yet</p>
-            <p className="mt-1 text-xs text-zinc-400">Select a valid exam, class, and subject to view or enter student marks.</p>
+            <p className="mt-2 text-sm font-semibold text-zinc-700">
+              No student marks recorded yet
+            </p>
+            <p className="mt-1 text-xs text-zinc-400">
+              Select a valid exam, class, and subject to view or enter student
+              marks.
+            </p>
           </div>
         )}
       </div>

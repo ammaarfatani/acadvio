@@ -1,0 +1,12 @@
+{
+  "routes": 136,
+  "perPortal": {
+    "school-admin": 50,
+    "teacher": 15,
+    "finance": 16,
+    "exam-staff": 17,
+    "receptionist": 17,
+    "parent": 10,
+    "super-admin": 11
+  }
+}

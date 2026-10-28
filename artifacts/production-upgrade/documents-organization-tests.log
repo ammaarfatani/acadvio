@@ -1,0 +1,6 @@
+Database fixtures initialized; checking migration.
+Core plan checks passed; checking branches and parents.
+Branch and parent checks passed; checking notices and reports.
+Checking extended parent records, fee submissions, documents, analytics and password revocation.
+Parent selected-child and legacy placement checks passed.
+PASS: 229 checks across real login, Starter/Professional/Enterprise gating, additive migration, owner/branch/tenant isolation, parent linkage, role-targeted notices, dates/read states, branch switching and existing portal APIs.

@@ -48,7 +48,7 @@ export class TeacherService {
         const entry: any = await MarksEntry.findOne({ schoolId, examId: exam._id, classId, subjectId }).lean();
         contexts.push({ exam: { _id: exam._id, title: exam.title, startDate: exam.startDate, endDate: exam.endDate, status: exam.status }, class: group.class, section: { _id: group.sections.map((section: any) => String(section?._id || section)).join(","), name: group.sections.map((section: any) => section?.name).filter(Boolean).join(", ") || "All assigned sections" }, subject: group.subject, students: students.map((student: any) => {
           const existing: any = entry?.records?.find((record: any) => String(record.studentId) === String(student._id));
-          return { studentId: student._id, name: student.name, rollNumber: student.rollNumber, obtainedMarks: existing?.obtainedMarks ?? "", isAbsent:Boolean(existing?.isAbsent), remarks: existing?.remarks || "" };
+          return { studentId: student._id, photoUrl:student.photoUrl,updatedAt:student.updatedAt, name: student.name, rollNumber: student.rollNumber, obtainedMarks: existing?.obtainedMarks ?? "", isAbsent:Boolean(existing?.isAbsent), remarks: existing?.remarks || "" };
         }), maxMarks: group.subject?.totalMarks || 100, passingMarks: group.subject?.passingMarks || 33, entryStatus: entry?.status || "PENDING" });
       }
     }
@@ -346,14 +346,14 @@ export class TeacherService {
     if (Number.isNaN(date.getTime())) throw { statusCode: 400, message: "Select a valid attendance date." };
     date.setHours(0, 0, 0, 0);
     const [students, attendance] = await Promise.all([
-      Student.find({ schoolId, classId, sectionId, status: "ACTIVE", ...(session ? { academicSessionId: session._id } : {}) }).select("name rollNumber status").sort({ rollNumber: 1 }).lean(),
+      Student.find({ schoolId, classId, sectionId, status: "ACTIVE", ...(session ? { academicSessionId: session._id } : {}) }).select("name rollNumber status photoUrl updatedAt").sort({ rollNumber: 1 }).lean(),
       StudentAttendance.findOne({ schoolId, classId, sectionId, date, $or: [{ academicSessionId: session._id }, { academicSessionId: { $exists: false } }] }).lean(),
     ]);
     const savedRecords: any[] = (attendance as any)?.records || [];
     const existing = new Map(savedRecords.map((record: any) => [String(record.studentId), record]));
     return { date, className: classRecord.name, sectionName: section?.name || "", students: students.map((student: any) => {
       const saved: any = existing.get(String(student._id));
-      return { studentId: student._id, name: student.name, rollNumber: student.rollNumber, status: saved?.status || "PRESENT", remarks: saved?.remarks || "" };
+      return { studentId: student._id, photoUrl:student.photoUrl,updatedAt:student.updatedAt, name: student.name, rollNumber: student.rollNumber, status: saved?.status || "PRESENT", remarks: saved?.remarks || "" };
     }) };
   }
 

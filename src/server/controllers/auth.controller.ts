@@ -5,7 +5,7 @@ import { sendSuccess } from "../utils/response.util";
 export class AuthController {
   static async login(req: Request, res: Response, next: NextFunction) {
     try {
-      const ipAddress = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1";
+      const ipAddress = req.ip || req.socket.remoteAddress || "127.0.0.1";
       const userAgent = req.headers["user-agent"] || "Unknown";
 
       const result = await AuthService.login(req.body, ipAddress, userAgent);

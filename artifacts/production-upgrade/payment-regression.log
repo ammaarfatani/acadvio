@@ -1,0 +1,30 @@
+[Payment review] {
+  paymentId: '6acd2c97245479d1164981f4',
+  code: undefined,
+  message: 'Rejection reason is required.'
+}
+[EMAIL] SMTP configuration incomplete.
+[Payment review] {
+  paymentId: '6acd2c97245479d1164981f4',
+  code: undefined,
+  message: 'Payment was already completed, does not exist, or is being reviewed. Refresh and retry.'
+}
+[EMAIL] SMTP configuration incomplete.
+[Payment review] {
+  paymentId: '6acd2c98245479d1164981f6',
+  code: undefined,
+  message: 'Error'
+}
+[Central Error Handler] { name: 'Error', code: 'UNEXPECTED' }
+[Payment review] {
+  paymentId: '6acd2c98245479d1164981f6',
+  code: undefined,
+  message: 'Payment was already completed, does not exist, or is being reviewed. Refresh and retry.'
+}
+[Payment review] {
+  paymentId: '6acd2c98245479d1164981f6',
+  code: undefined,
+  message: 'Payment was already reviewed or an approval is being completed.'
+}
+[EMAIL] SMTP configuration incomplete.
+PASS: monthly/annual catalogue quotes, invalid/inactive plans, existing registration route, selected-plan activation, upload validation, authenticated submission, server-owned amount/tenant, duplicates, screenshot ownership, RBAC, rejection and approval activation (mocked persistence).

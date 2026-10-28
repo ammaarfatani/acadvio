@@ -1,0 +1,74 @@
+[
+  {
+    "Plan": "STARTER",
+    "Cycle": "monthly",
+    "Quote": {
+      "plan": "STARTER",
+      "name": "Starter Plan",
+      "price": 2000,
+      "monthlyPrice": 2000,
+      "billingCycle": "monthly",
+      "durationMonths": 1
+    }
+  },
+  {
+    "Plan": "STARTER",
+    "Cycle": "annual",
+    "Quote": {
+      "plan": "STARTER",
+      "name": "Starter Plan",
+      "price": 19200,
+      "monthlyPrice": 1600,
+      "billingCycle": "annual",
+      "durationMonths": 12
+    }
+  },
+  {
+    "Plan": "PROFESSIONAL",
+    "Cycle": "monthly",
+    "Quote": {
+      "plan": "PROFESSIONAL",
+      "name": "Professional Plan",
+      "price": 4000,
+      "monthlyPrice": 4000,
+      "billingCycle": "monthly",
+      "durationMonths": 1
+    }
+  },
+  {
+    "Plan": "PROFESSIONAL",
+    "Cycle": "annual",
+    "Quote": {
+      "plan": "PROFESSIONAL",
+      "name": "Professional Plan",
+      "price": 38400,
+      "monthlyPrice": 3200,
+      "billingCycle": "annual",
+      "durationMonths": 12
+    }
+  },
+  {
+    "Plan": "ENTERPRISE",
+    "Cycle": "monthly",
+    "Quote": {
+      "plan": "ENTERPRISE",
+      "name": "Enterprise Plan",
+      "price": 8000,
+      "monthlyPrice": 8000,
+      "billingCycle": "monthly",
+      "durationMonths": 1
+    }
+  },
+  {
+    "Plan": "ENTERPRISE",
+    "Cycle": "annual",
+    "Quote": {
+      "plan": "ENTERPRISE",
+      "name": "Enterprise Plan",
+      "price": 76800,
+      "monthlyPrice": 6400,
+      "billingCycle": "annual",
+      "durationMonths": 12
+    }
+  }
+]

@@ -29,10 +29,10 @@ export const generateRefreshToken = (payload: { userId: string; tokenVersion?: n
 
 export const verifyAccessToken = (token: string): JwtPayloadData => {
   const secret: Secret = env.JWT_ACCESS_SECRET;
-  return jwt.verify(token, secret) as JwtPayloadData;
+  return jwt.verify(token, secret, { algorithms: ["HS256"] }) as JwtPayloadData;
 };
 
 export const verifyRefreshToken = (token: string): { userId: string; tokenVersion?: number } => {
   const secret: Secret = env.JWT_REFRESH_SECRET;
-  return jwt.verify(token, secret) as { userId: string; tokenVersion?: number };
+  return jwt.verify(token, secret, { algorithms: ["HS256"] }) as { userId: string; tokenVersion?: number };
 };

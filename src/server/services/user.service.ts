@@ -67,9 +67,10 @@ export class UserService {
       isOrganizationOwner: false,
     }], { session });
 
-    if(input.department)await StaffEmployment.create([{schoolId,userId:user._id,employeeId:input.employeeId||String(user._id),department:input.department,phone:input.phone,designation:input.userType.replaceAll("_"," "),joiningDate:input.joiningDate||new Date().toISOString().slice(0,10),status:"ACTIVE",salaryHistory:input.salary===undefined?[]:[{effectiveDate:input.joiningDate||new Date().toISOString().slice(0,10),amount:input.salary,basis:"MONTHLY"}]}],session?{session}:{});
+    if(input.department)await StaffEmployment.create([{schoolId,userId:user._id,employeeId:user.employeeId,department:input.department,phone:input.phone,designation:input.userType.replaceAll("_"," "),joiningDate:input.joiningDate||new Date().toISOString().slice(0,10),status:"ACTIVE",salaryHistory:input.salary===undefined?[]:[{effectiveDate:input.joiningDate||new Date().toISOString().slice(0,10),amount:input.salary,basis:"MONTHLY"}]}],session?{session}:{});
     return {
       id: user._id,
+      employeeId:user.employeeId,
       name: user.name,
       email: user.email,
       userType: user.userType,

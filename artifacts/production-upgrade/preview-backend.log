@@ -1,0 +1,5 @@
+SUCCESS: Practice backend running at http://127.0.0.1:5001
+Database: local practice school only. Emails disabled.
+Keep this terminal open. Press Ctrl+C when practice is finished.
+[Central Error Handler] { name: 'JsonWebTokenError', code: 'UNEXPECTED' }
+[Central Error Handler] { name: 'JsonWebTokenError', code: 'UNEXPECTED' }

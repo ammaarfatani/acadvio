@@ -51,6 +51,7 @@ export const FeeStructure =
   mongoose.models.FeeStructure || mongoose.model<IFeeStructure>("FeeStructure", FeeStructureSchema);
 
 export interface IFeeChallan extends Document {
+  documentSnapshot?:any;
   schoolId: mongoose.Types.ObjectId;
   challanNumber: string;
   studentId: mongoose.Types.ObjectId;
@@ -143,6 +144,7 @@ const FeeChallanSchema = new Schema<IFeeChallan>(
   { timestamps: true }
 );
 
+FeeChallanSchema.add({documentSnapshot:Schema.Types.Mixed});
 FeeChallanSchema.index({ schoolId: 1, challanNumber: 1 }, { unique: true });
 
 FeeChallanSchema.plugin(branchScoped);
@@ -160,6 +162,7 @@ export interface IFeePayment extends Document {
   paidAt: Date;
   receiptNumber: string;
   collectedByUserName: string;
+  documentSnapshot?: any; paymentRequestId?:string; transactionReference?:string; balanceAfterPKR?:number;
   createdAt: Date;
 }
 
@@ -176,6 +179,8 @@ const FeePaymentSchema = new Schema<IFeePayment>({
   receiptNumber: { type: String, required: true },
   collectedByUserName: { type: String, required: true },
 }, { timestamps: true });
+FeePaymentSchema.add({documentSnapshot:Schema.Types.Mixed,paymentRequestId:String,transactionReference:String,balanceAfterPKR:Number});
+FeePaymentSchema.index({schoolId:1,paymentRequestId:1},{unique:true,partialFilterExpression:{paymentRequestId:{$type:"string"}}});
 FeePaymentSchema.index({ schoolId: 1, receiptNumber: 1 }, { unique: true });
 FeePaymentSchema.index({ schoolId: 1, paidAt: -1 });
 FeePaymentSchema.plugin(branchScoped);

@@ -1,16 +1,100 @@
 "use client";
+import { SchoolDocumentTemplate } from "@/components/SchoolDocumentTemplate";
+import { printSchoolDocument } from "@/lib/print-school-document";
 
-
-
-import { useEffect, useState } from "react";
-import { Award, Printer, Plus, CheckCircle2, Search } from "lucide-react";
+import { apiFetch } from "@/lib/api";
+import { DocumentPreviewOverlay } from "@/components/SchoolDocumentPreview";
+import { useEffect, useState, useRef } from "react";
+import { Award, Printer, Plus, CheckCircle2 } from "lucide-react";
 import { examStaffApi } from "@/lib/examStaffApi";
 import { useAuth } from "@/lib/auth-context";
 
 export default function IssueCertificatesPage() {
   const { user } = useAuth();
-  const schoolName = user?.school?.name || "School ERP";
-  const schoolLogo = user?.school?.logoUrl || "";
+  const canIssue =
+    user?.userType === "SUPER_ADMIN" ||
+    !!user?.permissions?.includes("results.publish");
+  const [mode, setMode] = useState("INDIVIDUAL"),
+    [picked, setPicked] = useState<string[]>([]),
+    [checkedCerts, setCheckedCerts] = useState<string[]>([]),
+    [printDocuments, setPrintDocuments] = useState<any[]>([]),
+    [printing, setPrinting] = useState(false),
+    [studentSearch, setStudentSearch] = useState("");
+  const batch = useRef<{ signature: string; id: string } | null>(null);
+  const issueLock = useRef(false),
+    printRoot = useRef<HTMLDivElement>(null);
+  const category = (value: string) =>
+    (
+      ({
+        BONAFIDE: "bonafide",
+        CHARACTER: "character",
+        LEAVING: "leaving",
+        TRANSFER: "transfer",
+        RESULT: "report-card",
+      }) as Record<string, string>
+    )[value];
+  const previewCertificate = async (cert: any) =>
+    (
+      await apiFetch("/school-documents/preview", {
+        method: "POST",
+        body: JSON.stringify({
+          type: category(cert.type),
+          studentId: String(cert.studentId?._id || cert.studentId),
+          certificateId: cert._id,
+        }),
+      })
+    ).data;
+  async function preparePrint(records: any[]) {
+    if (!records.length) {
+      setError(
+        "No issued certificates for this selection. Issue certificates first.",
+      );
+      return;
+    }
+    setPrinting(true);
+    setError("");
+    setPrintDocuments([]);
+    try {
+      const documents = [];
+      for (let start = 0; start < records.length; start += 20) {
+        const response = await apiFetch(
+          "/school-documents/certificates/bulk-preview",
+          {
+            method: "POST",
+            body: JSON.stringify({
+              certificateIds: records
+                .slice(start, start + 20)
+                .map((c) => c._id),
+            }),
+          },
+        );
+        documents.push(...response.data.documents);
+      }
+      setPrintDocuments(documents);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setPrinting(false);
+    }
+  }
+  function prepareClassPrint() {
+    const classStudents = new Set(students.map((s) => String(s._id)));
+    const latest = new Map<string, any>();
+    [...certificates]
+      .sort(
+        (a, b) =>
+          new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime(),
+      )
+      .forEach((cert) => {
+        const id = String(cert.studentId?._id || cert.studentId);
+        if (cert.type === type && classStudents.has(id) && !latest.has(id))
+          latest.set(id, cert);
+      });
+    setNotice(
+      `${latest.size} issued certificates available for ${students.length} students in this class. ${students.length - latest.size} students have no issued ${type.toLowerCase()} certificate.`,
+    );
+    void preparePrint([...latest.values()]);
+  }
 
   const [certificates, setCertificates] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
@@ -18,9 +102,13 @@ export default function IssueCertificatesPage() {
 
   const [selectedClassId, setSelectedClassId] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState("");
-  const [type, setType] = useState<"BONAFIDE" | "CHARACTER" | "LEAVING" | "TRANSFER" | "RESULT">("BONAFIDE");
+  const [type, setType] = useState<
+    "BONAFIDE" | "CHARACTER" | "LEAVING" | "TRANSFER" | "RESULT"
+  >("BONAFIDE");
   const [reason, setReason] = useState("On student/parent request");
-  const [conductRemarks, setConductRemarks] = useState("Satisfactory conduct and moral character");
+  const [conductRemarks, setConductRemarks] = useState(
+    "Satisfactory conduct and moral character",
+  );
 
   const [loading, setLoading] = useState(true);
   const [issuing, setIssuing] = useState(false);
@@ -40,7 +128,12 @@ export default function IssueCertificatesPage() {
       setCertificates(certsRes?.data || []);
       const clsList = classesRes?.data || [];
       setClasses(clsList);
-      if (clsList.length > 0) setSelectedClassId(clsList[0]._id);
+      if (clsList.length > 0)
+        setSelectedClassId((previous) =>
+          clsList.some((c: any) => c._id === previous)
+            ? previous
+            : clsList[0]._id,
+        );
     } catch (err: any) {
       setError(err?.message || "Unable to load certificate records.");
     } finally {
@@ -53,39 +146,97 @@ export default function IssueCertificatesPage() {
   }, []);
 
   useEffect(() => {
-    if (selectedClassId) {
-      examStaffApi.getStudents(selectedClassId)
+    let active = true;
+    setStudents([]);
+    setSelectedStudentId("");
+    setPicked([]);
+    setStudentSearch("");
+    setPrintDocuments([]);
+    batch.current = null;
+    if (selectedClassId)
+      examStaffApi
+        .getStudents(selectedClassId)
         .then((res) => {
-          const stuList = res?.data || [];
-          setStudents(stuList);
-          if (stuList.length > 0) setSelectedStudentId(stuList[0]._id);
+          if (!active) return;
+          const list = res?.data || [];
+          setStudents(list);
+          setSelectedStudentId(list[0]?._id || "");
         })
-        .catch(() => setStudents([]));
-    }
+        .catch((e) => {
+          if (active) setError(e.message);
+        });
+    return () => {
+      active = false;
+    };
   }, [selectedClassId]);
+
+  useEffect(() => {
+    setPrintDocuments([]);
+  }, [type]);
 
   const handleIssueCertificate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedStudentId) return;
-
+    if (issueLock.current || !canIssue) return;
+    const ids =
+      mode === "INDIVIDUAL"
+        ? [selectedStudentId]
+        : mode === "CLASS"
+          ? students.map((s) => s._id)
+          : picked;
+    if (!ids.length || !ids[0]) {
+      setError("Select at least one student.");
+      return;
+    }
+    issueLock.current = true;
     setIssuing(true);
     setError("");
+    setNotice(null);
+    setPrintDocuments([]);
     try {
-      const certRes = await examStaffApi.issueCertificate({
-        type,
-        studentId: selectedStudentId,
-        classId: selectedClassId,
-        reason,
-        conductRemarks,
-      });
-
-      setNotice(`Certificate ${certRes?.data?.certificateNumber || ""} issued successfully!`);
-      setTimeout(() => setNotice(null), 4000);
-      setSelectedCertForPrint(certRes?.data || null);
-      await loadData();
+      if (mode === "INDIVIDUAL") {
+        const r = await examStaffApi.issueCertificate({
+          type,
+          studentId: selectedStudentId,
+          classId: selectedClassId,
+          reason,
+          conductRemarks,
+        });
+        setNotice(
+          `Certificate ${r.data.certificateNumber} issued successfully.`,
+        );
+        setCheckedCerts([r.data._id]);
+        await loadData();
+        setSelectedCertForPrint(await previewCertificate(r.data));
+      } else {
+        const payload = {
+          type,
+          classId: selectedClassId,
+          studentIds: ids,
+          reason,
+          conductRemarks,
+        };
+        const signature = JSON.stringify(payload);
+        if (!batch.current || batch.current.signature !== signature)
+          batch.current = { signature, id: crypto.randomUUID() };
+        const r = await apiFetch("/exams/certificates/bulk-issue", {
+          method: "POST",
+          body: JSON.stringify({ ...payload, requestId: batch.current.id }),
+        });
+        const issued = r.data.certificates;
+        setCheckedCerts(issued.map((c: any) => c._id));
+        setNotice(
+          `${issued.length} certificates issued. Use Prepare selected for print to print this batch together.`,
+        );
+        batch.current = null;
+        await loadData();
+      }
     } catch (err: any) {
-      setError(err?.message || "Unable to issue certificate.");
+      setError(
+        err.message ||
+          "Unable to issue certificates. Retry to check this batch safely.",
+      );
     } finally {
+      issueLock.current = false;
       setIssuing(false);
     }
   };
@@ -100,13 +251,17 @@ export default function IssueCertificatesPage() {
             Certificate Issuance & Printing Desk
           </h1>
           <p className="text-xs text-zinc-500">
-            Issue Bonafide, Character, Leaving, Transfer, and Result certificates with unique certificate IDs.
+            Issue Bonafide, Character, Leaving, Transfer, and Result
+            certificates with unique certificate IDs.
           </p>
         </div>
       </div>
 
       {error && (
-        <p role="alert" className="print:hidden rounded-xl border border-red-200 bg-red-50 p-4 text-xs font-semibold text-red-800">
+        <p
+          role="alert"
+          className="print:hidden rounded-xl border border-red-200 bg-red-50 p-4 text-xs font-semibold text-red-800"
+        >
           {error}
         </p>
       )}
@@ -124,68 +279,245 @@ export default function IssueCertificatesPage() {
           Issue New Official Certificate
         </h2>
 
-        <form onSubmit={handleIssueCertificate} className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs">
-          <div>
-            <label className="block font-bold text-zinc-700 uppercase mb-1">Certificate Type *</label>
+        <fieldset
+          disabled={issuing || printing}
+          className="min-w-0 space-y-4 disabled:opacity-60"
+        >
+          {!canIssue && (
+            <p className="text-sm text-zinc-500">
+              Certificate issuance requires publishing permission.
+            </p>
+          )}
+          <label className="block text-xs font-semibold">
+            Issue for
             <select
-              value={type}
-              onChange={(e: any) => setType(e.target.value)}
-              className="w-full border border-zinc-300 rounded-lg p-2.5 bg-zinc-50 font-bold focus:outline-none"
+              value={mode}
+              onChange={(e) => setMode(e.target.value)}
+              className="ml-3 min-h-11 rounded border bg-white px-3"
             >
-              <option value="BONAFIDE">Bonafide Student Certificate</option>
-              <option value="CHARACTER">Character Certificate</option>
-              <option value="LEAVING">School Leaving Certificate</option>
-              <option value="TRANSFER">Transfer Certificate</option>
-              <option value="RESULT">Exam Result Certificate</option>
+              <option value="INDIVIDUAL">Individual student</option>
+              <option value="SELECTED">Selected students</option>
+              <option value="CLASS">Whole class</option>
             </select>
-          </div>
+          </label>
+          <form
+            onSubmit={handleIssueCertificate}
+            className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs"
+          >
+            <div>
+              <label className="block font-bold text-zinc-700 uppercase mb-1">
+                Certificate Type *
+              </label>
+              <select
+                value={type}
+                onChange={(e: any) => setType(e.target.value)}
+                className="w-full border border-zinc-300 rounded-lg p-2.5 bg-zinc-50 font-bold focus:outline-none"
+              >
+                <option value="BONAFIDE">Bonafide Student Certificate</option>
+                <option value="CHARACTER">Character Certificate</option>
+                <option value="LEAVING">School Leaving Certificate</option>
+                <option value="TRANSFER">Transfer Certificate</option>
+                <option value="RESULT">Exam Result Certificate</option>
+              </select>
+            </div>
 
-          <div>
-            <label className="block font-bold text-zinc-700 uppercase mb-1">Select Class *</label>
-            <select
-              value={selectedClassId}
-              onChange={(e) => setSelectedClassId(e.target.value)}
-              className="w-full border border-zinc-300 rounded-lg p-2.5 bg-zinc-50 font-semibold focus:outline-none"
-            >
-              {classes.map((c) => (
-                <option key={c._id} value={c._id}>{c.name}</option>
-              ))}
-            </select>
-          </div>
+            <div>
+              <label className="block font-bold text-zinc-700 uppercase mb-1">
+                Select Class *
+              </label>
+              <select
+                value={selectedClassId}
+                onChange={(e) => setSelectedClassId(e.target.value)}
+                className="w-full border border-zinc-300 rounded-lg p-2.5 bg-zinc-50 font-semibold focus:outline-none"
+              >
+                {classes.map((c) => (
+                  <option key={c._id} value={c._id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div>
-            <label className="block font-bold text-zinc-700 uppercase mb-1">Select Student *</label>
-            <select
-              value={selectedStudentId}
-              onChange={(e) => setSelectedStudentId(e.target.value)}
-              disabled={students.length === 0}
-              className="w-full border border-zinc-300 rounded-lg p-2.5 bg-zinc-50 font-semibold focus:outline-none disabled:opacity-50"
-            >
-              {students.map((s) => (
-                <option key={s._id} value={s._id}>{s.name} ({s.rollNumber})</option>
-              ))}
-            </select>
-          </div>
+            {mode === "INDIVIDUAL" ? (
+              <div>
+                <label className="block font-bold text-zinc-700 uppercase mb-1">
+                  Select Student *
+                </label>
+                <select
+                  value={selectedStudentId}
+                  onChange={(e) => setSelectedStudentId(e.target.value)}
+                  disabled={students.length === 0 || mode !== "INDIVIDUAL"}
+                  className="w-full border border-zinc-300 rounded-lg p-2.5 bg-zinc-50 font-semibold focus:outline-none disabled:opacity-50"
+                >
+                  {students.map((s) => (
+                    <option key={s._id} value={s._id}>
+                      {s.name} ({s.rollNumber})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div className="flex flex-col justify-center rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                <span className="font-semibold text-zinc-500">Recipients</span>
+                <strong className="mt-1 text-lg">
+                  {mode === "CLASS" ? students.length : picked.length} students
+                </strong>
+              </div>
+            )}
 
-          <div className="flex items-end">
-            <button
-              type="submit"
-              disabled={issuing || !selectedStudentId}
-              className="w-full py-2.5 bg-school-primary text-white font-bold rounded-lg shadow-xs hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-1.5"
-            >
-              <Plus className="h-4 w-4" />
-              {issuing ? "Issuing..." : "Issue Certificate"}
-            </button>
-          </div>
-        </form>
+            <div className="flex items-end">
+              <button
+                type="submit"
+                disabled={
+                  issuing ||
+                  !canIssue ||
+                  !selectedClassId ||
+                  (mode === "INDIVIDUAL"
+                    ? !selectedStudentId
+                    : mode === "CLASS"
+                      ? !students.length
+                      : !picked.length)
+                }
+                className="w-full py-2.5 bg-school-primary text-white font-bold rounded-lg shadow-xs hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-1.5"
+              >
+                <Plus className="h-4 w-4" />
+                {issuing
+                  ? "Issuing..."
+                  : mode === "INDIVIDUAL"
+                    ? "Issue Certificate"
+                    : `Issue ${mode === "CLASS" ? students.length : picked.length} Certificates`}
+              </button>
+            </div>
+            <label className="sm:col-span-2 grid gap-1 font-semibold">
+              Reason
+              <input
+                value={reason}
+                maxLength={1000}
+                onChange={(e) => setReason(e.target.value)}
+                className="min-h-11 rounded border px-3 font-normal"
+                placeholder="Reason for issuing"
+              />
+            </label>
+            <label className="sm:col-span-2 grid gap-1 font-semibold">
+              Conduct / remarks
+              <input
+                value={conductRemarks}
+                maxLength={1000}
+                onChange={(e) => setConductRemarks(e.target.value)}
+                className="min-h-11 rounded border px-3 font-normal"
+                placeholder="Remarks for the selected certificates"
+              />
+            </label>
+            {mode === "CLASS" && (
+              <p className="sm:col-span-4 text-sm text-zinc-600">
+                All {students.length} current students in the selected class
+                will receive a {type.toLowerCase()} certificate.
+              </p>
+            )}
+            {mode === "SELECTED" && (
+              <div className="sm:col-span-4 space-y-3 rounded border bg-zinc-50 p-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <input
+                    aria-label="Search students"
+                    placeholder="Find by name or roll number"
+                    value={studentSearch}
+                    onChange={(e) => setStudentSearch(e.target.value)}
+                    className="min-h-11 rounded border bg-white px-3"
+                  />
+                  <button
+                    type="button"
+                    className="text-sm underline"
+                    onClick={() => setPicked(students.map((s) => s._id))}
+                  >
+                    Select class
+                  </button>
+                  <button
+                    type="button"
+                    className="text-sm underline"
+                    onClick={() => setPicked([])}
+                  >
+                    Clear
+                  </button>
+                  <span>{picked.length} selected</span>
+                </div>
+                <div className="grid max-h-64 gap-2 overflow-auto sm:grid-cols-2">
+                  {students
+                    .filter((s) =>
+                      (s.name + " " + s.rollNumber)
+                        .toLowerCase()
+                        .includes(studentSearch.toLowerCase()),
+                    )
+                    .map((s) => (
+                      <label
+                        key={s._id}
+                        className="flex items-center gap-3 rounded border bg-white p-3"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={picked.includes(s._id)}
+                          onChange={(e) =>
+                            setPicked((previous) =>
+                              e.target.checked
+                                ? [...previous, s._id]
+                                : previous.filter((id) => id !== s._id),
+                            )
+                          }
+                        />
+                        <span>
+                          {s.name}
+                          <small className="ml-2 text-zinc-500">
+                            {s.rollNumber}
+                          </small>
+                        </span>
+                      </label>
+                    ))}
+                </div>
+              </div>
+            )}
+          </form>
+        </fieldset>
       </div>
 
+      <div className="print:hidden flex flex-wrap items-center gap-3 rounded-lg border bg-white p-4">
+        <button
+          disabled={printing || issuing || !checkedCerts.length}
+          onClick={() =>
+            void preparePrint(
+              certificates.filter((c) => checkedCerts.includes(c._id)),
+            )
+          }
+          className="min-h-11 rounded bg-zinc-900 px-4 text-sm text-white disabled:opacity-50"
+        >
+          Prepare selected for print ({checkedCerts.length})
+        </button>
+        <button
+          disabled={printing || issuing || !students.length}
+          onClick={prepareClassPrint}
+          className="min-h-11 rounded border px-4 text-sm disabled:opacity-50"
+        >
+          Prepare whole class for print
+        </button>
+        <span className="text-xs text-zinc-500">
+          Class print uses the latest issued {type.toLowerCase()} certificate
+          for each student.
+        </span>
+        {printing && (
+          <p role="status" className="text-sm">
+            Preparing certificates...
+          </p>
+        )}
+      </div>
       {/* Issued Certificates Directory */}
       <div className="print:hidden space-y-4">
-        <h2 className="text-sm font-bold text-zinc-950">Issued Certificates Directory ({certificates.length})</h2>
+        <h2 className="text-sm font-bold text-zinc-950">
+          Issued Certificates Directory ({certificates.length})
+        </h2>
 
         {loading ? (
-          <p role="status" className="rounded-xl bg-white p-8 text-center text-xs text-zinc-500 border border-zinc-200">
+          <p
+            role="status"
+            className="rounded-xl bg-white p-8 text-center text-xs text-zinc-500 border border-zinc-200"
+          >
             Loading certificates log…
           </p>
         ) : certificates.length > 0 ? (
@@ -193,6 +525,23 @@ export default function IssueCertificatesPage() {
             <table className="w-full min-w-[700px] text-left text-xs">
               <thead className="bg-zinc-950 text-white uppercase text-[10px] font-bold">
                 <tr>
+                  <th className="p-3.5">
+                    <input
+                      aria-label="Select all issued certificates"
+                      type="checkbox"
+                      checked={
+                        certificates.length > 0 &&
+                        certificates.every((c) => checkedCerts.includes(c._id))
+                      }
+                      onChange={(e) =>
+                        setCheckedCerts(
+                          e.target.checked
+                            ? certificates.map((c) => c._id)
+                            : [],
+                        )
+                      }
+                    />
+                  </th>
                   <th className="p-3.5">Cert Number</th>
                   <th className="p-3.5">Type</th>
                   <th className="p-3.5">Student Name</th>
@@ -204,16 +553,42 @@ export default function IssueCertificatesPage() {
               <tbody className="divide-y divide-zinc-200">
                 {certificates.map((cert) => (
                   <tr key={cert._id} className="hover:bg-zinc-50">
-                    <td className="p-3.5 font-mono font-bold text-zinc-900">{cert.certificateNumber}</td>
-                    <td className="p-3.5 font-bold text-school-primary">{cert.type}</td>
-                    <td className="p-3.5 font-bold text-zinc-950">{cert.studentName}</td>
-                    <td className="p-3.5 text-zinc-600">{cert.className} / Roll {cert.rollNumber}</td>
+                    <td className="p-3.5">
+                      <input
+                        type="checkbox"
+                        aria-label={`Select certificate ${cert.certificateNumber}`}
+                        checked={checkedCerts.includes(cert._id)}
+                        onChange={(e) =>
+                          setCheckedCerts((previous) =>
+                            e.target.checked
+                              ? [...previous, cert._id]
+                              : previous.filter((id) => id !== cert._id),
+                          )
+                        }
+                      />
+                    </td>
+                    <td className="p-3.5 font-mono font-bold text-zinc-900">
+                      {cert.certificateNumber}
+                    </td>
+                    <td className="p-3.5 font-bold text-school-primary">
+                      {cert.type}
+                    </td>
+                    <td className="p-3.5 font-bold text-zinc-950">
+                      {cert.studentName}
+                    </td>
+                    <td className="p-3.5 text-zinc-600">
+                      {cert.className} / Roll {cert.rollNumber}
+                    </td>
                     <td className="p-3.5 text-zinc-800 font-mono">
                       {new Date(cert.issueDate).toLocaleDateString()}
                     </td>
                     <td className="p-3.5 text-right">
                       <button
-                        onClick={() => { setSelectedCertForPrint(cert); setTimeout(() => window.print(), 200); }}
+                        onClick={() =>
+                          void previewCertificate(cert)
+                            .then((data) => setSelectedCertForPrint(data))
+                            .catch((e) => setError(e.message))
+                        }
                         className="rounded-lg border border-zinc-300 p-1.5 text-zinc-700 hover:bg-zinc-100"
                         title="Print Certificate"
                       >
@@ -232,39 +607,39 @@ export default function IssueCertificatesPage() {
         )}
       </div>
 
-      {/* PRINTABLE CERTIFICATE VIEW */}
+      {!!printDocuments.length && (
+        <section className="space-y-4 rounded border bg-zinc-100 p-4">
+          <button
+            disabled={printing || issuing}
+            className="min-h-11 rounded bg-school-primary px-4 text-sm text-white"
+            onClick={() => {
+              setPrinting(true);
+              void printSchoolDocument(printRoot.current)
+                .catch((e) => setError(e.message))
+                .finally(() => setPrinting(false));
+            }}
+          >
+            Print {printDocuments.length} certificates / Save PDF
+          </button>
+          <div className="max-h-[65vh] overflow-auto">
+            <div ref={printRoot} className="school-document-bulk">
+              {printDocuments.map((data, i) => (
+                <div
+                  className="ledger-student-page"
+                  key={data.certificate?._id || i}
+                >
+                  <SchoolDocumentTemplate data={data} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
       {selectedCertForPrint && (
-        <div className="hidden print:block bg-white p-12 border-4 border-zinc-900 font-serif text-center text-zinc-950 space-y-8 min-h-[700px] flex flex-col justify-between">
-          <div className="space-y-3">
-            {schoolLogo && <img src={schoolLogo} alt="Logo" className="h-16 mx-auto object-contain" />}
-            <h1 className="text-3xl font-black uppercase tracking-tight">{schoolName}</h1>
-            <h2 className="text-lg font-bold uppercase text-school-primary tracking-widest border-b-2 border-zinc-900 pb-2 max-w-md mx-auto">
-              {selectedCertForPrint.type} CERTIFICATE
-            </h2>
-            <p className="text-xs font-mono text-zinc-600">Certificate No: {selectedCertForPrint.certificateNumber}</p>
-          </div>
-
-          <div className="space-y-6 text-sm leading-relaxed max-w-2xl mx-auto py-6">
-            <p>
-              This is to officially certify that <strong className="text-base font-sans underline">{selectedCertForPrint.studentName}</strong>,
-              Roll Number <strong className="font-mono">{selectedCertForPrint.rollNumber}</strong> (Admission No: {selectedCertForPrint.admissionNumber || "—"}),
-              is/was a bonafide student of <strong className="font-sans font-bold">{selectedCertForPrint.className}</strong> at {schoolName} during the academic session {selectedCertForPrint.session}.
-            </p>
-
-            <p>
-              Remarks & Moral Conduct: <em className="font-sans font-semibold">{selectedCertForPrint.conductRemarks || "Excellent moral character and satisfactory conduct."}</em>
-            </p>
-          </div>
-
-          <div className="pt-12 grid grid-cols-2 gap-12 text-xs font-sans font-bold uppercase">
-            <div className="border-t border-zinc-900 pt-2">
-              <span>Date of Issue: {new Date(selectedCertForPrint.issueDate).toLocaleDateString()}</span>
-            </div>
-            <div className="border-t border-zinc-900 pt-2">
-              <span>Principal Signature & School Seal</span>
-            </div>
-          </div>
-        </div>
+        <DocumentPreviewOverlay
+          data={selectedCertForPrint}
+          onClose={() => setSelectedCertForPrint(null)}
+        />
       )}
     </div>
   );

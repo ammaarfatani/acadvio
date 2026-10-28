@@ -1,3 +1,5 @@
+import { DEFAULT_SUBSCRIPTION_PRICES } from "../../lib/subscription-prices";
+import {frontendLink} from "../utils/emailTemplate";
 import {randomBytes} from "crypto";
 import { PLAN_FEATURE_LABELS, PLAN_FEATURES } from "../../lib/plan-features";
 import mongoose from "mongoose";
@@ -16,6 +18,21 @@ import { sendEmailNotification } from "../utils/email.util";
 import { env } from "../config/env";
 
 export class SuperAdminService {
+  static async changeAccountStatus(schoolId:string,input:{status:"ACTIVE"|"DEACTIVATED";expectedRevision:number;reason?:string},actor:{userId:string;email:string}){
+    const session=await mongoose.startSession();let result:any;
+    try{await session.withTransaction(async()=>{
+      const existing=await School.findById(schoolId).session(session);
+      if(!existing)throw {statusCode:404,message:"Organization not found."};
+      if(existing.status==="PENDING_APPROVAL")throw {statusCode:409,message:"Review this registration through Applications first. Account activation cannot approve a pending school."};
+      if((existing.accountRevision||0)!==input.expectedRevision)throw {statusCode:409,message:"Account status changed. Refresh before retrying."};
+      if((existing.accountStatus||"ACTIVE")===input.status){result=existing;return;}
+      result=await School.findOneAndUpdate({_id:schoolId,$or:[{accountRevision:input.expectedRevision},...(input.expectedRevision===0?[{accountRevision:{$exists:false}}]:[])]},{$set:{accountStatus:input.status,accountStatusReason:input.reason?.trim()||"",accountStatusChangedAt:new Date(),accountStatusChangedBy:actor.userId},$inc:{accountRevision:1}},{session,new:true,runValidators:true});
+      if(!result)throw {statusCode:409,message:"Account status changed. Refresh before retrying."};
+      await AuditLog.create([{actorName:actor.email,actorEmail:actor.email,actorRole:"SUPER_ADMIN",schoolId:result._id,schoolName:result.name,action:"ORGANIZATION_"+input.status,resource:`School:${result._id}`,details:JSON.stringify({actorId:actor.userId,previous:existing.accountStatus||"ACTIVE",next:input.status,reason:input.reason?.trim()||""})}],{session});
+    });}finally{await session.endSession();}
+    return {school:result,message:input.status==="ACTIVE"?"Organization activated successfully.":"Organization deactivated successfully."};
+  }
+
   static async logAudit(data: {
     actorName: string;
     actorEmail: string;
@@ -51,7 +68,7 @@ export class SuperAdminService {
     } finally { await session.endSession(); }
     // Only the winning manual approval sends mail, after the transaction commits.
     const admin = await User.findOne({ schoolId: school._id, userType: UserType.SCHOOL_ADMIN }).select("email name");
-    if (admin?.email) await sendEmailNotification({ to: admin.email, subject: "School Registration Approved", text: `Hello ${admin.name || "School Admin"}, your school registration has been approved. Your 14-day trial is now active. Sign in to your school portal: ${env.FRONTEND_URL}/${school.slug || school.code}/login` }).catch(() => console.error("[EMAIL] School approval notification failed."));
+    if (admin?.email) await sendEmailNotification({ to: admin.email, subject: "School Registration Approved", greeting: `Hello ${admin.name || "School Admin"},`, text: "Your school registration has been approved. Your 14-day free trial is now active. Sign in using your existing account.", actionLabel:"Log In to Acadivo", actionUrl:frontendLink(env.FRONTEND_URL,`/${school.slug || school.code}/login`,env.NODE_ENV==="production") }).catch(() => console.error("[EMAIL] School approval notification failed."));
     return { schoolId: school._id, schoolName: school.name, status: school.status, trialStartedAt: school.trialStartedAt, trialEndsAt: school.trialEndsAt, message: `School '${school.name}' approved. 14-Day Free Trial activated.` };
   }
 
@@ -107,7 +124,7 @@ export class SuperAdminService {
   }
 
   static async resetAdminPassword(userId: string, newPassword?: string, actor: any = { name: "Super Admin", email: "admin@acadivo.com" }) {
-    const user = await User.findById(userId).populate("schoolId");
+    const user = await User.findById(userId).select("+refreshTokenHash").populate("schoolId");
     if (!user) {
       throw { statusCode: 404, message: "User account not found." };
     }
@@ -184,6 +201,7 @@ export class SuperAdminService {
       throw { statusCode: 404, message: "School not found." };
     }
 
+    if(school.status===SubscriptionStatus.PENDING_APPROVAL&&status!==SubscriptionStatus.PENDING_APPROVAL)throw {statusCode:409,message:"Use Applications or Payment Verification to approve pending schools."};
     school.status = status;
     if (plan) school.plan = plan;
     await school.save();
@@ -221,8 +239,8 @@ export class SuperAdminService {
       {
         code: SubscriptionPlan.STARTER,
         name: "Starter Plan",
-        priceMonthlyPKR: 4999,
-        priceAnnualPKR: 3999,
+        priceMonthlyPKR: DEFAULT_SUBSCRIPTION_PRICES.STARTER.monthly,
+        priceAnnualPKR: DEFAULT_SUBSCRIPTION_PRICES.STARTER.annualMonthly,
         description: "Essential administrative suite for growing single-campus schools.",
         features: ["Student Management", "Teacher Directory", "Classes & Sections", "Subjects", "Attendance Register", "Timetable Allocation", "Basic Overview Dashboard", "Standard Exportable Reports", "School Branding", "Standard Support"],
         isActive: true,
@@ -230,8 +248,8 @@ export class SuperAdminService {
       {
         code: SubscriptionPlan.PROFESSIONAL,
         name: "Professional Plan",
-        priceMonthlyPKR: 9999,
-        priceAnnualPKR: 7999,
+        priceMonthlyPKR: DEFAULT_SUBSCRIPTION_PRICES.PROFESSIONAL.monthly,
+        priceAnnualPKR: DEFAULT_SUBSCRIPTION_PRICES.PROFESSIONAL.annualMonthly,
         description: "Complete ERP suite with automated Fee Challans, Exams & Marksheets.",
         features: ["Everything in Starter", "Fee Management", "Automated 3-Part Fee Challans", "Payment Receipts", "Expenses", "Exam Schedules", "Marks Entry", "Professional Marksheets", "Class Position Ranks", "Certificates", "Multiple Staff Roles", "Priority Support"],
         isActive: true,
@@ -239,8 +257,8 @@ export class SuperAdminService {
       {
         code: SubscriptionPlan.ENTERPRISE,
         name: "Enterprise Plan",
-        priceMonthlyPKR: 19999,
-        priceAnnualPKR: 15999,
+        priceMonthlyPKR: DEFAULT_SUBSCRIPTION_PRICES.ENTERPRISE.monthly,
+        priceAnnualPKR: DEFAULT_SUBSCRIPTION_PRICES.ENTERPRISE.annualMonthly,
         description: "Full-scale ERP for multi-branch school networks & educational groups.",
         features: ["Everything in Professional", "Multi-Branch Centralized Dashboard", "Advanced Ledger Finance", "Staff Payroll", "Library Module", "Transport & Bus Routes", "Asset Inventory", "Executive Analytics", "Custom Roles", "Dedicated Support", "Custom Setup"],
         isActive: true,
@@ -249,7 +267,7 @@ export class SuperAdminService {
 
     const dbPlans = await Plan.find();
     if (dbPlans.length === 0) {
-      await Plan.insertMany(defaultPlans);
+      try{await Plan.bulkWrite(defaultPlans.map(plan=>({updateOne:{filter:{code:plan.code},update:{$setOnInsert:plan},upsert:true}})),{ordered:false});}catch(e:any){if(e.code!==11000)throw e;}
       const created = await Plan.find();
       return created.map((p:any)=>({...p.toObject(),features:PLAN_FEATURE_LABELS[p.code]||[],enabledFeatures:PLAN_FEATURES[p.code]||[]}));
     }

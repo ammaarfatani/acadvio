@@ -1,3 +1,4 @@
+import {frontendLink} from "../utils/emailTemplate";
 import { sendEmailNotification } from "../utils/email.util";
 import { env } from "../config/env";
 import { resolveBranchContext } from "./branchContext.service";
@@ -22,7 +23,7 @@ import { LoginInput } from "../validators/auth.validator";
 export class AuthService {
   static async login(input: LoginInput, ipAddress: string = "127.0.0.1", userAgent: string = "Unknown") {
     // 1. Find user by email
-    const user = await User.findOne({ email: input.email.toLowerCase() }).populate("roleId");
+    const user = await User.findOne({ email: input.email.toLowerCase() }).select("+passwordHash").populate("roleId");
 
     if (!user) {
       await LoginActivity.create({
@@ -98,6 +99,7 @@ export class AuthService {
         };
       }
 
+      if(school.accountStatus==="DEACTIVATED"&&user.userType!==UserType.SCHOOL_ADMIN)throw {statusCode:403,message:"Your organization is deactivated. Contact your school administrator."};
       if (school.status === SubscriptionStatus.SUSPENDED || school.status === SubscriptionStatus.CANCELLED) {
         throw {
           statusCode: 403,
@@ -175,7 +177,7 @@ export class AuthService {
   static async refreshToken(refreshToken: string) {
     const decoded = verifyRefreshToken(refreshToken);
 
-    const user = await User.findById(decoded.userId).populate("roleId");
+    const user = await User.findById(decoded.userId).select("+refreshTokenHash").populate("roleId");
     if (!user || !user.refreshTokenHash || (decoded.tokenVersion || 0) !== (user.tokenVersion || 0)) {
       throw { statusCode: 401, message: "Invalid refresh token session." };
     }
@@ -186,7 +188,8 @@ export class AuthService {
     }
 
     if (user.userType !== UserType.SUPER_ADMIN) {
-      const school = user.schoolId ? await School.findById(user.schoolId).select("status registrationType") : null;
+      const school = user.schoolId ? await School.findById(user.schoolId).select("status registrationType accountStatus") : null;
+      if(school?.accountStatus==="DEACTIVATED"&&user.userType!==UserType.SCHOOL_ADMIN)throw {statusCode:403,message:"Organization deactivated."};
       const paidPending = user.userType === UserType.SCHOOL_ADMIN && school?.registrationType === "paid";
       if ((user.status !== UserStatus.ACTIVE && !(user.status === UserStatus.PENDING_APPROVAL && paidPending)) || !school || (school.status === SubscriptionStatus.PENDING_APPROVAL && !paidPending) || [SubscriptionStatus.SUSPENDED, SubscriptionStatus.CANCELLED].includes(school.status)) throw { statusCode: 403, message: "Your school/account is awaiting approval or access is restricted." };
     }
@@ -217,7 +220,7 @@ export class AuthService {
 
   static async changePassword(userId: string, currentPassword: string, newPassword: string) {
     return withoutBranchScope(async () => {
-      const user = await User.findById(userId);
+      const user = await User.findById(userId).select("+passwordHash");
       if (!user || !await comparePassword(currentPassword, user.passwordHash)) throw { statusCode: 400, message: "Current password is incorrect." };
       if (await comparePassword(newPassword, user.passwordHash)) throw { statusCode: 400, message: "Choose a different new password." };
       const updated = await User.findOneAndUpdate({ _id: userId, passwordHash: user.passwordHash }, { $set: { passwordHash: await hashPassword(newPassword) }, $inc: { tokenVersion: 1 }, $unset: { refreshTokenHash: 1, resetPasswordToken: 1, resetPasswordExpires: 1 } });
@@ -243,7 +246,7 @@ export class AuthService {
     user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
     await user.save();
 
-    await sendEmailNotification({to:user.email,subject:"Reset your Acadivo password",text:"Use this link to reset your password within one hour: "+env.FRONTEND_URL.replace(/\/$/,"")+"/reset-password#token="+encodeURIComponent(resetToken)});
+    try{await sendEmailNotification({to:user.email,subject:"Reset your Acadivo password",greeting:"Hello "+user.name+",",text:"You requested a password reset. This link expires in one hour and can only be used once. If you did not request this, you can ignore this email.",actionLabel:"Reset Your Password",actionUrl:frontendLink(env.FRONTEND_URL,"/reset-password#token="+encodeURIComponent(resetToken),env.NODE_ENV==="production")});}catch{console.error("[EMAIL] Password reset delivery unavailable.");}
     return { message: "If an account with that email exists, password reset instructions have been sent." };
   }
 
@@ -259,12 +262,8 @@ export class AuthService {
       throw { statusCode: 400, message: "Password reset token is invalid or has expired." };
     }
 
-    user.passwordHash = await hashPassword(newPassword);
-    user.tokenVersion = (user.tokenVersion || 0) + 1;
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
-    user.refreshTokenHash = undefined;
-    await user.save();
+    const changed=await User.findOneAndUpdate({_id:user._id,resetPasswordToken:hashedToken,resetPasswordExpires:{$gt:new Date()}},{$set:{passwordHash:await hashPassword(newPassword)},$inc:{tokenVersion:1},$unset:{resetPasswordToken:1,resetPasswordExpires:1,refreshTokenHash:1}});
+    if(!changed)throw {statusCode:400,message:"Password reset token is invalid or has expired."};
 
     return { message: "Password reset successful. You can now login with your new password." };
   }
@@ -283,7 +282,7 @@ export class AuthService {
     const schoolRecord: any = user.schoolId && typeof user.schoolId === "object" ? user.schoolId : null;
     const school = schoolRecord ? { ...schoolRecord.toObject(), slug: schoolRecord.slug || schoolRecord.code } : null;
 
-    if (school) delete school.theme;
+    if (school) { delete school.theme; delete school.documentSettings; }
     return {
       organizationId: school ? String(school._id) : null,
       branchId: branchContext.getStore() ? branchContext.getStore()!.branchId : (user.branchId ? String(user.branchId) : school ? String(school._id) : null),

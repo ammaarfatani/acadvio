@@ -1,0 +1,45 @@
+Practice website: http://127.0.0.1:3001
+Practice API only: http://127.0.0.1:5001/api
+  ▲ Next.js 14.2.35
+  - Local:        http://127.0.0.1:3001
+  - Network:      http://127.0.0.1:3001
+  - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 16.3s
+ ○ Compiling /src/middleware ...
+ ✓ Compiled /src/middleware in 679ms (72 modules)
+ ○ Compiling /school-admin/id-cards ...
+ ✓ Compiled /school-admin/id-cards in 18.9s (793 modules)
+ ✓ Compiled in 2s (357 modules)
+ GET /school-admin/id-cards 200 in 21099ms
+ ○ Compiling /login ...
+ ✓ Compiled /login in 1742ms (742 modules)
+ ✓ Compiled in 9.9s (756 modules)
+ ○ Compiling /school-admin ...
+ ✓ Compiled /school-admin in 1525ms (758 modules)
+ ✓ Compiled in 5.2s (772 modules)
+ GET /school-admin 200 in 1224ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 3.1s (429 modules)
+ GET /favicon.ico 200 in 3597ms
+ GET /school-admin 200 in 524ms
+ GET /school-admin/id-cards 200 in 342ms
+ GET /favicon.ico 200 in 243ms
+ ✓ Compiled in 2.9s (830 modules)
+ GET /login?reason=session&schoolSlug=biometric-practice 200 in 597ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 949ms (429 modules)
+ GET /favicon.ico 200 in 1301ms
+ GET /school-admin 200 in 699ms
+ GET /school-admin 200 in 2089ms
+ GET /favicon.ico 200 in 326ms
+ GET /school-admin/id-cards 200 in 907ms
+ ✓ Compiled in 8.1s (844 modules)
+ ✓ Compiled in 4.3s (772 modules)
+ ✓ Compiled in 2.3s (375 modules)
+ ✓ Compiled in 7.1s (844 modules)
+ ✓ Compiled in 12.2s (375 modules)
+ ✓ Compiled in 4.8s (375 modules)
+ ✓ Compiled in 2.5s (772 modules)
+ ✓ Compiled in 1533ms (830 modules)

@@ -16,7 +16,7 @@ const portals = [
 export function ProductShowcase({ compact = false }: { compact?: boolean }) {
   const [selected, setSelected] = useState(0);
   const portal = portals[selected];
-  return <div>
+  return <div className="ac-portal-showcase">
     <div role="tablist" aria-label="Explore school portals" className="flex gap-2 overflow-x-auto pb-3">
       {portals.map((item, index) => <button key={item.id} id={`portal-tab-${item.id}`} role="tab" aria-selected={selected === index} aria-controls="portal-preview" tabIndex={selected === index ? 0 : -1} onClick={() => setSelected(index)} onKeyDown={event => { if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) { event.preventDefault(); const next = event.key === "Home" ? 0 : event.key === "End" ? portals.length - 1 : (selected + (event.key === "ArrowRight" ? 1 : -1) + portals.length) % portals.length; setSelected(next); document.getElementById(`portal-tab-${portals[next].id}`)?.focus(); } }} className={`shrink-0 rounded-lg border px-4 py-3 text-sm font-semibold ${selected === index ? "border-brand-600 bg-brand-600 text-white" : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-400"}`}>{item.label}</button>)}
     </div>

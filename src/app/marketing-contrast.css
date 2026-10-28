@@ -1,0 +1,43 @@
+/* Text contrast contracts for public surfaces. Keep light cards and dark panels explicit. */
+.marketing-site{--ac-muted:#555e6b}
+.marketing-site :is(.m-eyebrow,.m-text-link,.m-step){color:#bd0010}
+.marketing-site .p-feature-exams{background:#fff;border-color:#dde1e7;color:#222831}
+.marketing-site .p-feature-exams h3{color:#202329}.marketing-site .p-feature-exams p:not(.m-eyebrow){color:#505966}.marketing-site .p-feature-exams :is(.m-eyebrow,.m-text-link){color:#bd0010}
+.marketing-site .ac-about-beliefs .ac-belief-list article{background:#fff;border-color:#dfe3e9;color:#222831}
+.marketing-site .ac-about-beliefs .ac-belief-list article h3{color:#202329}.marketing-site .ac-about-beliefs .ac-belief-list article p{color:#505966}
+.marketing-site :is(.m-onboarding-grid article p,.m-onboarding-grid article>div>span,.m-workflow p,.m-registration-steps p,.m-contact-details small,.m-checkout-notice p,.m-checkout-progress li,.m-hero-note){color:#555e6b}
+.marketing-site .m-guide-chapter ol li>span{color:#505966;border-color:#c8cdd5}
+.marketing-site :is(.m-frame-bar,.m-product-frame figcaption){color:#555e6b}
+.marketing-site .m-login-visual .m-frame-bar{color:#555e6b}.marketing-site .m-login-visual .m-product-frame figcaption{color:#555e6b}
+.marketing-site .m-login-form .text-zinc-500{color:#555e6b}
+.marketing-site .ac-portal-showcase [role=tab]{color:#525b67}.marketing-site .ac-portal-showcase [role=tab][aria-selected=true]{color:#b0000b;background:#fff0f1;border-bottom-color:#cf0010}
+.marketing-site .p-problem :is(span,p){color:#555e6b}.marketing-site .p-problem h3{color:#202329}
+.marketing-site .p-hero :is(.p-proof-label,.p-hero-caption,.p-role-strip>span,.p-showcase-label span){color:#555e6b}
+.marketing-site .m-pricing-table .text-zinc-300{color:#626b78}.marketing-site .m-pricing-table>div>p.text-zinc-500{color:#555e6b}
+/* One soft recommendation treatment, shared by homepage and pricing. */
+.marketing-site .m-pricing-table>div.grid>div.ac-plan-card[data-plan=PROFESSIONAL]{background:#fff5f5;color:#222831;border:1px solid #e8b7bc;border-top:4px solid #cf0010;box-shadow:0 12px 30px #a9141d0d}
+.marketing-site .m-pricing-table>div.grid>div.ac-plan-card[data-plan=PROFESSIONAL] :is(h3,.text-zinc-950,.text-zinc-900,.text-zinc-700){color:#222831}
+.marketing-site .m-pricing-table>div.grid>div.ac-plan-card[data-plan=PROFESSIONAL] :is(.text-zinc-500,.text-zinc-600,.ac-plan-reference){color:#535d69}
+.marketing-site .m-pricing-table>div.grid>div.ac-plan-card[data-plan=PROFESSIONAL] .ac-plan-reference span{color:#b0000b}
+.marketing-site .m-pricing-table>div.grid>div.ac-plan-card[data-plan=PROFESSIONAL] .text-red-600{color:#bd0010}
+.marketing-site .m-pricing-table>div.grid>div.ac-plan-card[data-plan=PROFESSIONAL] .text-emerald-600{color:#21653c}
+.marketing-site .m-pricing-table>div.grid>div.ac-plan-card[data-plan=PROFESSIONAL] a:not(.ac-plan-detail){background:#cf0010;color:#fff}
+.marketing-site .m-pricing-table>div.grid>div.ac-plan-card[data-plan=PROFESSIONAL] .ac-plan-detail{color:#b0000b;background:transparent}
+.marketing-site .m-pricing-table>div.grid>div.ac-plan-card[data-plan=PROFESSIONAL] .border-zinc-100{border-color:#ead7d9}
+/* Give gradient controls a real opaque fallback and measurable foreground. */
+.marketing-site .ac-guide-launcher{background-color:#232830;color:#fff}.marketing-site .ac-guide-launcher :is(strong,small){color:#fff}
+.marketing-site .ac-chat-header{background-color:#232830;color:#fff}
+.marketing-site .p-hero :is(.p-stage-label span,.p-trust-strip>span,.p-context-note span){color:#555e6b}
+.marketing-site .m-pricing-table p.text-zinc-500,.marketing-site .m-contact-preview p{color:#555e6b}
+.marketing-site input::placeholder,.marketing-site textarea::placeholder{color:#667080;opacity:1}
+.marketing-site .m-pricing-table .text-emerald-600{color:#21653c}
+.marketing-site .ac-chat :is(.ac-chat-date,.ac-message-label,.ac-chat-suggestions>p,.ac-chat-composer>p){color:#555e6b}
+.marketing-site .ac-chat .ac-chat-quick button{color:#505966}
+.marketing-site .ac-location-list b,.marketing-site .ac-location-footnote{color:#555e6b}
+.marketing-site .ac-message-user .ac-message-bubble{background-color:#bd0010;color:#fff}
+.marketing-site .ac-location-list small{color:#555e6b}
+.marketing-site #portal-showcase .ac-portal-showcase [role=tab]{color:#525b67}.marketing-site #portal-showcase .ac-portal-showcase [role=tab][aria-selected=true]{color:#b0000b;background:#fff0f1;border-bottom-color:#cf0010}
+.marketing-site .m-guide-page .m-guide-layout aside p,.marketing-site .m-guide-page .m-guide-chapter header p{color:#555e6b}
+.marketing-site .ac-about-beliefs .ac-belief-list article>svg{color:#bd0010}
+.marketing-site .ac-registration-notice p.text-zinc-300{color:#505966}
+.marketing-site .m-registration-form .ac-registration-notice,.marketing-site .m-checkout-content .ac-registration-notice{background:#fff4f4;border-color:#ebc8cc}

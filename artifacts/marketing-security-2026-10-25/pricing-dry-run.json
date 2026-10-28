@@ -1,0 +1,41 @@
+{
+  "mode": "dry-run",
+  "changes": [
+    {
+      "id": "6aba553438a32068644c5727",
+      "code": "ENTERPRISE",
+      "before": {
+        "monthly": 19999,
+        "annualMonthly": 15999
+      },
+      "after": {
+        "monthly": 8000,
+        "annualMonthly": 6400
+      }
+    },
+    {
+      "id": "6aba553438a32068644c5726",
+      "code": "PROFESSIONAL",
+      "before": {
+        "monthly": 9999,
+        "annualMonthly": 7999
+      },
+      "after": {
+        "monthly": 4000,
+        "annualMonthly": 3200
+      }
+    },
+    {
+      "id": "6aba553438a32068644c5725",
+      "code": "STARTER",
+      "before": {
+        "monthly": 4999,
+        "annualMonthly": 3999
+      },
+      "after": {
+        "monthly": 2000,
+        "annualMonthly": 1600
+      }
+    }
+  ]
+}

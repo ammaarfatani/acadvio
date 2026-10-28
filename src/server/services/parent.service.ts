@@ -1,3 +1,5 @@
+import {hydrateDocumentPhoto} from "./schoolDocument.service";
+import {defaultDocumentStyle} from "../../lib/document-templates";
 import {TeachingAssignment} from "../models/teacherProfile.model";
 import {annualMarksheet} from "./marksheet.service";
 import mongoose from "mongoose";
@@ -16,7 +18,7 @@ import { AuthenticatedUser } from "../middlewares/auth.middleware";
 import { hasFeature } from "../../lib/plan-features";
 export async function children(actor: AuthenticatedUser) {
   const profile = await ParentProfile.findOne({ schoolId: actor.schoolId, userId: actor.userId });
-  return profile ? Student.find({ schoolId: actor.schoolId, _id: { $in: profile.studentIds } }).select("name className sectionName rollNumber status").lean() : [];
+  return profile ? Student.find({ schoolId: actor.schoolId, _id: { $in: profile.studentIds } }).select("name className sectionName rollNumber status photoUrl updatedAt").lean() : [];
 }
 export async function linkedChild(actor: AuthenticatedUser,id:string){
  const profile=await ParentProfile.findOne({schoolId:actor.schoolId,userId:actor.userId,studentIds:id});
@@ -48,9 +50,10 @@ export async function childDetails(actor: AuthenticatedUser, id: string) {
  const bank=profile?.bankDetails;
  const examIds=(examSchedules as any[]).map(e=>e._id);
  const examTimetable=exams&&student.sectionId?await ExamTimetable.find({schoolId:actor.schoolId,examId:{$in:examIds},classId:student.classId,sectionId:student.sectionId}).populate({path:"subjectId",select:"name",match:{schoolId:actor.schoolId}}).sort({date:1,startTime:1}).lean():[];
- const certificates=exams?await CertificateRecord.find({schoolId:actor.schoolId,studentId:id}).select("certificateNumber type session issueDate className conductRemarks").sort({issueDate:-1}).lean():[];
+ const certificates=exams?await CertificateRecord.find({schoolId:actor.schoolId,studentId:id}).select("certificateNumber type studentName admissionNumber rollNumber session issueDate className conductRemarks reason documentSnapshot").sort({issueDate:-1}).lean():[];
+ for(const certificate of certificates as any[])if(certificate.documentSnapshot)certificate.documentSnapshot=await hydrateDocumentPhoto(certificate.documentSnapshot);
  const marksheet=exams?await annualMarksheet(actor.schoolId!,id,true):null;
- return{student,classInfo,marksheet,placementWarning:placement.placementWarning,certificates,examTimetable,examSchedules:examSchedules.map((e:any)=>({...e,subjects:subjects.map((s:any)=>s.name)})),attendance:history,attendanceSummary:{total:history.length,present:history.filter((a:any)=>["PRESENT","LATE"].includes(a.status)).length},fees,results,payments:payments.map((p:any)=>({...p,reference:(submissions as any[]).find(s=>String(s.paymentId)===String(p._id))?.reference||null})),structures,submissions,subjects:subjects.map((s:any)=>({...s,teacherName:subjectTeachers(s)})),timetable:[...bySlot.values()].sort((a:any,b:any)=>["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"].indexOf(a.dayOfWeek)-["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"].indexOf(b.dayOfWeek)||a.periodNumber-b.periodNumber),bankDetails:bank?.enabled&&bank.bankName?.trim()&&bank.accountTitle?.trim()&&bank.accountNumber?.trim()?bank:null};
+ return{documentBranding:profile?{name:profile.name,address:profile.address,phone:profile.phone,email:profile.email,logoUrl:profile.logoUrl,...profile.documentSettings?.branding}:null,documentStyles:profile?Object.fromEntries(["report-card","fee-receipt","character","leaving","bonafide","transfer"].map(type=>[type,profile.documentSettings?.templates?.[type]||defaultDocumentStyle(type as any)])):null,student,classInfo,marksheet,placementWarning:placement.placementWarning,certificates,examTimetable,examSchedules:examSchedules.map((e:any)=>({...e,subjects:subjects.map((s:any)=>s.name)})),attendance:history,attendanceSummary:{total:history.length,present:history.filter((a:any)=>["PRESENT","LATE"].includes(a.status)).length},fees,results,payments:payments.map((p:any)=>({...p,reference:(submissions as any[]).find(s=>String(s.paymentId)===String(p._id))?.reference||null})),structures,submissions,subjects:subjects.map((s:any)=>({...s,teacherName:subjectTeachers(s)})),timetable:[...bySlot.values()].sort((a:any,b:any)=>["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"].indexOf(a.dayOfWeek)-["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"].indexOf(b.dayOfWeek)||a.periodNumber-b.periodNumber),bankDetails:bank?.enabled&&bank.bankName?.trim()&&bank.accountTitle?.trim()&&bank.accountNumber?.trim()?bank:null};
 }
 export async function createParent(schoolId: string, input: any) {
   const ids = [...new Set(input.studentIds)];

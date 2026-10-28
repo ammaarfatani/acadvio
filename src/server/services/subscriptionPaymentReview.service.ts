@@ -7,11 +7,12 @@ import { AcademicSession } from "../models/academicSession.model";
 import { UserStatus } from "../constants/roles.constant";
 
 export function subscriptionPeriodEnd(start: Date, cycle: string) {
-  const end = new Date(start), day = end.getDate();
-  end.setDate(1);
-  if (cycle === "annual") end.setFullYear(end.getFullYear() + 1); else end.setMonth(end.getMonth() + 1);
-  end.setDate(Math.min(day, new Date(end.getFullYear(), end.getMonth()+1, 0).getDate()));
-  return end;
+  // Calendar months in Asia/Karachi (UTC+05:00); independent of the server timezone.
+  const offset=5*60*60000,end=new Date(start.getTime()+offset),day=end.getUTCDate();
+  end.setUTCDate(1);
+  if(cycle==="annual")end.setUTCFullYear(end.getUTCFullYear()+1);else end.setUTCMonth(end.getUTCMonth()+1);
+  end.setUTCDate(Math.min(day,new Date(Date.UTC(end.getUTCFullYear(),end.getUTCMonth()+1,0)).getUTCDate()));
+  return new Date(end.getTime()-offset);
 }
 
 // A durable review lease and fixed period make retries safe on standalone MongoDB.

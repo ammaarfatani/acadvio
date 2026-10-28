@@ -1,0 +1,198 @@
+{
+  "desktop": [
+    {
+      "path": "/",
+      "brokenImages": 0,
+      "fullCapture": false,
+      "h1": "A whole school. Working as one.",
+      "overflow": false,
+      "title": "Acadivo — School Management & ERP Platform",
+      "width": 1600
+    },
+    {
+      "path": "/features",
+      "brokenImages": 0,
+      "fullCapture": false,
+      "h1": "The work of a school.In one system.",
+      "overflow": false,
+      "title": "Features — Acadivo",
+      "width": 1600
+    },
+    {
+      "path": "/about",
+      "brokenImages": 0,
+      "fullCapture": false,
+      "h1": "For the peoplebehind everyschool day.",
+      "overflow": false,
+      "title": "About Acadivo — AKTech Digital Solutions",
+      "width": 1600
+    },
+    {
+      "path": "/demo",
+      "brokenImages": 0,
+      "fullCapture": false,
+      "h1": "See the schoolfrom every role.",
+      "overflow": false,
+      "title": "Product Demo — Acadivo",
+      "width": 1600
+    },
+    {
+      "path": "/guide",
+      "brokenImages": 0,
+      "fullCapture": false,
+      "h1": "Get started.Keep your school moving.",
+      "overflow": false,
+      "title": "Portal Guide & Getting Started - Acadivo",
+      "width": 1600
+    },
+    {
+      "path": "/pricing",
+      "brokenImages": 0,
+      "fullCapture": false,
+      "h1": "Start with whatyour school needs.",
+      "overflow": false,
+      "title": "Regional Pricing Plans — Acadivo",
+      "width": 1600
+    },
+    {
+      "path": "/contact",
+      "brokenImages": 0,
+      "fullCapture": false,
+      "h1": "Let’s talk aboutyour school.",
+      "overflow": false,
+      "title": "Contact — Acadivo / AKTech",
+      "width": 1600
+    },
+    {
+      "path": "/login",
+      "brokenImages": 0,
+      "fullCapture": false,
+      "h1": "Sign in to Acadivo",
+      "overflow": false,
+      "title": "Acadivo — School Management & ERP Platform",
+      "width": 1600
+    },
+    {
+      "path": "/free-trial",
+      "brokenImages": 0,
+      "fullCapture": false,
+      "h1": "Your school.A connectedstart.",
+      "overflow": false,
+      "title": "Start 14-Day Free Trial — Acadivo",
+      "width": 1600
+    },
+    {
+      "path": "/forgot-password",
+      "brokenImages": 0,
+      "fullCapture": false,
+      "h1": "Let’s get you\nback to school.",
+      "overflow": false,
+      "title": "Acadivo — School Management & ERP Platform",
+      "width": 1600
+    },
+    {
+      "path": "/reset-password",
+      "brokenImages": 0,
+      "fullCapture": false,
+      "h1": "A fresh start.\nA secure account.",
+      "overflow": false,
+      "title": "Acadivo — School Management & ERP Platform",
+      "width": 1600
+    },
+    {
+      "path": "/payment?plan=STARTER&billingCycle=monthly&market=AL",
+      "brokenImages": 0,
+      "fullCapture": false,
+      "h1": "A clear path toapproved access.",
+      "overflow": false,
+      "title": "Subscription Payment — Acadivo",
+      "width": 1600
+    }
+  ],
+  "mobile": [
+    {
+      "path": "/",
+      "brokenImages": 0,
+      "overflow": false,
+      "title": "Acadivo — School Management & ERP Platform",
+      "width": 400
+    },
+    {
+      "path": "/features",
+      "brokenImages": 0,
+      "overflow": false,
+      "title": "Features — Acadivo",
+      "width": 400
+    },
+    {
+      "path": "/about",
+      "brokenImages": 0,
+      "overflow": false,
+      "title": "About Acadivo — AKTech Digital Solutions",
+      "width": 400
+    },
+    {
+      "path": "/demo",
+      "brokenImages": 0,
+      "overflow": false,
+      "title": "Product Demo — Acadivo",
+      "width": 400
+    },
+    {
+      "path": "/guide",
+      "brokenImages": 0,
+      "overflow": false,
+      "title": "Portal Guide & Getting Started - Acadivo",
+      "width": 400
+    },
+    {
+      "path": "/pricing",
+      "brokenImages": 0,
+      "overflow": false,
+      "title": "Regional Pricing Plans — Acadivo",
+      "width": 400
+    },
+    {
+      "path": "/contact",
+      "brokenImages": 0,
+      "overflow": false,
+      "title": "Contact — Acadivo / AKTech",
+      "width": 400
+    },
+    {
+      "path": "/login",
+      "brokenImages": 0,
+      "overflow": false,
+      "title": "Acadivo — School Management & ERP Platform",
+      "width": 400
+    },
+    {
+      "path": "/free-trial",
+      "brokenImages": 0,
+      "overflow": false,
+      "title": "Start 14-Day Free Trial — Acadivo",
+      "width": 400
+    },
+    {
+      "path": "/forgot-password",
+      "brokenImages": 0,
+      "overflow": false,
+      "title": "Acadivo — School Management & ERP Platform",
+      "width": 400
+    },
+    {
+      "path": "/reset-password",
+      "brokenImages": 0,
+      "overflow": false,
+      "title": "Acadivo — School Management & ERP Platform",
+      "width": 400
+    },
+    {
+      "path": "/payment?plan=STARTER&billingCycle=monthly&market=DE",
+      "brokenImages": 0,
+      "overflow": false,
+      "title": "Subscription Payment — Acadivo",
+      "width": 400
+    }
+  ]
+}

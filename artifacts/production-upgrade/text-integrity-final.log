@@ -1,0 +1,1 @@
+PASS: 27435 text/string nodes; valid UTF-8, no damaged separators/apostrophes/loading labels. Legitimate questions and URL queries preserved.

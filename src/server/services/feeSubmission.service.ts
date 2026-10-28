@@ -1,3 +1,5 @@
+import {defaultDocumentStyle} from "../../lib/document-templates";
+import {Student} from "../models/student.model";
 import mongoose from "mongoose";
 import { randomUUID, createHash } from "crypto";
 import { FeeSubmission } from "../models/feeSubmission.model";
@@ -31,9 +33,12 @@ export async function reviewFee(actor:AuthenticatedUser,id:string,status:"APPROV
  if(status==="APPROVED"){
  const challan=await FeeChallan.findOne({_id:request.challanId,studentId:request.studentId,schoolId:actor.schoolId,isVoided:{$ne:true}}).session(session);
  if(!challan||challan.status==="VOIDED"||request.amountPKR>challan.remainingAmountPKR)throw{statusCode:409,message:"Invoice balance changed. Reject this request and ask for an updated payment."};
- const receiptNumber="REC-"+new Date().getFullYear()+"-"+randomUUID().slice(0,8).toUpperCase();
+ const receiptNumber="REC-"+new Date().getFullYear()+"-"+randomUUID().replace(/-/g,"").toUpperCase();
  challan.paidAmountPKR+=request.amountPKR;challan.remainingAmountPKR=Math.max(0,challan.totalAmountPKR-challan.paidAmountPKR);challan.status=challan.remainingAmountPKR===0?"PAID":"PARTIAL";challan.paymentMethod="Bank Transfer";challan.paidDate=new Date();challan.receiptNumber=receiptNumber;challan.collectedByUserName=actor.email;await challan.save({session});
- const [payment]=await FeePayment.create([{schoolId:actor.schoolId,challanId:challan._id,studentId:challan.studentId,studentName:challan.studentName,rollNumber:challan.rollNumber,className:challan.className,amountPKR:request.amountPKR,paymentMethod:"Bank Transfer",paidAt:new Date(),receiptNumber,collectedByUserName:actor.email}],{session});request.paymentId=payment._id;request.receiptNumber=receiptNumber;
+ const profile=await SchoolService.getSchoolProfile(actor.schoolId!);
+ const studentProfile:any=await Student.findOne({_id:challan.studentId,schoolId:actor.schoolId}).select("parentInfo sectionName admissionNumber").session(session).lean();
+ const documentSnapshot={documentStyle:profile.documentSettings?.templates?.["fee-receipt"]||defaultDocumentStyle("fee-receipt"),school:{name:profile.name,address:profile.address,phone:profile.phone,email:profile.email,logoUrl:profile.logoUrl,...profile.documentSettings?.branding},feeBreakdown:challan.feeBreakdown,month:challan.month,student:{name:challan.studentName,admissionNumber:challan.admissionNumber||studentProfile?.admissionNumber,rollNumber:challan.rollNumber,className:challan.className,sectionName:studentProfile?.sectionName,parentInfo:studentProfile?.parentInfo}};
+ const [payment]=await FeePayment.create([{schoolId:actor.schoolId,challanId:challan._id,studentId:challan.studentId,studentName:challan.studentName,rollNumber:challan.rollNumber,className:challan.className,amountPKR:request.amountPKR,paymentMethod:"Bank Transfer",paidAt:new Date(),receiptNumber,collectedByUserName:actor.email,documentSnapshot,balanceAfterPKR:challan.remainingAmountPKR,transactionReference:request.reference}],{session});request.paymentId=payment._id;request.receiptNumber=receiptNumber;
  }
  request.status=status;request.rejectionReason=status==="REJECTED"?reason?.trim():undefined;request.reviewedBy=actor.userId;request.reviewedAt=new Date();await request.save({session});
  await AuditLog.create([{schoolId:actor.schoolId,action:"PARENT_FEE_"+status,performedByName:actor.email,details:"Payment request "+request._id+" reviewed."}],{session});result=request;

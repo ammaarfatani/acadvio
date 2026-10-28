@@ -1,0 +1,98 @@
+[
+  {
+    "path": "/",
+    "issues": [],
+    "geometry": {
+      "overflow": false,
+      "width": 1600
+    }
+  },
+  {
+    "path": "/features",
+    "issues": [],
+    "geometry": {
+      "overflow": false,
+      "width": 1600
+    }
+  },
+  {
+    "path": "/pricing",
+    "issues": [],
+    "geometry": {
+      "overflow": false,
+      "width": 1600
+    }
+  },
+  {
+    "path": "/demo",
+    "issues": [],
+    "geometry": {
+      "overflow": false,
+      "width": 1600
+    }
+  },
+  {
+    "path": "/guide",
+    "issues": [],
+    "geometry": {
+      "overflow": false,
+      "width": 1600
+    }
+  },
+  {
+    "path": "/about",
+    "issues": [],
+    "geometry": {
+      "overflow": false,
+      "width": 1600
+    }
+  },
+  {
+    "path": "/contact",
+    "issues": [],
+    "geometry": {
+      "overflow": false,
+      "width": 1600
+    }
+  },
+  {
+    "path": "/login",
+    "issues": [],
+    "geometry": {
+      "overflow": false,
+      "width": 1600
+    }
+  },
+  {
+    "path": "/free-trial",
+    "issues": [],
+    "geometry": {
+      "overflow": false,
+      "width": 1600
+    }
+  },
+  {
+    "path": "/forgot-password",
+    "issues": [],
+    "geometry": {
+      "overflow": false,
+      "width": 1600
+    }
+  },
+  {
+    "path": "/reset-password",
+    "issues": [],
+    "geometry": {
+      "overflow": false,
+      "width": 1600
+    }
+  },
+  {
+    "path": "/payment?plan=STARTER&billingCycle=monthly&market=PK",
+    "issues": [],
+    "geometry": {
+      "overflow": false,
+      "width": 1600
+    }
+  }
+]

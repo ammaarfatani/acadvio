@@ -4,15 +4,41 @@ import { sendSuccess } from "../utils/response.util";
 
 export class FinanceController {
   static async getChallans(req: Request, res: Response, next: NextFunction) {
-    try { const schoolId = req.user?.schoolId; if (!schoolId) throw { statusCode: 400, message: "No school tenant context." }; return sendSuccess(res, await FinanceService.getChallans(schoolId, req.query.status as string), "Fee challans retrieved."); } catch (error) { next(error); }
+    try {
+      const schoolId = req.user?.schoolId;
+      if (!schoolId)
+        throw { statusCode: 400, message: "No school tenant context." };
+      return sendSuccess(
+        res,
+        await FinanceService.getChallans(schoolId, req.query.status as string),
+        "Fee challans retrieved.",
+      );
+    } catch (error) {
+      next(error);
+    }
   }
   static async getReceipt(req: Request, res: Response, next: NextFunction) {
-    try { const schoolId = req.user?.schoolId; if (!schoolId) throw { statusCode: 400, message: "No school tenant context." }; return sendSuccess(res, await FinanceService.getReceiptForChallan(schoolId, req.params.challanId as string), "Payment receipt retrieved."); } catch (error) { next(error); }
+    try {
+      const schoolId = req.user?.schoolId;
+      if (!schoolId)
+        throw { statusCode: 400, message: "No school tenant context." };
+      return sendSuccess(
+        res,
+        await FinanceService.getReceiptForChallan(
+          schoolId,
+          req.params.challanId as string,
+        ),
+        "Payment receipt retrieved.",
+      );
+    } catch (error) {
+      next(error);
+    }
   }
   static async getClasses(req: Request, res: Response, next: NextFunction) {
     try {
       const schoolId = req.user?.schoolId;
-      if (!schoolId) throw { statusCode: 400, message: "No school tenant context." };
+      if (!schoolId)
+        throw { statusCode: 400, message: "No school tenant context." };
       const classes = await FinanceService.getSchoolClasses(schoolId);
       return sendSuccess(res, classes, "School classes retrieved.");
     } catch (error) {
@@ -34,7 +60,11 @@ export class FinanceController {
   }
 
   // Fee Structures
-  static async getFeeStructures(req: Request, res: Response, next: NextFunction) {
+  static async getFeeStructures(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
     try {
       const schoolId = req.user?.schoolId;
       if (!schoolId) throw { statusCode: 400, message: "No tenant context." };
@@ -46,20 +76,36 @@ export class FinanceController {
     }
   }
 
-  static async createFeeStructure(req: Request, res: Response, next: NextFunction) {
+  static async createFeeStructure(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
     try {
       const schoolId = req.user?.schoolId;
       if (!schoolId) throw { statusCode: 400, message: "No tenant context." };
 
-      const structure = await FinanceService.createFeeStructure(schoolId, req.body);
-      return sendSuccess(res, structure, "Fee structure created successfully.", 201);
+      const structure = await FinanceService.createFeeStructure(
+        schoolId,
+        req.body,
+      );
+      return sendSuccess(
+        res,
+        structure,
+        "Fee structure created successfully.",
+        201,
+      );
     } catch (error) {
       next(error);
     }
   }
 
   // Student Account Ledger
-  static async getStudentLedger(req: Request, res: Response, next: NextFunction) {
+  static async getStudentLedger(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
     try {
       const schoolId = req.user?.schoolId;
       if (!schoolId) throw { statusCode: 400, message: "No tenant context." };
@@ -79,10 +125,25 @@ export class FinanceController {
       if (!schoolId) throw { statusCode: 400, message: "No tenant context." };
 
       const collectorName = req.user?.email || "Finance Officer";
-      const { challanId, amountPKR, paymentMethod } = req.body;
+      const {
+        challanId,
+        amountPKR,
+        paymentMethod,
+        requestId,
+        transactionReference,
+      } = req.body;
 
-      const challan = await FinanceService.collectPayment(schoolId, challanId, { amountPKR, paymentMethod }, collectorName);
-      return sendSuccess(res, challan, "Payment collected and receipt generated.");
+      const challan = await FinanceService.collectPayment(
+        schoolId,
+        challanId,
+        { amountPKR, paymentMethod, requestId, transactionReference },
+        collectorName,
+      );
+      return sendSuccess(
+        res,
+        challan,
+        "Payment collected and receipt generated.",
+      );
     } catch (error) {
       next(error);
     }
@@ -98,7 +159,12 @@ export class FinanceController {
       const challanId = req.params.challanId as string;
       const { reason } = req.body;
 
-      const challan = await FinanceService.voidChallan(schoolId, challanId, reason || "Voided by finance officer", userName);
+      const challan = await FinanceService.voidChallan(
+        schoolId,
+        challanId,
+        reason || "Voided by finance officer",
+        userName,
+      );
       return sendSuccess(res, challan, "Fee challan voided successfully.");
     } catch (error) {
       next(error);
@@ -106,13 +172,24 @@ export class FinanceController {
   }
 
   // Generate Bulk Challans
-  static async generateBulkChallans(req: Request, res: Response, next: NextFunction) {
+  static async generateBulkChallans(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
     try {
       const schoolId = req.user?.schoolId;
       if (!schoolId) throw { statusCode: 400, message: "No tenant context." };
 
       const { classId, month, dueDate, lateFeeFine } = req.body;
-      const result = await FinanceService.generateBulkChallans(schoolId, classId, month, dueDate, lateFeeFine);
+      const result = await FinanceService.generateBulkChallans(
+        schoolId,
+        classId,
+        month,
+        dueDate,
+        lateFeeFine,
+        req.body,
+      );
       return sendSuccess(res, result, result.message);
     } catch (error) {
       next(error);
@@ -139,7 +216,11 @@ export class FinanceController {
       if (!schoolId) throw { statusCode: 400, message: "No tenant context." };
 
       const userName = req.user?.email || "Finance Officer";
-      const expense = await FinanceService.createExpense(schoolId, req.body, userName);
+      const expense = await FinanceService.createExpense(
+        schoolId,
+        req.body,
+        userName,
+      );
       return sendSuccess(res, expense, "Expense logged successfully.", 201);
     } catch (error) {
       next(error);
@@ -155,7 +236,12 @@ export class FinanceController {
       const expenseId = req.params.expenseId as string;
       const { reason } = req.body;
 
-      const expense = await FinanceService.voidExpense(schoolId, expenseId, reason || "Voided by finance officer", userName);
+      const expense = await FinanceService.voidExpense(
+        schoolId,
+        expenseId,
+        reason || "Voided by finance officer",
+        userName,
+      );
       return sendSuccess(res, expense, "Expense voided successfully.");
     } catch (error) {
       next(error);

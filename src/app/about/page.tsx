@@ -1,6 +1,234 @@
 import Link from "next/link";
-import {company} from "@/lib/company";
-import {ProductFrame} from "@/components/Marketing";
-import {CTASection} from "@/components/CTASection";
-export const metadata={title:"About Acadivo — AKTech Digital Solutions"};
-export default function AboutPage(){return <div><section className="m-about-hero m-section"><div className="m-wrap m-split"><div><p className="m-eyebrow">Acadivo / By AKTech Digital Solutions</p><h1>Good school software<br/>starts with the<br/><em>school day.</em></h1><p className="m-lead">People, records and responsibilities belong together. Acadivo brings that idea to school administration, teaching, examinations and finance.</p></div><ProductFrame image="school-admin-insights.jpg" label="School insights" priority/></div></section><section className="m-section"><div className="m-wrap m-editorial-story"><p className="m-eyebrow">Why Acadivo exists</p><div><h2>The student record shouldn’t stop at the office door.</h2><p>School work moves between people. Admissions need class information. Teachers need accurate student lists. Examination teams need academic records. Finance needs to know what has been paid.</p><p>Acadivo connects these responsibilities around the same school structure, with dedicated portals and access controls. The aim is practical: make the next step clear, keep records connected and give people the tools for their work.</p></div></div></section><section className="m-section m-rose"><div className="m-wrap"><p className="m-eyebrow">Our product philosophy</p><div className="m-principles">{[["Clarity over clutter.","A focused workspace should make the school day easier to understand."],["Records over guesswork.","Reports should reflect what the school has actually recorded."],["Access follows responsibility.","Each account should see the information its role permits."]].map(([title,text],i)=><div key={title}><span className="m-step">0{i+1}</span><h3>{title}</h3><p>{text}</p></div>)}</div></div></section><section className="m-section"><div className="m-wrap m-split"><ProductFrame image="receptionist.jpg" label="Admissions & reception"/><div><p className="m-eyebrow">Made by {company.name}</p><h2>Built in Karachi.<br/>Focused on schools.</h2><p className="m-body">Acadivo is a product of {company.name}, based in {company.location}. Talk to us about your school’s workflows, onboarding or subscription.</p><div className="m-actions"><Link href="/contact" className="m-button">Talk to AKTech</Link><a href={company.website} target="_blank" rel="noreferrer" className="m-text-link">Our company website ↗</a></div></div></div></section><CTASection/></div>;}
+import {
+  ArrowUpRight,
+  ArrowRight,
+  MapPin,
+  Layers3,
+  ShieldCheck,
+  BookOpen,
+} from "lucide-react";
+import { company } from "@/lib/company";
+import { ProductFrame } from "@/components/Marketing";
+import { OnboardingSection } from "@/components/OnboardingSection";
+import { CTASection } from "@/components/CTASection";
+export const metadata = {
+  title: "About Acadivo — AKTech Digital Solutions",
+  description:
+    "Meet Acadivo, the connected school management platform by AKTech Digital Solutions in Karachi, Pakistan.",
+};
+export default function AboutPage() {
+  return (
+    <div className="ac-about">
+      <section className="ac-about-hero m-section">
+        <div className="m-wrap">
+          <div className="ac-about-topline">
+            <p className="m-eyebrow">
+              ACADIVO / THE THINKING BEHIND THE PLATFORM
+            </p>
+            <span>
+              <MapPin size={13} />
+              {company.location}
+            </span>
+          </div>
+          <div className="ac-about-intro">
+            <h1>
+              For the people
+              <br />
+              behind every
+              <br />
+              <em>school day.</em>
+            </h1>
+            <div>
+              <p>
+                Schools run on people. Good software should bring their work
+                together, without getting in their way.
+              </p>
+              <p>
+                Acadivo connects administration, classrooms, examinations and
+                finance around the same school records. Built by {company.name},
+                with a practical focus on the work that comes next.
+              </p>
+              <Link href="/demo" className="m-button">
+                See the platform <ArrowUpRight size={16} />
+              </Link>
+            </div>
+          </div>
+          <div className="ac-about-stage">
+            <div className="ac-about-screen">
+              <ProductFrame
+                image="school-admin-insights.jpg"
+                label="School insights"
+                priority
+              />
+            </div>
+            <div className="ac-about-reception">
+              <ProductFrame
+                image="receptionist.jpg"
+                label="Admissions & reception"
+              />
+            </div>
+            <div className="ac-about-caption">
+              <Layers3 size={18} />
+              <span>
+                Different responsibilities.
+                <br />
+                <strong>A shared school structure.</strong>
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section className="m-section ac-about-story">
+        <div className="m-wrap">
+          <div className="p-section-heading">
+            <div>
+              <p className="m-eyebrow">WHY THESE CONNECTIONS MATTER</p>
+              <h2>
+                A student’s journey
+                <br />
+                doesn’t stop at
+                <br />
+                <em>the office door.</em>
+              </h2>
+            </div>
+            <p>
+              An admission needs a class. A teacher needs a student list. An
+              examination needs academic records. A fee receipt needs a ledger.
+              The next step should feel connected.
+            </p>
+          </div>
+          <div className="ac-record-journey">
+            {[
+              [
+                "01",
+                "Admissions",
+                "A clear beginning",
+                "Enrollment, guardian contacts and class allocation.",
+              ],
+              [
+                "02",
+                "The classroom",
+                "A place to learn",
+                "Classes, timetables and attendance linked to school records.",
+              ],
+              [
+                "03",
+                "School operations",
+                "The work behind the day",
+                "Examinations, fees and the teams responsible for them.",
+              ],
+              [
+                "04",
+                "Parents",
+                "Keep the family connected",
+                "Updates and records for the children linked to their account.",
+              ],
+            ].map(([n, label, title, text]) => (
+              <div key={n}>
+                <span>
+                  {n} / {label}
+                </span>
+                <h3>{title}</h3>
+                <p>{text}</p>
+                <ArrowRight size={17} aria-hidden="true" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+      <section className="m-section ac-about-beliefs">
+        <div className="m-wrap">
+          <div>
+            <p className="m-eyebrow">OUR PRODUCT PHILOSOPHY</p>
+            <h2>
+              Thoughtful software.
+              <br />
+              Practical by design.
+            </h2>
+            <p>
+              Not another dashboard to look after. A focused workspace for the
+              responsibilities your team already has.
+            </p>
+          </div>
+          <div className="ac-belief-list">
+            {[
+              [
+                Layers3,
+                "Clarity over clutter.",
+                "A focused workspace should make the school day easier to understand.",
+              ],
+              [
+                ShieldCheck,
+                "Access follows responsibility.",
+                "Roles and permissions determine which school records each account can use.",
+              ],
+              [
+                BookOpen,
+                "A confident start.",
+                "Portal-use guides and onboarding guidance are included with every plan.",
+              ],
+            ].map(([Icon, title, text]) => {
+              const Mark = Icon as typeof Layers3;
+              return (
+                <article key={String(title)}>
+                  <Mark size={23} />
+                  <div>
+                    <h3>{String(title)}</h3>
+                    <p>{String(text)}</p>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+      <section className="m-section ac-about-company">
+        <div className="m-wrap">
+          <div>
+            <p className="m-eyebrow">THE PEOPLE TO TALK TO</p>
+            <h2>
+              Built in Karachi.
+              <br />
+              <em>Open to your school.</em>
+            </h2>
+            <p className="m-body">
+              Acadivo is a product of {company.name}. Tell us how your school
+              works, what your team needs and where you want to start.
+            </p>
+            <div className="m-actions">
+              <Link href="/contact" className="m-button">
+                Talk to AKTech <ArrowUpRight size={16} />
+              </Link>
+              <a
+                href={company.website}
+                target="_blank"
+                rel="noreferrer"
+                className="m-text-link"
+              >
+                Visit AKTech <ArrowUpRight size={15} />
+              </a>
+            </div>
+          </div>
+          <div className="ac-company-card">
+            <p>PRODUCT / ACADIVO</p>
+            <h3>{company.name}</h3>
+            <span>
+              <MapPin size={14} />
+              {company.location}
+            </span>
+            <a href={`mailto:${company.email}`}>
+              {company.email}
+              <ArrowUpRight size={16} />
+            </a>
+            <a href={company.phoneHref}>
+              {company.phone}
+              <ArrowUpRight size={16} />
+            </a>
+          </div>
+        </div>
+      </section>
+      <OnboardingSection compact />
+      <CTASection />
+    </div>
+  );
+}

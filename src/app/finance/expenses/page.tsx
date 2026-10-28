@@ -1,4 +1,6 @@
 "use client";
+import {useRecordRefresh} from "@/lib/use-record-refresh";
+import {confirmAction,requestReason} from "@/components/ConfirmationHost";
 
 
 
@@ -89,10 +91,10 @@ export default function ExpenseManagementPage() {
   };
 
   const handleVoidExpense = async (exp: ExpenseItem) => {
-    const confirmVoid = window.confirm(`Are you sure you want to VOID expense '${exp.title}' (PKR ${exp.amountPKR.toLocaleString()})?`);
+    const confirmVoid = await confirmAction(`Are you sure you want to VOID expense '${exp.title}' (PKR ${exp.amountPKR.toLocaleString()})?`);
     if (!confirmVoid) return;
 
-    const reason = prompt("Enter reason for voiding expense:", "Duplicate billing entry");
+    const reason = await requestReason("Enter the reason for voiding this expense.","Void expense");
     if (!reason) return;
 
     try {
@@ -113,6 +115,7 @@ export default function ExpenseManagementPage() {
 
   const totalExpenseSum = expenses.filter((e) => !e.isVoided && e.status !== "VOIDED").reduce((sum, e) => sum + (e.amountPKR || 0), 0);
 
+  useRecordRefresh(loadExpenses,["finance"]);
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}

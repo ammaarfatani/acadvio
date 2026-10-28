@@ -9,7 +9,7 @@ export class SubscriptionController {
       if (!schoolId) {
         throw { statusCode: 400, message: "No school context assigned to user." };
       }
-      const sub = await SubscriptionService.getSchoolSubscription(schoolId);
+      const sub = await SubscriptionService.getSchoolSubscription(schoolId,req.user?.userType === "SCHOOL_ADMIN");
       return sendSuccess(res, sub, "School subscription details retrieved.");
     } catch (error) {
       next(error);

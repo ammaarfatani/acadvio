@@ -1,3 +1,4 @@
+import sharp from "sharp";
 import { Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { decodePaymentImage } from "../services/paymentImage";
@@ -12,8 +13,7 @@ export class SchoolController {
       if (!parsed.success) throw { statusCode: 400, message: "Choose a logo image, or remove the current logo." };
       let logoUrl = "";
       if (parsed.data.image !== null) {
-        const image = decodePaymentImage(parsed.data.image, 1024*1024);
-        logoUrl = "data:"+image.mime+";base64,"+image.bytes.toString("base64");
+        try{const image=decodePaymentImage(parsed.data.image,1024*1024);const bytes=await sharp(image.bytes,{limitInputPixels:16000000,failOn:"warning"}).rotate().resize({width:800,height:800,fit:"inside",withoutEnlargement:true}).webp({quality:90}).toBuffer();logoUrl="data:image/webp;base64,"+bytes.toString("base64");}catch{throw {statusCode:400,message:"Choose a valid JPEG, PNG or WebP school logo up to 1 MB."};}
       }
       const school = await SchoolService.updateSchoolBranding(req.user.schoolId, { logoUrl });
       return sendSuccess(res, { logoUrl: school.logoUrl }, parsed.data.image === null ? "School logo removed." : "School logo updated.");

@@ -1,3 +1,6 @@
+// Never run these write fixtures against the configured school database.
+if (!/^mongodb:\/\/(127\.0\.0\.1|localhost):27018\//.test(process.env.MONGODB_URI || ""))
+  throw new Error("Set an explicit isolated local MONGODB_URI on port 27018.");
 // Real HTTP/MongoDB security checks. All fixtures live in a disposable database.
 const fs=require('node:fs'),ts=require('typescript'),assert=require('node:assert/strict'),crypto=require('node:crypto');
 require.extensions['.ts']=(m,f)=>m._compile(ts.transpileModule(fs.readFileSync(f,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,esModuleInterop:true}}).outputText,f);
@@ -20,8 +23,11 @@ const equal=(actual,expected,label)=>{assert.equal(actual,expected,label);checks
  await migrateBranchScopes();await migrateBranchScopes();equal(String((await ClassModel.findById(legacyClass._id)).branchId),String(schools.ENTERPRISE._id),'migration is additive and repeatable');
  server=createApp().listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));const base='http://127.0.0.1:'+server.address().port+'/api';
  const call=async(path,token,body,method,branch)=>{const res=await fetch(base+path,{method:method||(body?'POST':'GET'),headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{}),...(branch?{'X-Acadivo-Branch':branch}:{})},...(body?{body:JSON.stringify(body)}:{})});return{status:res.status,body:await res.json()};};
+ equal((await User.findById(owner._id).lean()).passwordHash,undefined,'password hash omitted by default even from lean queries');
+ equal(Object.hasOwn(owner.toJSON(),'passwordHash'),false,'new account serialization strips password hash');
  const login=async user=>{const r=await call('/auth/login',null,{email:user.email,password});equal(r.status,200,'login '+user.userType);return r.body.data.accessToken;};
  const tokens={owner:await login(owner),starter:await login(starter),professional:await login(professional),super:await login(superAdmin)};
+ for(const token of [tokens.owner,tokens.starter,tokens.professional]) equal((await call('/subscriptions/current',token)).status,200,'main administrator can view billing');
  equal((await call('/school-admin/dashboard',tokens.starter)).status,200,'existing approved main branch works');
  equal((await call('/school-admin/fees/challans',tokens.starter)).status,403,'Starter finance API denied');equal((await call('/school-admin/exams',tokens.starter)).status,403,'Starter examinations API denied');equal((await call('/organization/branches',tokens.starter)).status,403,'Starter Enterprise API denied');equal((await call('/organization/branches',tokens.professional)).status,403,'Professional Enterprise API denied');equal((await call('/school-admin/fees/challans',tokens.professional)).status,200,'Professional finance allowed');equal((await call('/school-admin/exams',tokens.professional)).status,200,'Professional examinations allowed');
  equal((await call('/schools/branding',tokens.starter,{theme:'blue'},'PUT')).status,400,'theme configuration rejected by branding API');
@@ -44,6 +50,11 @@ const equal=(actual,expected,label)=>{assert.equal(actual,expected,label);checks
  equal((await call('/school-admin/classes',tokens.owner,{name:'Unscoped write',code:'bad'},null,'all')).status,400,'all-branches writes require selected branch');
  equal((await call('/auth/me',tokens.owner,null,null,bid)).status,200,'owner profile works while another branch selected');
  const parent=await call('/parent/accounts',branchToken,{name:'Verification Parent',email:'parent@example.invalid',password,studentIds:[String(branchStudent._id)]});equal(parent.status,200,'transactional parent child linking');const parentUser=await User.findById(parent.body.data.id),parentToken=await login(parentUser);
+ equal((await call('/subscriptions/current',parentToken)).status,403,'parent cannot view school subscription');
+ equal((await call('/subscriptions/current',branchToken)).status,403,'branch administrator cannot view school subscription');
+ equal((await call('/subscriptions/current',tokens.owner,null,'GET',String(branchStudent.branchId))).status,403,'owner in secondary branch cannot view organization billing');
+ equal((await call('/subscription-payments/mine',parentToken)).status,403,'parent cannot view subscription payments');
+ equal((await call('/subscription-payments/mine',branchToken)).status,403,'branch administrator cannot view subscription payments');
  equal((await call('/parent/children',parentToken)).body.data.length,1,'parent sees own linked child');equal((await call('/parent/children/'+otherStudent._id,parentToken)).status,404,'parent cannot guess unlinked child ID');equal((await call('/parent/children/'+mainStudent._id,parentToken)).status,404,'parent cannot guess child in another branch');equal((await call('/school-admin/students',parentToken)).status,403,'parent cannot access administrator API');
  equal((await call('/parent/accounts',branchToken,{name:'Wrong branch parent',email:'wrong-parent@example.invalid',password,studentIds:[String(mainStudent._id)]})).status,403,'cannot link children from another branch');
  console.log('Branch and parent checks passed; checking notices and reports.');
@@ -152,7 +163,7 @@ const equal=(actual,expected,label)=>{assert.equal(actual,expected,label);checks
  await SectionModel.create({schoolId:main,branchId:bid,classId:legacyClass2._id,className:legacyClass2.name,name:'B'});
  placement=(await call('/parent/children/'+legacyChild._id,parentToken)).body.data;equal(placement.timetable.length,0,'ambiguous missing section never exposes another section');equal(!!placement.placementWarning,true,'ambiguous placement actionable warning');
  console.log('Parent selected-child and legacy placement checks passed.');
- const resetResult=await call('/auth/forgot-password',null,{email:parentUser.email});equal(resetResult.status,200,'reset instructions endpoint');equal(resetResult.body.data.resetToken,undefined,'reset token never returned');equal(sentEmails.at(-1).text.includes('/reset-password#token='),true,'reset credential stays out of URL request logs');
+ const resetResult=await call('/auth/forgot-password',null,{email:parentUser.email});equal(resetResult.status,200,'reset instructions endpoint');equal(resetResult.body.data.resetToken,undefined,'reset token never returned');equal(sentEmails.at(-1).actionUrl.includes('/reset-password#token='),true,'reset credential stays out of URL request logs');
  for(const account of [parentUser,staff.TEACHER,staff.FINANCE,staff.EXAM_STAFF,staff.RECEPTIONIST,branchAdmin,professional,owner,superAdmin]){
  const before=await call('/auth/login',null,{email:account.email,password});equal(before.status,200,'password test login '+account.userType);const access=before.body.data.accessToken,refresh=before.body.data.refreshToken,nextPassword=crypto.randomBytes(16).toString('hex');
  equal((await call('/auth/change-password',access,{currentPassword:'wrong-password',newPassword:nextPassword,confirmPassword:nextPassword})).status,400,'current password validated '+account.userType);

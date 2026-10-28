@@ -1,0 +1,4 @@
+const {spawnSync}=require('node:child_process'),crypto=require('node:crypto'),path=require('node:path');
+const root=path.resolve(__dirname,'../..');const name=process.argv[2]||'production-upgrade.cjs';
+if(!['smart-reports.cjs','identity-cards.cjs','production-upgrade.cjs','document-templates.cjs','workforce-security.cjs','biometric-simulator.cjs','school-lifecycle.cjs','trial-approval.cjs','organization-security.cjs','bulk-import.cjs'].includes(name))throw Error('Unsupported test suite.');
+const r=spawnSync(process.execPath,[path.join(root,'tests',name)],{cwd:root,stdio:'inherit',env:{...process.env,NODE_ENV:'test',MONGODB_URI:'mongodb://127.0.0.1:27018/acadivo_test?replicaSet=acadivoDemo',JWT_ACCESS_SECRET:crypto.randomBytes(48).toString('hex'),JWT_REFRESH_SECRET:crypto.randomBytes(48).toString('hex')}});process.exitCode=r.status===null?1:r.status;

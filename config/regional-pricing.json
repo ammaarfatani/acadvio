@@ -1,0 +1,6 @@
+{
+  "PK": {"currency":"PKR","locale":"en-PK","label":"Pakistan","prices":{},"originalMonthly":{"STARTER":3350,"PROFESSIONAL":6700,"ENTERPRISE":13350}},
+  "US": {"currency":"USD","locale":"en-US","label":"United States","prices":{"STARTER":29,"PROFESSIONAL":59,"ENTERPRISE":119}},
+  "GB": {"currency":"GBP","locale":"en-GB","label":"United Kingdom","prices":{"STARTER":24,"PROFESSIONAL":49,"ENTERPRISE":99}},
+  "IN": {"currency":"INR","locale":"en-IN","label":"India","prices":{"STARTER":2499,"PROFESSIONAL":4999,"ENTERPRISE":9999}}
+}

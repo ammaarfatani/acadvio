@@ -34,9 +34,11 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next-verification/types/**/*.ts",
-    ".next-design-preview/types/**/*.ts"
+    ".next-design-preview/types/**/*.ts",
+    ".next-biometric-practice/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"
   ]
 }
+

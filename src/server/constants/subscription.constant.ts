@@ -1,3 +1,4 @@
+import { DEFAULT_SUBSCRIPTION_PRICES } from "../../lib/subscription-prices";
 export enum SubscriptionStatus {
   PENDING_APPROVAL = "PENDING_APPROVAL",
   TRIAL = "TRIAL",
@@ -18,9 +19,9 @@ export enum SubscriptionPlan {
 
 export const PLAN_PRICING_PKR: Record<SubscriptionPlan, number> = {
   [SubscriptionPlan.FREE_TRIAL]: 0,
-  [SubscriptionPlan.STARTER]: 4999,
-  [SubscriptionPlan.PROFESSIONAL]: 9999,
-  [SubscriptionPlan.ENTERPRISE]: 19999,
+  [SubscriptionPlan.STARTER]: DEFAULT_SUBSCRIPTION_PRICES.STARTER.monthly,
+  [SubscriptionPlan.PROFESSIONAL]: DEFAULT_SUBSCRIPTION_PRICES.PROFESSIONAL.monthly,
+  [SubscriptionPlan.ENTERPRISE]: DEFAULT_SUBSCRIPTION_PRICES.ENTERPRISE.monthly,
 };
 
 export const STANDARD_TRIAL_DAYS = 14;

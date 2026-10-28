@@ -1,0 +1,21 @@
+const fs=require("fs"),ts=require("typescript"),vm=require("vm"),assert=require("node:assert/strict"),React=require("react"),{renderToStaticMarkup}=require("react-dom/server");
+function load(path){const ctx={exports:{},require,Intl,Date};vm.runInNewContext(ts.transpileModule(fs.readFileSync(path,"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2020}}).outputText,ctx);return ctx.exports;}
+const policy=load("src/lib/billing-access.ts").canManageSchoolBilling;let checks=0;const eq=(a,b)=>{assert.equal(a,b);checks++};
+for(const role of ["PARENT","TEACHER","FINANCE","EXAM_STAFF","RECEPTIONIST","SUPER_ADMIN"])eq(policy({userType:role,plan:"ENTERPRISE",isOrganizationOwner:true}),false);
+eq(policy({userType:"SCHOOL_ADMIN",plan:"STARTER",isOrganizationOwner:false}),true);
+eq(policy({userType:"SCHOOL_ADMIN",plan:"PROFESSIONAL",schoolId:"main",branchId:"main"}),true);
+eq(policy({userType:"SCHOOL_ADMIN",plan:"ENTERPRISE",isOrganizationOwner:false}),false);
+eq(policy({userType:"SCHOOL_ADMIN",plan:"ENTERPRISE",isOrganizationOwner:true,schoolId:"main",branchId:"secondary"}),false);
+eq(policy({userType:"SCHOOL_ADMIN",plan:"ENTERPRISE",isOrganizationOwner:true,schoolId:"main",branchId:"main"}),true);
+eq(policy({userType:"SCHOOL_ADMIN",plan:"ENTERPRISE",isOrganizationOwner:true,branchId:null}),true);
+eq(policy({userType:"SCHOOL_ADMIN",plan:"FREE_TRIAL",billingPlan:"ENTERPRISE",isOrganizationOwner:false,schoolId:"main",branchId:"main"}),false);
+const Grid=load("src/components/ParentWeeklyTimetable.tsx").default;
+const html=renderToStaticMarkup(React.createElement(Grid,{rows:[{dayOfWeek:"Monday",periodNumber:1,startTime:"08:00",endTime:"08:40",subjectName:"Mathematics",teacherName:"Test teacher"},{dayOfWeek:"Tuesday",periodNumber:1,startTime:"08:00",endTime:"08:40",subjectName:"English"}]}));
+for(const text of ["Monday","Wednesday","Saturday","Mathematics","English","Test teacher","Teacher not assigned","No lesson"])eq(html.includes(text),true);
+eq(html.includes("<th scope=\"col\">Sunday"),false);
+eq(renderToStaticMarkup(React.createElement(Grid,{rows:[]})).includes("not published a timetable"),true);
+const Finance=load("src/components/ParentFinanceRecords.tsx").default;
+const fee=renderToStaticMarkup(React.createElement(Finance,{data:{fees:[{_id:"invoice1",challanNumber:"INV-1",totalAmountPKR:1200,paidAmountPKR:200,remainingAmountPKR:1000,feeBreakdown:{tuitionFee:1200}}],submissions:[{_id:"proof",challanId:"invoice1",status:"PENDING",amountPKR:1000}],payments:[],structures:[],bankDetails:{}},onPay:()=>{},onReceipt:()=>{},onRefresh:()=>{}}));
+for(const text of ["INV-1","tuition Fee","PENDING","Awaiting Finance review","under review","PKR 1,000"])eq(fee.includes(text),true);
+eq(fee.includes("Pay by bank transfer"),false);
+console.log(`PASS: ${checks} billing visibility, weekly timetable and finance presentation checks.`);

@@ -1,0 +1,8 @@
+Hello Test Administrator,
+
+Development preview for an existing transactional event. This uses synthetic test data only.
+
+Log In to Acadivo: https://app.example.invalid/fixture-school/login
+
+Acadivo | School management
+Support: hello@aktech.tech

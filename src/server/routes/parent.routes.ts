@@ -1,32 +1,304 @@
-import {User} from "../models/user.model";
-import {Student} from "../models/student.model";
-import {ParentProfile} from "../models/parentProfile.model";
+import { User } from "../models/user.model";
+import { Student } from "../models/student.model";
+import { ParentProfile } from "../models/parentProfile.model";
 import { Router } from "express";
 import { z } from "zod";
 import { authenticate } from "../middlewares/auth.middleware";
-import { requireExactUserType, requirePermission } from "../middlewares/rbac.middleware";
+import {
+  requireExactUserType,
+  requirePermission,
+} from "../middlewares/rbac.middleware";
 import { UserType } from "../constants/roles.constant";
-import { children, childDetails, createParent } from "../services/parent.service";
+import {
+  children,
+  childDetails,
+  createParent,
+} from "../services/parent.service";
 import { submitFee } from "../services/feeSubmission.service";
 import { FeeSubmission } from "../models/feeSubmission.model";
 import { linkedChild } from "../services/parent.service";
 import { hasFeature } from "../../lib/plan-features";
 import { sendSuccess } from "../utils/response.util";
-const router = Router(); router.use(authenticate);
+import { annualMarksheet } from "../services/marksheet.service";
+import { marksheetPdf } from "../services/marksheetPdf.service";
+const router = Router();
+router.use(authenticate);
 const id = z.string().regex(/^[a-f0-9]{24}$/i);
-router.get("/children", requireExactUserType(UserType.PARENT), requirePermission("children.view"), async (req,res,next) => { try {return sendSuccess(res,await children(req.user!));}catch(e){next(e);} });
-router.get("/children/:id", requireExactUserType(UserType.PARENT), requirePermission("children.view"), async (req,res,next) => { try {return sendSuccess(res,await childDetails(req.user!,id.parse(req.params.id)));}catch(e){next(e);} });
-router.post("/children/:id/payments", requireExactUserType(UserType.PARENT), requirePermission("children.view"), async(req,res,next)=>{try{
- if(!hasFeature(req.user!.plan,"FINANCE"))throw{statusCode:403,message:"Finance is not included in your subscription."};
- const input=z.object({challanId:id,amountPKR:z.number().positive().max(100000000).refine(n=>Math.abs(Math.round(n*100)-n*100)<0.000001,"Use at most two decimal places."),reference:z.string().trim().max(160).optional(),idempotencyKey:z.string().uuid(),screenshot:z.string().max(7100000)}).strict().parse(req.body);
- return sendSuccess(res,await submitFee(req.user!,id.parse(req.params.id),input),"Payment submitted for verification. This does not mark the invoice as paid.");
- }catch(e){next(e);}});
-router.get("/payments/:id/proof",requireExactUserType(UserType.PARENT),async(req,res,next)=>{try{
- if(!hasFeature(req.user!.plan,"FINANCE"))throw{statusCode:403,message:"Finance is not included in your subscription."};
- const request=await FeeSubmission.findOne({_id:id.parse(req.params.id),schoolId:req.user!.schoolId,parentId:req.user!.userId}).select("+screenshot");if(!request)throw{statusCode:404,message:"Payment not found."};await linkedChild(req.user!,String(request.studentId));res.set({"Content-Type":request.screenshotMime,"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff"});return res.send(request.screenshot);
- }catch(e){next(e);}});
-router.get("/accounts",requireExactUserType(UserType.SCHOOL_ADMIN),requirePermission("users.manage"),async(req,res,next)=>{try{const [users,profiles]=await Promise.all([User.find({schoolId:req.user!.schoolId,userType:UserType.PARENT}).select("name email status branchId").sort({name:1}).lean(),ParentProfile.find({schoolId:req.user!.schoolId}).select("userId studentIds").lean()]);const linked=new Map(profiles.map((p:any)=>[String(p.userId),p.studentIds]));const studentRows=await Student.find({schoolId:req.user!.schoolId,_id:{$in:profiles.flatMap((p:any)=>p.studentIds)}}).select("name className rollNumber").lean();const records=new Map(studentRows.map((r:any)=>[String(r._id),r]));return sendSuccess(res,users.map((u:any)=>({...u,studentIds:linked.get(String(u._id))||[],children:((linked.get(String(u._id))||[]) as any[]).map(id=>records.get(String(id))).filter(Boolean)})));}catch(e){next(e);}});
-router.get("/linkable-students",requireExactUserType(UserType.SCHOOL_ADMIN),requirePermission("users.manage"),async(req,res,next)=>{try{const term=z.string().max(100).parse(req.query.search||"");const escaped=term.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");return sendSuccess(res,await Student.find({schoolId:req.user!.schoolId,...(term?{$or:[{name:{$regex:escaped,$options:"i"}},{admissionNumber:{$regex:escaped,$options:"i"}},{studentId:{$regex:escaped,$options:"i"}},{rollNumber:{$regex:escaped,$options:"i"}}]}:{})}).select("name className rollNumber parentInfo studentId admissionNumber").sort({name:1}).limit(100).lean());}catch(e){next(e);}});
-router.put("/accounts/:id/children",requireExactUserType(UserType.SCHOOL_ADMIN),requirePermission("users.manage"),async(req,res,next)=>{try{const parentId=id.parse(req.params.id),input=z.object({studentIds:z.array(id).min(1).max(30)}).strict().parse(req.body),ids=[...new Set(input.studentIds)];if(!await User.exists({_id:parentId,schoolId:req.user!.schoolId,userType:UserType.PARENT})||await Student.countDocuments({_id:{$in:ids},schoolId:req.user!.schoolId})!==ids.length)throw{statusCode:403,message:"Parent and children must belong to your selected branch."};return sendSuccess(res,await ParentProfile.findOneAndUpdate({schoolId:req.user!.schoolId,userId:parentId},{$set:{studentIds:ids}},{upsert:true,new:true,runValidators:true}),"Linked children updated.");}catch(e){next(e);}});
-router.post("/accounts", requireExactUserType(UserType.SCHOOL_ADMIN), requirePermission("users.manage"), async (req,res,next) => { try {const input = z.object({ name:z.string().trim().min(2).max(100), email:z.string().email(), password:z.string().min(8).max(128), studentIds:z.array(id).min(1).max(30) }).strict().parse(req.body); return sendSuccess(res,await createParent(req.user!.schoolId!,input),"Parent account created.");}catch(e){next(e);} });
+router.get(
+  "/children",
+  requireExactUserType(UserType.PARENT),
+  requirePermission("children.view"),
+  async (req, res, next) => {
+    try {
+      return sendSuccess(res, await children(req.user!));
+    } catch (e) {
+      next(e);
+    }
+  },
+);
+router.get(
+  "/children/:id",
+  requireExactUserType(UserType.PARENT),
+  requirePermission("children.view"),
+  async (req, res, next) => {
+    try {
+      return sendSuccess(
+        res,
+        await childDetails(req.user!, id.parse(req.params.id)),
+      );
+    } catch (e) {
+      next(e);
+    }
+  },
+);
+router.get(
+  "/children/:id/marksheet/pdf",
+  requireExactUserType(UserType.PARENT),
+  requirePermission("children.view"),
+  async (req, res, next) => {
+    try {
+      if (!hasFeature(req.user!.plan, "EXAMINATIONS"))
+        throw {
+          statusCode: 403,
+          message: "Examinations are not included in this subscription.",
+        };
+      const studentId = id.parse(req.params.id);
+      await linkedChild(req.user!, studentId);
+      const data = await annualMarksheet(req.user!.schoolId!, studentId, true);
+      const expected = z
+        .object({
+          expectedHash: z
+            .string()
+            .regex(/^[a-f0-9]{64}$/)
+            .optional(),
+        })
+        .strict()
+        .parse(req.query);
+      if (expected.expectedHash && expected.expectedHash !== data.sourceHash)
+        throw {
+          statusCode: 409,
+          message:
+            "Published marks or assessment policy changed. Refresh the marksheet before downloading.",
+        };
+      res.set({
+        "Cache-Control": "private, no-store",
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="marksheet_${studentId}_${new Date().toISOString().slice(0, 10)}.pdf"`,
+      });
+      return res.send(await marksheetPdf(data));
+    } catch (e) {
+      next(e);
+    }
+  },
+);
+router.post(
+  "/children/:id/payments",
+  requireExactUserType(UserType.PARENT),
+  requirePermission("children.view"),
+  async (req, res, next) => {
+    try {
+      if (!hasFeature(req.user!.plan, "FINANCE"))
+        throw {
+          statusCode: 403,
+          message: "Finance is not included in your subscription.",
+        };
+      const input = z
+        .object({
+          challanId: id,
+          amountPKR: z
+            .number()
+            .positive()
+            .max(100000000)
+            .refine(
+              (n) => Math.abs(Math.round(n * 100) - n * 100) < 0.000001,
+              "Use at most two decimal places.",
+            ),
+          reference: z.string().trim().max(160).optional(),
+          idempotencyKey: z.string().uuid(),
+          screenshot: z.string().max(7100000),
+        })
+        .strict()
+        .parse(req.body);
+      return sendSuccess(
+        res,
+        await submitFee(req.user!, id.parse(req.params.id), input),
+        "Payment submitted for verification. This does not mark the invoice as paid.",
+      );
+    } catch (e) {
+      next(e);
+    }
+  },
+);
+router.get(
+  "/payments/:id/proof",
+  requireExactUserType(UserType.PARENT),
+  async (req, res, next) => {
+    try {
+      if (!hasFeature(req.user!.plan, "FINANCE"))
+        throw {
+          statusCode: 403,
+          message: "Finance is not included in your subscription.",
+        };
+      const request = await FeeSubmission.findOne({
+        _id: id.parse(req.params.id),
+        schoolId: req.user!.schoolId,
+        parentId: req.user!.userId,
+      }).select("+screenshot");
+      if (!request) throw { statusCode: 404, message: "Payment not found." };
+      await linkedChild(req.user!, String(request.studentId));
+      res.set({
+        "Content-Type": request.screenshotMime,
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
+      });
+      return res.send(request.screenshot);
+    } catch (e) {
+      next(e);
+    }
+  },
+);
+router.get(
+  "/accounts",
+  requireExactUserType(UserType.SCHOOL_ADMIN),
+  requirePermission("users.manage"),
+  async (req, res, next) => {
+    try {
+      const [users, profiles] = await Promise.all([
+        User.find({ schoolId: req.user!.schoolId, userType: UserType.PARENT })
+          .select("name email status branchId")
+          .sort({ name: 1 })
+          .lean(),
+        ParentProfile.find({ schoolId: req.user!.schoolId })
+          .select("userId studentIds")
+          .lean(),
+      ]);
+      const linked = new Map(
+        profiles.map((p: any) => [String(p.userId), p.studentIds]),
+      );
+      const studentRows = await Student.find({
+        schoolId: req.user!.schoolId,
+        _id: { $in: profiles.flatMap((p: any) => p.studentIds) },
+      })
+        .select("name className rollNumber")
+        .lean();
+      const records = new Map(studentRows.map((r: any) => [String(r._id), r]));
+      return sendSuccess(
+        res,
+        users.map((u: any) => ({
+          ...u,
+          studentIds: linked.get(String(u._id)) || [],
+          children: ((linked.get(String(u._id)) || []) as any[])
+            .map((id) => records.get(String(id)))
+            .filter(Boolean),
+        })),
+      );
+    } catch (e) {
+      next(e);
+    }
+  },
+);
+router.get(
+  "/linkable-students",
+  requireExactUserType(UserType.SCHOOL_ADMIN),
+  requirePermission("users.manage"),
+  async (req, res, next) => {
+    try {
+      const term = z
+        .string()
+        .max(100)
+        .parse(req.query.search || "");
+      const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return sendSuccess(
+        res,
+        await Student.find({
+          schoolId: req.user!.schoolId,
+          ...(term
+            ? {
+                $or: [
+                  { name: { $regex: escaped, $options: "i" } },
+                  { admissionNumber: { $regex: escaped, $options: "i" } },
+                  { studentId: { $regex: escaped, $options: "i" } },
+                  { rollNumber: { $regex: escaped, $options: "i" } },
+                ],
+              }
+            : {}),
+        })
+          .select(
+            "name className rollNumber parentInfo studentId admissionNumber",
+          )
+          .sort({ name: 1 })
+          .limit(100)
+          .lean(),
+      );
+    } catch (e) {
+      next(e);
+    }
+  },
+);
+router.put(
+  "/accounts/:id/children",
+  requireExactUserType(UserType.SCHOOL_ADMIN),
+  requirePermission("users.manage"),
+  async (req, res, next) => {
+    try {
+      const parentId = id.parse(req.params.id),
+        input = z
+          .object({ studentIds: z.array(id).min(1).max(30) })
+          .strict()
+          .parse(req.body),
+        ids = [...new Set(input.studentIds)];
+      if (
+        !(await User.exists({
+          _id: parentId,
+          schoolId: req.user!.schoolId,
+          userType: UserType.PARENT,
+        })) ||
+        (await Student.countDocuments({
+          _id: { $in: ids },
+          schoolId: req.user!.schoolId,
+        })) !== ids.length
+      )
+        throw {
+          statusCode: 403,
+          message: "Parent and children must belong to your selected branch.",
+        };
+      return sendSuccess(
+        res,
+        await ParentProfile.findOneAndUpdate(
+          { schoolId: req.user!.schoolId, userId: parentId },
+          { $set: { studentIds: ids } },
+          { upsert: true, new: true, runValidators: true },
+        ),
+        "Linked children updated.",
+      );
+    } catch (e) {
+      next(e);
+    }
+  },
+);
+router.post(
+  "/accounts",
+  requireExactUserType(UserType.SCHOOL_ADMIN),
+  requirePermission("users.manage"),
+  async (req, res, next) => {
+    try {
+      const input = z
+        .object({
+          name: z.string().trim().min(2).max(100),
+          email: z.string().email(),
+          password: z.string().min(8).max(128),
+          studentIds: z.array(id).min(1).max(30),
+        })
+        .strict()
+        .parse(req.body);
+      return sendSuccess(
+        res,
+        await createParent(req.user!.schoolId!, input),
+        "Parent account created.",
+      );
+    } catch (e) {
+      next(e);
+    }
+  },
+);
 export default router;

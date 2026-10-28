@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const reserved = new Set(["about", "contact", "demo", "features", "free-trial", "login", "pricing", "payment", "super-admin", "school-admin", "teacher", "finance", "exam-staff", "receptionist", "parent", "api"]);
+const reserved = new Set(["guide", "about", "contact", "demo", "features", "free-trial", "login", "pricing", "payment", "super-admin", "school-admin", "teacher", "finance", "exam-staff", "receptionist", "parent", "api"]);
 
 export function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;

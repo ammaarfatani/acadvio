@@ -1,0 +1,35 @@
+
+   ╭──────────────────────────────────────────╮
+   │                                          │
+   │   Update available! 10.13.1 → 12.11.2.   │
+   │   Changelog: https://pnpm.io/v/12.11.2   │
+   │     To update, run: pnpm add -g pnpm     │
+   │                                          │
+   ╰──────────────────────────────────────────╯
+
+Progress: resolved 1, reused 0, downloaded 0, added 0
+ WARN  deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+Progress: resolved 24, reused 23, downloaded 0, added 0
+Progress: resolved 31, reused 30, downloaded 1, added 0
+Progress: resolved 31, reused 31, downloaded 1, added 0
+Progress: resolved 33, reused 32, downloaded 1, added 0
+Progress: resolved 68, reused 63, downloaded 2, added 0
+Progress: resolved 128, reused 100, downloaded 2, added 0
+Progress: resolved 242, reused 178, downloaded 2, added 0
+Progress: resolved 310, reused 232, downloaded 2, added 0
+Progress: resolved 348, reused 261, downloaded 2, added 0
+Progress: resolved 367, reused 280, downloaded 2, added 0
+Progress: resolved 432, reused 344, downloaded 2, added 0
+Progress: resolved 480, reused 392, downloaded 4, added 0
+Progress: resolved 527, reused 442, downloaded 4, added 0
+Progress: resolved 558, reused 475, downloaded 5, added 0
+ WARN  5 deprecated subdependencies found: @humanwhocodes/config-array@0.13.0, @humanwhocodes/object-schema@2.0.3, glob@7.2.3, inflight@1.0.6, rimraf@3.0.2
+Packages: +5
++++++
+Progress: resolved 568, reused 485, downloaded 5, added 4
+Progress: resolved 568, reused 485, downloaded 5, added 5, done
+
+dependencies:
++ sharp 0.34.5 (0.35.5 is available)
+
+Done in 18.4s using pnpm v10.13.1

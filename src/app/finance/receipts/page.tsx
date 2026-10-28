@@ -1,7 +1,7 @@
 "use client";
+import { printSchoolDocument } from "@/lib/print-school-document";
 
-
-
+import { FeeDocument } from "@/components/SchoolDocuments";
 import { useEffect, useState } from "react";
 import { Printer, Search, CheckCircle2 } from "lucide-react";
 import { financeApi } from "@/lib/financeApi";
@@ -30,15 +30,20 @@ export default function PrintableReceiptPage() {
   };
 
   useEffect(() => {
-    const challanId = new URLSearchParams(window.location.search).get("challanId");
+    const challanId = new URLSearchParams(window.location.search).get(
+      "challanId",
+    );
     if (challanId) {
       setSelectedChallanId(challanId);
       void loadReceipt(challanId);
     } else {
       // Load list of paid or partial challans
-      financeApi.getChallans()
+      financeApi
+        .getChallans()
         .then((res) => {
-          const paidList = (res?.data || []).filter((c: any) => c.paidAmountPKR > 0);
+          const paidList = (res?.data || []).filter(
+            (c: any) => c.paidAmountPKR > 0,
+          );
           setPaidChallans(paidList);
           if (paidList.length > 0) {
             setSelectedChallanId(paidList[0]._id);
@@ -47,7 +52,10 @@ export default function PrintableReceiptPage() {
             setLoading(false);
           }
         })
-        .catch(() => setLoading(false));
+        .catch((e) => {
+          setError(e.message);
+          setLoading(false);
+        });
     }
   }, []);
 
@@ -66,12 +74,18 @@ export default function PrintableReceiptPage() {
     <main className="mx-auto max-w-4xl space-y-6 pb-12 text-xs">
       <div className="print:hidden flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-zinc-200 pb-4">
         <div>
-          <h1 className="text-2xl font-black text-zinc-950">Official Fee Payment Receipts</h1>
-          <p className="text-xs text-zinc-500">Verified payment confirmation receipts from recorded transactions</p>
+          <h1 className="text-2xl font-black text-zinc-950">
+            Official Fee Payment Receipts
+          </h1>
+          <p className="text-xs text-zinc-500">
+            Verified payment confirmation receipts from recorded transactions
+          </p>
         </div>
 
         <button
-          onClick={() => window.print()}
+          onClick={() =>
+            void printSchoolDocument().catch((e) => setError(e.message))
+          }
           disabled={!payment}
           className="inline-flex items-center gap-2 rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2 text-xs font-bold text-white shadow-xs disabled:opacity-50"
         >
@@ -82,7 +96,9 @@ export default function PrintableReceiptPage() {
 
       {paidChallans.length > 0 && (
         <div className="print:hidden bg-white border border-zinc-200 p-4 rounded-xl flex items-center justify-between gap-4">
-          <span className="font-bold text-zinc-950">Select Paid Transaction ({paidChallans.length} Receipts Available):</span>
+          <span className="font-bold text-zinc-950">
+            Select Paid Transaction ({paidChallans.length} Receipts Available):
+          </span>
           <select
             value={selectedChallanId}
             onChange={(e) => handleSelectChallan(e.target.value)}
@@ -90,104 +106,45 @@ export default function PrintableReceiptPage() {
           >
             {paidChallans.map((c) => (
               <option key={c._id} value={c._id}>
-                {c.challanNumber} — {c.studentName} (Paid PKR {(c.paidAmountPKR || 0).toLocaleString()})
+                {c.challanNumber} — {c.studentName} (Paid PKR{" "}
+                {(c.paidAmountPKR || 0).toLocaleString()})
               </option>
             ))}
           </select>
         </div>
       )}
 
-      {loading && <p role="status" className="rounded-xl bg-white p-6 text-center text-zinc-500 border border-zinc-200">Loading receipt details...</p>}
-      
+      {loading && (
+        <p
+          role="status"
+          className="rounded-xl bg-white p-6 text-center text-zinc-500 border border-zinc-200"
+        >
+          Loading receipt details...
+        </p>
+      )}
+
       {!loading && !payment && !error && (
         <div className="p-12 text-center bg-white border border-dashed border-zinc-300 rounded-2xl">
-          <p className="font-bold text-zinc-800 text-sm">No Payments Collected Yet</p>
-          <p className="text-zinc-500 mt-1">Receipts will appear here once payments are collected in Fee Collection desk.</p>
+          <p className="font-bold text-zinc-800 text-sm">
+            No Payments Collected Yet
+          </p>
+          <p className="text-zinc-500 mt-1">
+            Receipts will appear here once payments are collected in Fee
+            Collection desk.
+          </p>
         </div>
       )}
 
-      {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs text-red-800 font-semibold">{error}</p>}
-
-      {payment && (
-        <article className="space-y-6 border-2 border-zinc-900 bg-white p-8 text-zinc-950 print:border-0 print:p-0 rounded-2xl shadow-xs">
-          <header className="border-b-2 border-zinc-900 pb-4 text-center">
-            <h2 className="text-2xl font-black uppercase tracking-tight">{user?.school?.name || "School ERP"}</h2>
-            <p className="mt-1 text-xs font-bold uppercase tracking-widest text-red-600">Official Fee Payment Receipt</p>
-          </header>
-
-          <dl className="grid grid-cols-2 gap-4 border border-zinc-300 bg-zinc-50/60 p-4 text-xs sm:grid-cols-3 rounded-xl">
-            <div>
-              <dt className="text-[10px] text-zinc-500 uppercase font-bold">Receipt No</dt>
-              <dd className="font-mono font-black text-red-600">{payment.receiptNumber}</dd>
-            </div>
-            <div>
-              <dt className="text-[10px] text-zinc-500 uppercase font-bold">Challan No</dt>
-              <dd className="font-mono font-bold text-zinc-900">{challan?.challanNumber}</dd>
-            </div>
-            <div>
-              <dt className="text-[10px] text-zinc-500 uppercase font-bold">Payment Date</dt>
-              <dd className="font-mono font-semibold">{new Date(payment.paidAt).toLocaleString()}</dd>
-            </div>
-            <div>
-              <dt className="text-[10px] text-zinc-500 uppercase font-bold">Student Name</dt>
-              <dd className="font-bold text-zinc-950">{payment.studentName}</dd>
-            </div>
-            <div>
-              <dt className="text-[10px] text-zinc-500 uppercase font-bold">Roll Number</dt>
-              <dd className="font-mono font-semibold">{payment.rollNumber}</dd>
-            </div>
-            <div>
-              <dt className="text-[10px] text-zinc-500 uppercase font-bold">Class / Section</dt>
-              <dd className="font-semibold">{payment.className}{student?.sectionName ? ` · Section ${student.sectionName}` : ""}</dd>
-            </div>
-            <div>
-              <dt className="text-[10px] text-zinc-500 uppercase font-bold">Admission No</dt>
-              <dd className="font-mono">{student?.admissionNumber || challan?.admissionNumber || "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-[10px] text-zinc-500 uppercase font-bold">Payment Method</dt>
-              <dd className="font-bold text-zinc-900">{payment.paymentMethod}</dd>
-            </div>
-            <div>
-              <dt className="text-[10px] text-zinc-500 uppercase font-bold">Collected By</dt>
-              <dd className="font-semibold text-zinc-800">{payment.collectedByUserName}</dd>
-            </div>
-          </dl>
-
-          <table className="w-full border-collapse border border-zinc-900 text-xs">
-            <thead>
-              <tr className="bg-zinc-950 text-left text-white font-bold uppercase">
-                <th className="border border-zinc-900 p-2.5">Fee Component Particulars</th>
-                <th className="border border-zinc-900 p-2.5 text-right">Amount (PKR)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {feeRows.map((row) => (
-                <tr key={row.key} className="border-b border-zinc-300">
-                  <td className="p-2.5 capitalize font-medium">{row.key.replace(/([A-Z])/g, " $1")}</td>
-                  <td className="p-2.5 text-right font-mono font-bold">PKR {row.amount.toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <div className="grid grid-cols-2 border-2 border-zinc-900 p-4 bg-zinc-50 rounded-xl">
-            <div>
-              <p className="text-[10px] uppercase font-bold text-zinc-500">Amount Paid in this Voucher</p>
-              <p className="text-xl font-black text-red-600 font-mono">PKR {Number(payment.amountPKR).toLocaleString()}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-[10px] uppercase font-bold text-zinc-500">Remaining Challan Balance</p>
-              <p className="text-xl font-black text-zinc-950 font-mono">PKR {Number(challan?.remainingAmountPKR || 0).toLocaleString()}</p>
-            </div>
-          </div>
-
-          <footer className="border-t border-zinc-200 pt-3 text-center text-[10px] text-zinc-500 font-mono">
-            This is a computer-generated fee payment receipt issued by {user?.school?.name || "School ERP"}.
-          </footer>
-        </article>
+      {error && (
+        <p
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs text-red-800 font-semibold"
+        >
+          {error}
+        </p>
       )}
+
+      {payment && <FeeDocument challan={payment.challanId} payment={payment} />}
     </main>
   );
 }
-

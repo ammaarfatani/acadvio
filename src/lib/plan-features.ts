@@ -5,6 +5,8 @@ const professional: PlanFeature[] = [...starter, "FINANCE", "EXAMINATIONS", "ADV
 export const PLAN_FEATURES: Record<string, readonly PlanFeature[]> = { STARTER: starter, PROFESSIONAL: professional, FREE_TRIAL: professional, ENTERPRISE: [...professional, "MULTI_BRANCH", "BRANCH_MANAGEMENT", "ORGANIZATION_REPORTS", "SCHOOL_ADMIN_MANAGEMENT"] };
 export function hasFeature(plan: string | undefined, feature: PlanFeature) { return !!plan && !!PLAN_FEATURES[plan]?.includes(feature); }
 export function routeFeature(path: string): PlanFeature | undefined {
+    if (/\/(?:smart-reports|intelligence)(?:\/|$)/.test(path)) return "ADVANCED_REPORTS";
+  if(path.endsWith("/subscription"))return undefined;
   if (/\/(?:payroll|salary)(?:\/|$)/.test(path)) return "FINANCE";
   if (/\/attendance\/reports(?:\/|$)/.test(path)) return "BASIC_REPORTS";
   if (/\/reports\/basic(?:\/|$)/.test(path)) return "BASIC_REPORTS";
@@ -21,6 +23,6 @@ export function permissionFeature(permission: string): PlanFeature | undefined {
   if (permission.startsWith("organization.")) return "MULTI_BRANCH";
 }
 
-const coreLabels = ["Student Records & Enrollment", "Teacher Directory", "Classes & Sections", "Subjects", "Attendance Registers", "Timetable", "School Branding", "Basic Enrollment & Attendance Reports", "Notice Board", "Linked Parent Accounts"];
+const coreLabels = ["Portal Guides & Onboarding Guidance","Student Records & Enrollment", "Teacher Directory", "Classes & Sections", "Subjects", "Attendance Registers", "Timetable", "School Branding", "Basic Enrollment & Attendance Reports", "Notice Board", "Linked Parent Accounts"];
 const professionalLabels = [...coreLabels, "Fee Structures & Challans", "Payment Receipts", "Expense Tracking", "Examination Schedules", "Marks & Published Results", "Report Cards & Certificates", "Advanced Reports", "Finance, Examination & Reception Roles"];
 export const PLAN_FEATURE_LABELS: Record<string, readonly string[]> = {STARTER: coreLabels, PROFESSIONAL: professionalLabels, FREE_TRIAL: professionalLabels, ENTERPRISE: [...professionalLabels, "Organization Dashboard", "Multiple Branches", "Branch Management & Switching", "Branch School Admin Accounts", "Consolidated & Branch Reports"]};

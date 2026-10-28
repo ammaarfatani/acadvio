@@ -1,7 +1,20 @@
-import {School} from "../models/school.model";
-import {persistMarks} from "./marksPersistence.service";
+import { SchoolService } from "./school.service";
+import {
+  defaultDocumentStyle,
+  DocumentType,
+} from "../../lib/document-templates";
+import { randomUUID } from "crypto";
+import { School } from "../models/school.model";
+import { persistMarks } from "./marksPersistence.service";
+import { configuredGrade } from "./assessmentMath";
 import mongoose from "mongoose";
-import { ExamSchedule, GradingScale, MarksEntry, ProcessedResult, CertificateRecord } from "../models/exam.model";
+import {
+  ExamSchedule,
+  GradingScale,
+  MarksEntry,
+  ProcessedResult,
+  CertificateRecord,
+} from "../models/exam.model";
 import { Student } from "../models/student.model";
 import { AuditLog } from "../models/auditLog.model";
 import { ClassModel, SectionModel } from "../models/classSection.model";
@@ -13,23 +26,49 @@ export class ExamService {
   // 1. DEFAULT GRADING SCALE HELPER
   static getDefaultRules() {
     return [
-      { grade: "A+", minPercentage: 90, maxPercentage: 100, remarks: "Outstanding" },
-      { grade: "A", minPercentage: 80, maxPercentage: 89.99, remarks: "Excellent" },
-      { grade: "B", minPercentage: 70, maxPercentage: 79.99, remarks: "Very Good" },
+      {
+        grade: "A+",
+        minPercentage: 90,
+        maxPercentage: 100,
+        remarks: "Outstanding",
+      },
+      {
+        grade: "A",
+        minPercentage: 80,
+        maxPercentage: 89.99,
+        remarks: "Excellent",
+      },
+      {
+        grade: "B",
+        minPercentage: 70,
+        maxPercentage: 79.99,
+        remarks: "Very Good",
+      },
       { grade: "C", minPercentage: 60, maxPercentage: 69.99, remarks: "Good" },
-      { grade: "D", minPercentage: 50, maxPercentage: 59.99, remarks: "Satisfactory" },
-      { grade: "F", minPercentage: 0, maxPercentage: 49.99, remarks: "Needs Improvement" },
+      {
+        grade: "D",
+        minPercentage: 50,
+        maxPercentage: 59.99,
+        remarks: "Satisfactory",
+      },
+      {
+        grade: "F",
+        minPercentage: 0,
+        maxPercentage: 49.99,
+        remarks: "Needs Improvement",
+      },
     ];
   }
 
-  static calculateGrade(percentage: number, rules: Array<{ grade: string; minPercentage: number; maxPercentage: number }>) {
-    const sorted = [...rules].sort((a, b) => b.minPercentage - a.minPercentage);
-    for (const r of sorted) {
-      if (percentage >= r.minPercentage) {
-        return r.grade;
-      }
-    }
-    return "F";
+  static calculateGrade(
+    percentage: number,
+    rules: Array<{
+      grade: string;
+      minPercentage: number;
+      maxPercentage: number;
+    }>,
+  ) {
+    return configuredGrade(percentage, rules);
   }
 
   // 2. DASHBOARD METRICS
@@ -43,16 +82,28 @@ export class ExamService {
       candidateCount,
       marksEntriesCount,
       publishedResultsCount,
-      recentLogs
+      recentLogs,
     ] = await Promise.all([
       ExamSchedule.countDocuments({ schoolId }),
       ExamSchedule.countDocuments({ schoolId, startDate: { $gt: today } }),
-      ExamSchedule.countDocuments({ schoolId, startDate: { $lte: today }, endDate: { $gte: today } }),
-      ExamSchedule.countDocuments({ schoolId, status: { $in: ["PROCESSED", "PUBLISHED"] } }),
+      ExamSchedule.countDocuments({
+        schoolId,
+        startDate: { $lte: today },
+        endDate: { $gte: today },
+      }),
+      ExamSchedule.countDocuments({
+        schoolId,
+        status: { $in: ["PROCESSED", "PUBLISHED"] },
+      }),
       Student.countDocuments({ schoolId, status: "ACTIVE" }),
       MarksEntry.countDocuments({ schoolId }),
       ProcessedResult.countDocuments({ schoolId, isPublished: true }),
-      AuditLog.find({ schoolId, action: { $regex: "^(EXAM|MARKS|CERTIFICATE)" } }).sort({ createdAt: -1 }).limit(8),
+      AuditLog.find({
+        schoolId,
+        action: { $regex: "^(EXAM|MARKS|CERTIFICATE)" },
+      })
+        .sort({ createdAt: -1 })
+        .limit(8),
     ]);
 
     return {
@@ -73,14 +124,49 @@ export class ExamService {
   }
 
   static async createExam(schoolId: string, data: any) {
-    const classes=await ClassModel.find({schoolId,$or:[{_id:{$in:data.classes.filter((v:string)=>mongoose.Types.ObjectId.isValid(v))}},{name:{$in:data.classes}}]});
-    if(classes.length!==new Set(data.classes).size)throw {statusCode:400,message:"Select classes belonging to this school."};
-    const session=data.academicSessionId?await AcademicSession.findOne({_id:data.academicSessionId,schoolId}):await AcademicSession.findOne({schoolId,isCurrent:true});
-    if(!session)throw {statusCode:400,message:"Select an academic session belonging to this school."};
-    const subjects=await Subject.find({schoolId,classId:{$in:classes.map(c=>c._id)}}).select("_id");
-    if(!subjects.length)throw {statusCode:400,message:"Configure subjects for the selected classes before creating the exam."};
-    data={...data,classes:classes.map(c=>String(c._id)),subjects:subjects.map(s=>String(s._id)),academicSessionId:session._id};
-    const academicSessionName=session.name;
+    const classes = await ClassModel.find({
+      schoolId,
+      $or: [
+        {
+          _id: {
+            $in: data.classes.filter((v: string) =>
+              mongoose.Types.ObjectId.isValid(v),
+            ),
+          },
+        },
+        { name: { $in: data.classes } },
+      ],
+    });
+    if (classes.length !== new Set(data.classes).size)
+      throw {
+        statusCode: 400,
+        message: "Select classes belonging to this school.",
+      };
+    const session = data.academicSessionId
+      ? await AcademicSession.findOne({ _id: data.academicSessionId, schoolId })
+      : await AcademicSession.findOne({ schoolId, isCurrent: true });
+    if (!session)
+      throw {
+        statusCode: 400,
+        message: "Select an academic session belonging to this school.",
+      };
+    const subjects = await Subject.find({
+      schoolId,
+      classId: { $in: classes.map((c) => c._id) },
+    }).select("_id");
+    if (!subjects.length)
+      throw {
+        statusCode: 400,
+        message:
+          "Configure subjects for the selected classes before creating the exam.",
+      };
+    data = {
+      ...data,
+      classes: classes.map((c) => String(c._id)),
+      subjects: subjects.map((s) => String(s._id)),
+      academicSessionId: session._id,
+    };
+    const academicSessionName = session.name;
 
     const exam = await ExamSchedule.create({
       ...data,
@@ -117,27 +203,45 @@ export class ExamService {
     const scale = await GradingScale.findOneAndUpdate(
       { schoolId },
       { $set: { rules, isDefault: false } },
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
     return scale;
   }
 
   // 5. MARKS LOOKUP
-  static async getMarks(schoolId: string, examId?: string, classId?: string, subjectId?: string, sectionId?: string) {
+  static async getMarks(
+    schoolId: string,
+    examId?: string,
+    classId?: string,
+    subjectId?: string,
+    sectionId?: string,
+  ) {
     const query: any = { schoolId };
-    if (examId && mongoose.Types.ObjectId.isValid(examId)) query.examId = examId;
-    if (classId && mongoose.Types.ObjectId.isValid(classId)) query.classId = classId;
-    if (subjectId && mongoose.Types.ObjectId.isValid(subjectId)) query.subjectId = subjectId;
+    if (examId && mongoose.Types.ObjectId.isValid(examId))
+      query.examId = examId;
+    if (classId && mongoose.Types.ObjectId.isValid(classId))
+      query.classId = classId;
+    if (subjectId && mongoose.Types.ObjectId.isValid(subjectId))
+      query.subjectId = subjectId;
 
     const entries = await MarksEntry.find(query).sort({ createdAt: -1 });
 
     if (sectionId && mongoose.Types.ObjectId.isValid(sectionId)) {
-      const sectionStudents = await Student.find({ schoolId, classId, sectionId, status: "ACTIVE" }).select("_id");
-      const sectionStudentIds = new Set(sectionStudents.map((s) => s._id.toString()));
+      const sectionStudents = await Student.find({
+        schoolId,
+        classId,
+        sectionId,
+        status: "ACTIVE",
+      }).select("_id");
+      const sectionStudentIds = new Set(
+        sectionStudents.map((s) => s._id.toString()),
+      );
 
       return entries.map((entry) => {
         const doc = entry.toObject();
-        doc.records = doc.records.filter((r: any) => sectionStudentIds.has(r.studentId.toString()));
+        doc.records = doc.records.filter((r: any) =>
+          sectionStudentIds.has(r.studentId.toString()),
+        );
         return doc;
       });
     }
@@ -146,45 +250,88 @@ export class ExamService {
   }
 
   // 6. MARKS ENTRY & AUDIT
-  static async saveMarksEntry(schoolId: string, data: {
-    examId: string;
-    classId: string;
-    subjectId: string;
-    subjectName?: string;
-    maxMarks: number;
-    passingMarks?: number;
-    records: Array<{ studentId: string; studentName?: string; rollNumber?: string; obtainedMarks: number; remarks?: string; isAbsent?: boolean }>;
-  }, userName: string) {
+  static async saveMarksEntry(
+    schoolId: string,
+    data: {
+      examId: string;
+      classId: string;
+      subjectId: string;
+      subjectName?: string;
+      maxMarks: number;
+      passingMarks?: number;
+      records: Array<{
+        studentId: string;
+        studentName?: string;
+        rollNumber?: string;
+        obtainedMarks: number;
+        remarks?: string;
+        isAbsent?: boolean;
+      }>;
+    },
+    userName: string,
+  ) {
     const exam = await ExamSchedule.findOne({ _id: data.examId, schoolId });
-    if(!exam)throw {statusCode:404,message:"Exam not found."};
-    if(!exam.classes.includes(data.classId))throw {statusCode:400,message:"This class is not included in the examination."};
+    if (!exam) throw { statusCode: 404, message: "Exam not found." };
+    if (!exam.classes.includes(data.classId))
+      throw {
+        statusCode: 400,
+        message: "This class is not included in the examination.",
+      };
     const examTitle = exam ? exam.title : "Exam Session";
 
-    const linkedClass = await ClassModel.findOne({ _id: data.classId, schoolId }).select("name");
+    const linkedClass = await ClassModel.findOne({
+      _id: data.classId,
+      schoolId,
+    }).select("name");
     const className = linkedClass ? linkedClass.name : "Class";
 
-    const subject = await Subject.findOne({ _id: data.subjectId, schoolId,classId:data.classId }).select("name");
+    const subject = await Subject.findOne({
+      _id: data.subjectId,
+      schoolId,
+      classId: data.classId,
+    }).select("name");
     const subjectName = subject?.name || "Subject";
 
-    if(!linkedClass||!subject)throw {statusCode:400,message:"Select a valid class subject."};
+    if (!linkedClass || !subject)
+      throw { statusCode: 400, message: "Select a valid class subject." };
     const scale = await this.getGradingScale(schoolId);
 
     // Populate student names and roll numbers if missing
     const studentIds = data.records.map((r) => r.studentId);
     const studentsMap = new Map<string, any>();
     if (studentIds.length > 0) {
-      const studentDocs = await Student.find({ _id: { $in: studentIds }, schoolId,classId:data.classId }).select("name rollNumber");
+      const studentDocs = await Student.find({
+        _id: { $in: studentIds },
+        schoolId,
+        classId: data.classId,
+      }).select("name rollNumber");
       studentDocs.forEach((s) => studentsMap.set(s._id.toString(), s));
     }
 
-    if(studentsMap.size!==new Set(studentIds).size||new Set(studentIds).size!==studentIds.length)throw {statusCode:400,message:"Every student must belong to this class and appear only once."};
+    if (
+      studentsMap.size !== new Set(studentIds).size ||
+      new Set(studentIds).size !== studentIds.length
+    )
+      throw {
+        statusCode: 400,
+        message:
+          "Every student must belong to this class and appear only once.",
+      };
     const processedRecords = data.records.map((r: any) => {
       const sDoc = studentsMap.get(r.studentId.toString());
       const studentName = sDoc.name;
       const rollNumber = sDoc.rollNumber;
 
-      const obtainedMarks = r.isAbsent?0:Number(r.obtainedMarks);
-      if(!Number.isFinite(obtainedMarks)||obtainedMarks<0||obtainedMarks>data.maxMarks)throw {statusCode:400,message:"Marks must be within the subject maximum."};
+      const obtainedMarks = r.isAbsent ? 0 : Number(r.obtainedMarks);
+      if (
+        !Number.isFinite(obtainedMarks) ||
+        obtainedMarks < 0 ||
+        obtainedMarks > data.maxMarks
+      )
+        throw {
+          statusCode: 400,
+          message: "Marks must be within the subject maximum.",
+        };
       const pct = data.maxMarks > 0 ? (obtainedMarks / data.maxMarks) * 100 : 0;
       const grade = r.isAbsent ? "F" : this.calculateGrade(pct, scale.rules);
 
@@ -199,19 +346,23 @@ export class ExamService {
       };
     });
 
-    const doc = await persistMarks(schoolId, {
-          schoolId,
-          examId: data.examId,
-          examTitle,
-          classId: data.classId,
-          className,
-          subjectId: data.subjectId,
-          subjectName,
-          maxMarks: data.maxMarks,
-          passingMarks: data.passingMarks ?? 33,
-          enteredByTeacherName: userName,
-          status: "SUBMITTED",
-    }, processedRecords);
+    const doc = await persistMarks(
+      schoolId,
+      {
+        schoolId,
+        examId: data.examId,
+        examTitle,
+        classId: data.classId,
+        className,
+        subjectId: data.subjectId,
+        subjectName,
+        maxMarks: data.maxMarks,
+        passingMarks: data.passingMarks ?? 33,
+        enteredByTeacherName: userName,
+        status: "SUBMITTED",
+      },
+      processedRecords,
+    );
 
     await AuditLog.create({
       schoolId,
@@ -224,21 +375,74 @@ export class ExamService {
   }
 
   // 7. RESULT PROCESSING & MERIT RANK COMPUTATION
-  static async processResults(schoolId: string, examId: string, classId: string, userName: string, dbSession?: mongoose.ClientSession) {
-    if(!dbSession){const tx=await mongoose.startSession();let result:any;try{await tx.withTransaction(async()=>{await School.updateOne({_id:schoolId},{$inc:{academicRevision:1}},{session:tx});result=await this.processResults(schoolId, examId, classId, userName, tx);});return result;}finally{await tx.endSession();}}
-    const exam = await ExamSchedule.findOne({ _id: examId, schoolId }).session(dbSession);
+  static async processResults(
+    schoolId: string,
+    examId: string,
+    classId: string,
+    userName: string,
+    dbSession?: mongoose.ClientSession,
+  ) {
+    if (!dbSession) {
+      const tx = await mongoose.startSession();
+      let result: any;
+      try {
+        await tx.withTransaction(async () => {
+          await School.updateOne(
+            { _id: schoolId },
+            { $inc: { academicRevision: 1 } },
+            { session: tx },
+          );
+          result = await this.processResults(
+            schoolId,
+            examId,
+            classId,
+            userName,
+            tx,
+          );
+        });
+        return result;
+      } finally {
+        await tx.endSession();
+      }
+    }
+    const exam = await ExamSchedule.findOne({ _id: examId, schoolId }).session(
+      dbSession,
+    );
     if (!exam) throw { statusCode: 404, message: "Exam session not found." };
 
-    const marksEntries = await MarksEntry.find({ schoolId, examId, classId, status:{$ne:"DRAFT"} }).session(dbSession);
+    const marksEntries = await MarksEntry.find({
+      schoolId,
+      examId,
+      classId,
+      status: { $ne: "DRAFT" },
+    }).session(dbSession);
     if (marksEntries.length === 0) {
-      throw { statusCode: 400, message: "No marks entries found for this class and exam session." };
+      throw {
+        statusCode: 400,
+        message: "No marks entries found for this class and exam session.",
+      };
     }
 
     const scale = await this.getGradingScale(schoolId);
-    const students = await Student.find({ schoolId, classId, status: "ACTIVE",...(exam.academicSessionId?{$or:[{academicSessionId:exam.academicSessionId},{academicSessionId:null}]}:{}) }).session(dbSession);
+    const students = await Student.find({
+      schoolId,
+      classId,
+      status: "ACTIVE",
+      ...(exam.academicSessionId
+        ? {
+            $or: [
+              { academicSessionId: exam.academicSessionId },
+              { academicSessionId: null },
+            ],
+          }
+        : {}),
+    }).session(dbSession);
 
     // Pre-calculate student attendance percentage if attendance records exist
-    const attendanceRecords = await StudentAttendance.find({ schoolId, classId }).session(dbSession);
+    const attendanceRecords = await StudentAttendance.find({
+      schoolId,
+      classId,
+    }).session(dbSession);
     const attendanceMap = new Map<string, { present: number; total: number }>();
 
     attendanceRecords.forEach((att: any) => {
@@ -246,12 +450,15 @@ export class ExamService {
         const sId = rec.studentId.toString();
         const curr = attendanceMap.get(sId) || { present: 0, total: 0 };
         curr.total += 1;
-        if (rec.status === "PRESENT" || rec.status === "LATE") curr.present += 1;
+        if (rec.status === "PRESENT" || rec.status === "LATE")
+          curr.present += 1;
         attendanceMap.set(sId, curr);
       });
     });
 
-    const classSubjects=await Subject.find({schoolId,classId}).sort({name:1}).session(dbSession);
+    const classSubjects = await Subject.find({ schoolId, classId })
+      .sort({ name: 1 })
+      .session(dbSession);
     const studentResults: any[] = [];
 
     for (const student of students) {
@@ -260,24 +467,68 @@ export class ExamService {
       const subjectScores: any[] = [];
       let isAnySubjectFailed = false;
 
-      let pending=false;
+      let pending = false;
       for (const subject of classSubjects) {
-        const entry=marksEntries.find(e=>String(e.subjectId)===String(subject._id));
-        const studentRec=entry?.records.find((r:any)=>String(r.studentId)===String(student._id));
-        const max=entry?.maxMarks??subject.totalMarks??100;studentTotalMax+=max;
-        if(!studentRec){pending=true;subjectScores.push({subjectId:subject._id,subjectName:subject.name,maxMarks:max,obtainedMarks:null,grade:"PENDING",remarks:"Marks not entered"});continue;}
-        const obtained=studentRec.isAbsent?0:studentRec.obtainedMarks;
-        const pct=max>0?obtained/max*100:0;
-        const grade=studentRec.isAbsent?"ABSENT":this.calculateGrade(pct,scale.rules);
-        if(studentRec.isAbsent||obtained<(entry?.passingMarks??subject.passingMarks??33))isAnySubjectFailed=true;
-        studentTotalObtained+=obtained;
-        subjectScores.push({subjectId:subject._id,subjectName:subject.name,maxMarks:max,obtainedMarks:obtained,grade,isAbsent:!!studentRec.isAbsent,remarks:studentRec.isAbsent?"Absent":studentRec.remarks||""});
+        const entry = marksEntries.find(
+          (e) => String(e.subjectId) === String(subject._id),
+        );
+        const studentRec = entry?.records.find(
+          (r: any) => String(r.studentId) === String(student._id),
+        );
+        const max = entry?.maxMarks ?? subject.totalMarks ?? 100;
+        studentTotalMax += max;
+        if (!studentRec) {
+          pending = true;
+          subjectScores.push({
+            subjectId: subject._id,
+            subjectName: subject.name,
+            maxMarks: max,
+            obtainedMarks: null,
+            grade: "PENDING",
+            remarks: "Marks not entered",
+          });
+          continue;
+        }
+        const obtained = studentRec.isAbsent ? 0 : studentRec.obtainedMarks;
+        const pct = max > 0 ? (obtained / max) * 100 : 0;
+        const grade = studentRec.isAbsent
+          ? "ABSENT"
+          : this.calculateGrade(pct, scale.rules);
+        if (
+          studentRec.isAbsent ||
+          obtained < (entry?.passingMarks ?? subject.passingMarks ?? 33)
+        )
+          isAnySubjectFailed = true;
+        studentTotalObtained += obtained;
+        subjectScores.push({
+          subjectId: subject._id,
+          subjectName: subject.name,
+          maxMarks: max,
+          obtainedMarks: obtained,
+          grade,
+          isAbsent: !!studentRec.isAbsent,
+          remarks: studentRec.isAbsent ? "Absent" : studentRec.remarks || "",
+        });
       }
-      const overallPct=pending?null:studentTotalMax>0?Number((studentTotalObtained/studentTotalMax*100).toFixed(2)):null;
-      const overallGrade=overallPct===null?"PENDING":this.calculateGrade(overallPct,scale.rules);
-      const status=pending||overallPct===null?"PENDING":isAnySubjectFailed?"FAILED":"PASSED";
-      const attStats=attendanceMap.get(String(student._id));
-      const attendancePercentage=attStats?.total?Number((attStats.present/attStats.total*100).toFixed(1)):undefined;
+      const overallPct = pending
+        ? null
+        : studentTotalMax > 0
+          ? Number(((studentTotalObtained / studentTotalMax) * 100).toFixed(2))
+          : null;
+      const overallGrade =
+        overallPct === null
+          ? "PENDING"
+          : this.calculateGrade(overallPct, scale.rules);
+      const status =
+        pending || overallPct === null
+          ? "PENDING"
+          : isAnySubjectFailed
+            ? "FAILED"
+            : "PASSED";
+      const attStats = attendanceMap.get(String(student._id));
+      const attendancePercentage = attStats?.total
+        ? Number(((attStats.present / attStats.total) * 100).toFixed(1))
+        : undefined;
 
       studentResults.push({
         schoolId,
@@ -297,99 +548,208 @@ export class ExamService {
         status,
         attendancePercentage,
         isPublished: false,
-        needsProcessing:false,
+        needsProcessing: false,
       });
     }
 
     // Compute Merit Position Ranks
-    studentResults.sort((a,b)=>(b.percentage??-1)-(a.percentage??-1));
-    let rank=0;studentResults.forEach(res=>{res.rank=res.status==="PENDING"?undefined:++rank;});
+    studentResults.sort((a, b) => (b.percentage ?? -1) - (a.percentage ?? -1));
+    let rank = 0;
+    studentResults.forEach((res) => {
+      res.rank = res.status === "PENDING" ? undefined : ++rank;
+    });
 
     // Save Processed Results
     for (const resData of studentResults) {
       await ProcessedResult.findOneAndUpdate(
         { schoolId, examId, studentId: resData.studentId },
         { $set: resData },
-        { upsert: true, new: true,session:dbSession }
+        { upsert: true, new: true, session: dbSession },
       );
     }
 
     exam.status = "PROCESSED";
-    await exam.save({session:dbSession});
+    await exam.save({ session: dbSession });
 
-    await AuditLog.create([{
-      schoolId,
-      action: "EXAM_RESULTS_PROCESSED",
-      performedByName: userName,
-      details: `Processed & ranked results for ${exam.title} (${studentResults.length} students ranked).`,
-    }],{session:dbSession});
+    await AuditLog.create(
+      [
+        {
+          schoolId,
+          action: "EXAM_RESULTS_PROCESSED",
+          performedByName: userName,
+          details: `Processed & ranked results for ${exam.title} (${studentResults.length} students ranked).`,
+        },
+      ],
+      { session: dbSession },
+    );
 
-    return { count: studentResults.length, message: `Processed & ranked results for ${studentResults.length} students.` };
+    return {
+      count: studentResults.length,
+      message: `Processed & ranked results for ${studentResults.length} students.`,
+    };
   }
 
   static async getResults(schoolId: string, examId?: string, classId?: string) {
     const query: any = { schoolId };
-    if (examId && mongoose.Types.ObjectId.isValid(examId)) query.examId = examId;
-    if (classId && mongoose.Types.ObjectId.isValid(classId)) query.classId = classId;
+    if (examId && mongoose.Types.ObjectId.isValid(examId))
+      query.examId = examId;
+    if (classId && mongoose.Types.ObjectId.isValid(classId))
+      query.classId = classId;
 
-    let results = await ProcessedResult.find(query).sort({ rank: 1, percentage: -1 });
-
+    let results = await ProcessedResult.find(query).sort({
+      rank: 1,
+      percentage: -1,
+    });
 
     return results;
   }
 
   // 8. RESULT PUBLISHING & UNPUBLISHING
-  static async publishResults(schoolId: string, examId: string, classId: string, publish: boolean, userName: string, dbSession?: mongoose.ClientSession) {
-    if(!dbSession){const tx=await mongoose.startSession();let result:any;try{await tx.withTransaction(async()=>{await School.updateOne({_id:schoolId},{$inc:{academicRevision:1}},{session:tx});result=await this.publishResults(schoolId, examId, classId, publish, userName, tx);});return result;}finally{await tx.endSession();}}
-    const selectedExam=await ExamSchedule.findOne({_id:examId,schoolId,classes:classId}).session(dbSession);if(!selectedExam)throw {statusCode:404,message:"Examination class not found."};
-    if(publish&&!await ProcessedResult.exists({schoolId,examId,classId,status:{$ne:"PENDING"},needsProcessing:{$ne:true}}).session(dbSession))throw {statusCode:409,message:"No complete processed results are ready to publish. Process pending or changed marks first."};
+  static async publishResults(
+    schoolId: string,
+    examId: string,
+    classId: string,
+    publish: boolean,
+    userName: string,
+    dbSession?: mongoose.ClientSession,
+  ) {
+    if (!dbSession) {
+      const tx = await mongoose.startSession();
+      let result: any;
+      try {
+        await tx.withTransaction(async () => {
+          await School.updateOne(
+            { _id: schoolId },
+            { $inc: { academicRevision: 1 } },
+            { session: tx },
+          );
+          result = await this.publishResults(
+            schoolId,
+            examId,
+            classId,
+            publish,
+            userName,
+            tx,
+          );
+        });
+        return result;
+      } finally {
+        await tx.endSession();
+      }
+    }
+    const selectedExam = await ExamSchedule.findOne({
+      _id: examId,
+      schoolId,
+      classes: classId,
+    }).session(dbSession);
+    if (!selectedExam)
+      throw { statusCode: 404, message: "Examination class not found." };
+    if (
+      publish &&
+      !(await ProcessedResult.exists({
+        schoolId,
+        examId,
+        classId,
+        status: { $ne: "PENDING" },
+        needsProcessing: { $ne: true },
+      }).session(dbSession))
+    )
+      throw {
+        statusCode: 409,
+        message:
+          "No complete processed results are ready to publish. Process pending or changed marks first.",
+      };
     await ProcessedResult.updateMany(
-      { schoolId, examId, classId,...(publish?{status:{$ne:"PENDING"},needsProcessing:{$ne:true}}:{}) },
-      { $set: { isPublished: publish, publishedAt: publish ? new Date() : null } },{session:dbSession}
+      {
+        schoolId,
+        examId,
+        classId,
+        ...(publish
+          ? { status: { $ne: "PENDING" }, needsProcessing: { $ne: true } }
+          : {}),
+      },
+      {
+        $set: {
+          isPublished: publish,
+          publishedAt: publish ? new Date() : null,
+        },
+      },
+      { session: dbSession },
     );
 
-    const exam = await ExamSchedule.findOne({ _id: examId, schoolId }).session(dbSession);
+    const exam = await ExamSchedule.findOne({ _id: examId, schoolId }).session(
+      dbSession,
+    );
     if (exam) {
       exam.status = publish ? "PUBLISHED" : "PROCESSED";
       exam.publishedAt = publish ? new Date() : undefined;
       exam.publishedByUserName = userName;
-      await exam.save({session:dbSession});
+      await exam.save({ session: dbSession });
     }
 
-    await AuditLog.create([{
-      schoolId,
-      action: publish ? "EXAM_RESULTS_PUBLISHED" : "EXAM_RESULTS_UNPUBLISHED",
-      performedByName: userName,
-      details: `${publish ? "Published" : "Unpublished"} results for ${exam?.title || "Exam Session"}.`,
-    }],{session:dbSession});
+    await AuditLog.create(
+      [
+        {
+          schoolId,
+          action: publish
+            ? "EXAM_RESULTS_PUBLISHED"
+            : "EXAM_RESULTS_UNPUBLISHED",
+          performedByName: userName,
+          details: `${publish ? "Published" : "Unpublished"} results for ${exam?.title || "Exam Session"}.`,
+        },
+      ],
+      { session: dbSession },
+    );
 
     return { status: publish ? "PUBLISHED" : "UNPUBLISHED" };
   }
 
   // 9. TABULATION SHEET MATRIX GENERATOR
-  static async getTabulationSheet(schoolId: string, examId: string, classId: string) {
-    const [exam, linkedClass, subjects, students, marksEntries, processedResults] = await Promise.all([
+  static async getTabulationSheet(
+    schoolId: string,
+    examId: string,
+    classId: string,
+  ) {
+    const [
+      exam,
+      linkedClass,
+      subjects,
+      students,
+      marksEntries,
+      processedResults,
+    ] = await Promise.all([
       ExamSchedule.findOne({ _id: examId, schoolId }),
       ClassModel.findOne({ _id: classId, schoolId }),
       Subject.find({ schoolId, classId }),
-      Student.find({ schoolId, classId, status: "ACTIVE" }).sort({ rollNumber: 1 }),
+      Student.find({ schoolId, classId, status: "ACTIVE" }).sort({
+        rollNumber: 1,
+      }),
       MarksEntry.find({ schoolId, examId, classId }),
       ProcessedResult.find({ schoolId, examId, classId }),
     ]);
 
     const processedMap = new Map<string, any>();
-    processedResults.forEach((pr) => processedMap.set(pr.studentId.toString(), pr));
+    processedResults.forEach((pr) =>
+      processedMap.set(pr.studentId.toString(), pr),
+    );
 
     const rows = students.map((student) => {
       const sId = student._id.toString();
       const pr = processedMap.get(sId);
-      const subjectMarks: Record<string, { obtained: number; max: number; grade: string }> = {};
+      const subjectMarks: Record<
+        string,
+        { obtained: number; max: number; grade: string }
+      > = {};
 
       subjects.forEach((subj) => {
         const subId = subj._id.toString();
-        const entry = marksEntries.find((me) => me.subjectId.toString() === subId);
+        const entry = marksEntries.find(
+          (me) => me.subjectId.toString() === subId,
+        );
         if (entry) {
-          const rec = entry.records.find((r: any) => r.studentId.toString() === sId);
+          const rec = entry.records.find(
+            (r: any) => r.studentId.toString() === sId,
+          );
           if (rec) {
             subjectMarks[subId] = {
               obtained: rec.obtainedMarks,
@@ -418,16 +778,26 @@ export class ExamService {
     return {
       examTitle: exam ? exam.title : "Exam Session",
       className: linkedClass ? linkedClass.name : "Class",
-      subjects: subjects.map((s) => ({ _id: s._id, name: s.name, code: s.code })),
+      subjects: subjects.map((s) => ({
+        _id: s._id,
+        name: s.name,
+        code: s.code,
+      })),
       rows,
     };
   }
 
   // 10. RESULT PERFORMANCE ANALYTICS
-  static async getAnalytics(schoolId: string, examId?: string, classId?: string) {
-    const query: any = { schoolId,status:{$ne:"PENDING"} };
-    if (examId && mongoose.Types.ObjectId.isValid(examId)) query.examId = examId;
-    if (classId && mongoose.Types.ObjectId.isValid(classId)) query.classId = classId;
+  static async getAnalytics(
+    schoolId: string,
+    examId?: string,
+    classId?: string,
+  ) {
+    const query: any = { schoolId, status: { $ne: "PENDING" } };
+    if (examId && mongoose.Types.ObjectId.isValid(examId))
+      query.examId = examId;
+    if (classId && mongoose.Types.ObjectId.isValid(classId))
+      query.classId = classId;
 
     const results = await ProcessedResult.find(query);
     if (results.length === 0) {
@@ -444,13 +814,23 @@ export class ExamService {
     }
 
     const totalStudents = results.length;
-    const passedCount = results.filter((r) => r.status === "PASSED" || r.status === "PROMOTED").length;
+    const passedCount = results.filter(
+      (r) => r.status === "PASSED" || r.status === "PROMOTED",
+    ).length;
     const failedCount = totalStudents - passedCount;
-    const passPercentage = Number(((passedCount / totalStudents) * 100).toFixed(1));
+    const passPercentage = Number(
+      ((passedCount / totalStudents) * 100).toFixed(1),
+    );
 
-    const totalObtainedSum = results.reduce((sum, r) => sum + r.totalObtainedMarks, 0);
+    const totalObtainedSum = results.reduce(
+      (sum, r) => sum + r.totalObtainedMarks,
+      0,
+    );
     const totalMaxSum = results.reduce((sum, r) => sum + r.totalMaxMarks, 0);
-    const classAverage = totalMaxSum > 0 ? Number(((totalObtainedSum / totalMaxSum) * 100).toFixed(1)) : 0;
+    const classAverage =
+      totalMaxSum > 0
+        ? Number(((totalObtainedSum / totalMaxSum) * 100).toFixed(1))
+        : 0;
 
     const highestMarks = Math.max(...results.map((r) => r.totalObtainedMarks));
     const lowestMarks = Math.min(...results.map((r) => r.totalObtainedMarks));
@@ -478,49 +858,248 @@ export class ExamService {
     return CertificateRecord.find({ schoolId }).sort({ issueDate: -1 });
   }
 
-  static async issueCertificate(schoolId: string, data: {
-    type: "BONAFIDE" | "CHARACTER" | "LEAVING" | "TRANSFER" | "RESULT";
-    studentId: string;
-    classId?: string;
-    studentName?: string;
-    rollNumber?: string;
-    className?: string;
-    session?: string;
-    reason?: string;
-    conductRemarks?: string;
-  }, userName: string) {
-    const student = await Student.findOne({ _id: data.studentId, schoolId });
-    if (!student) throw { statusCode: 404, message: "Selected student record not found in database for this school." };
+  static async issueClassCertificates(
+    schoolId: string,
+    input: {
+      classId: string;
+      studentIds?: string[];
+      type: "BONAFIDE" | "CHARACTER" | "LEAVING" | "TRANSFER" | "RESULT";
+      reason?: string;
+      conductRemarks?: string;
+      requestId: string;
+      onlyIfMissing?: boolean;
+    },
+    userName: string,
+  ) {
+    const tx = await mongoose.startSession();
+    let certificates: any[] = [];
+    try {
+      await tx.withTransaction(async () => {
+        if (
+          !(await ClassModel.findOne({ _id: input.classId, schoolId }).session(
+            tx,
+          ))
+        )
+          throw {
+            statusCode: 404,
+            message: "Selected class was not found in this school.",
+          };
+        const students = await Student.find({
+          schoolId,
+          classId: input.classId,
+          status: { $ne: "ARCHIVED" },
+          ...(input.studentIds ? { _id: { $in: input.studentIds } } : {}),
+        })
+          .select("_id")
+          .sort({ _id: 1 })
+          .session(tx);
+        if (!students.length)
+          throw {
+            statusCode: 400,
+            message: "No eligible students in this class.",
+          };
+        if (input.studentIds && students.length !== input.studentIds.length)
+          throw {
+            statusCode: 400,
+            message:
+              "Every selected student must belong to the selected class and school.",
+          };
+        if (students.length > 500)
+          throw {
+            statusCode: 400,
+            message:
+              "Issue up to 500 students per batch using selected students.",
+          };
+        // Serialize missing-only issuance per class so concurrent administrators
+        // reuse the first issued certificate instead of creating duplicate records.
+        if (input.onlyIfMissing)
+          await ClassModel.updateOne(
+            { _id: input.classId, schoolId },
+            { $inc: { __v: 1 } },
+            { session: tx },
+          );
+        certificates = [];
+        for (const student of students) {
+          if (input.onlyIfMissing) {
+            const issued = await CertificateRecord.findOne({
+              schoolId,
+              studentId: student._id,
+              type: input.type,
+            })
+              .sort({ issueDate: -1, _id: -1 })
+              .session(tx);
+            if (issued) {
+              certificates.push(issued);
+              continue;
+            }
+          }
+          certificates.push(
+            await this.issueCertificate(
+              schoolId,
+              {
+                type: input.type,
+                classId: input.classId,
+                studentId: String(student._id),
+                reason: input.reason,
+                conductRemarks: input.conductRemarks,
+                issuanceKey: input.requestId + ":" + student._id,
+              },
+              userName,
+              tx,
+            ),
+          );
+        }
+      });
+      return certificates;
+    } catch (error: any) {
+      if (error.code === 11000)
+        throw {
+          statusCode: 409,
+          message:
+            "This batch is already being issued. Retry the same request to retrieve its certificates.",
+        };
+      throw error;
+    } finally {
+      await tx.endSession();
+    }
+  }
+
+  static async issueCertificate(
+    schoolId: string,
+    data: {
+      issuanceKey?: string;
+      type: "BONAFIDE" | "CHARACTER" | "LEAVING" | "TRANSFER" | "RESULT";
+      studentId: string;
+      classId?: string;
+      studentName?: string;
+      rollNumber?: string;
+      className?: string;
+      session?: string;
+      reason?: string;
+      conductRemarks?: string;
+    },
+    userName: string,
+    dbSession?: mongoose.ClientSession,
+  ) {
+    if (data.issuanceKey) {
+      const existing = await CertificateRecord.findOne({
+        schoolId,
+        issuanceKey: data.issuanceKey,
+      }).session(dbSession || null);
+      if (existing) {
+        if (
+          existing.type !== data.type ||
+          String(existing.studentId) !== data.studentId ||
+          (existing.reason || "") !== (data.reason || "") ||
+          (existing.conductRemarks || "") !== (data.conductRemarks || "")
+        )
+          throw {
+            statusCode: 409,
+            message:
+              "This issuance request was already used with different certificate details. Start a new batch.",
+          };
+        return existing;
+      }
+    }
+    const student = await Student.findOne({ _id: data.studentId, schoolId })
+      .select("+photoStorageId")
+      .session(dbSession || null);
+    if (!student)
+      throw {
+        statusCode: 404,
+        message:
+          "Selected student record not found in database for this school.",
+      };
 
     if (data.classId && String(student.classId) !== String(data.classId)) {
-      throw { statusCode: 400, message: "Selected student does not belong to the selected class." };
+      throw {
+        statusCode: 400,
+        message: "Selected student does not belong to the selected class.",
+      };
     }
 
-    const certNo = `CERT-${data.type.slice(0, 3)}-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-    const currentSession = await AcademicSession.findOne({ schoolId, isCurrent: true }).select("name");
+    if (!student.rollNumber || !student.className)
+      throw {
+        statusCode: 400,
+        message: `${student.name} needs a class and roll number before a certificate can be issued.`,
+      };
 
-    const cert = await CertificateRecord.create({
+    const certNo = `CERT-${data.type.slice(0, 3)}-${new Date().getFullYear()}-${randomUUID().replace(/-/g, "").slice(0, 20).toUpperCase()}`;
+    const currentSession = await AcademicSession.findOne({
       schoolId,
-      certificateNumber: certNo,
-      type: data.type,
-      studentId: student._id,
-      studentName: data.studentName || student.name,
-      rollNumber: data.rollNumber || student.rollNumber,
-      admissionNumber: student.admissionNumber,
-      className: data.className || student.className,
-      session: data.session || currentSession?.name || student.academicSessionName || "2026–2027",
-      issueDate: new Date(),
-      reason: data.reason || "On student/parent request",
-      conductRemarks: data.conductRemarks || "Satisfactory conduct and moral character",
-      issuedByUserName: userName,
-    });
+      isCurrent: true,
+    }).select("name");
 
-    await AuditLog.create({
-      schoolId,
-      action: "CERTIFICATE_ISSUED",
-      performedByName: userName,
-      details: `Issued ${data.type} Certificate (${certNo}) for ${student.name}.`,
-    });
+    const schoolProfile: any = await SchoolService.getSchoolProfile(schoolId);
+    const category: DocumentType = (
+      {
+        BONAFIDE: "bonafide",
+        CHARACTER: "character",
+        LEAVING: "leaving",
+        TRANSFER: "transfer",
+        RESULT: "report-card",
+      } as const
+    )[data.type];
+    const snapshotStudent: any = student.toObject();
+    const photoStorageId = snapshotStudent.photoStorageId;
+    delete snapshotStudent.photoStorageId;
+    delete snapshotStudent.documents;
+    const documentSnapshot = {
+      type: category,
+      style:
+        schoolProfile.documentSettings?.templates?.[category] ||
+        defaultDocumentStyle(category),
+      school: {
+        name: schoolProfile.name,
+        address: schoolProfile.address,
+        phone: schoolProfile.phone,
+        email: schoolProfile.email,
+        logoUrl: schoolProfile.logoUrl,
+        ...schoolProfile.documentSettings?.branding,
+      },
+      student: snapshotStudent,
+      photoStorageId,
+      photoStudentId: student._id,
+      photoSchoolId: schoolId,
+      generatedAt: new Date(),
+    };
+    const [cert] = await CertificateRecord.create(
+      [
+        {
+          issuanceKey: data.issuanceKey,
+          schoolId,
+          documentSnapshot,
+          certificateNumber: certNo,
+          type: data.type,
+          studentId: student._id,
+          studentName: student.name,
+          rollNumber: student.rollNumber,
+          admissionNumber: student.admissionNumber,
+          className: student.className,
+          session:
+            student.academicSessionName ||
+            currentSession?.name ||
+            "Not recorded",
+          issueDate: new Date(),
+          reason: data.reason,
+          conductRemarks: data.conductRemarks,
+          issuedByUserName: userName,
+        },
+      ],
+      { session: dbSession },
+    );
+
+    await AuditLog.create(
+      [
+        {
+          schoolId,
+          action: "CERTIFICATE_ISSUED",
+          performedByName: userName,
+          details: `Issued ${data.type} Certificate (${certNo}) for ${student.name}.`,
+        },
+      ],
+      { session: dbSession },
+    );
 
     return cert;
   }

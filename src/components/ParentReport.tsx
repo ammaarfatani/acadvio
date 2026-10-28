@@ -1,4 +1,92 @@
 "use client";
-import {useEffect,useRef} from "react";
-import {useAuth} from "@/lib/auth-context";
-export default function ParentReport({record,student,kind,onClose}:{record:any;student:any;kind:"result"|"receipt"|"certificate";onClose:()=>void}){const {user}=useAuth();const ref=useRef<HTMLButtonElement>(null);useEffect(()=>{const previous=document.activeElement as HTMLElement;ref.current?.focus();const key=(e:KeyboardEvent)=>{if(e.key==="Escape")onClose();};document.addEventListener("keydown",key);return()=>{document.removeEventListener("keydown",key);previous?.focus();};},[onClose]);return <div role="dialog" aria-modal="true" aria-labelledby="parent-report-title" className="fixed inset-0 z-[80] overflow-y-auto bg-black/30 p-3 sm:p-8"><section id="parent-report" className="mx-auto max-w-3xl rounded-xl bg-white p-6 sm:p-9"><div className="no-print flex justify-end gap-3"><button onClick={()=>window.print()} className="rounded-lg border px-3 py-2 text-sm">Print / Save PDF</button><button ref={ref} onClick={onClose} className="rounded-lg border px-3 py-2 text-sm">Close</button></div><p className="mt-5 text-sm text-zinc-500">{user?.school?.name}</p><h2 id="parent-report-title" className="mt-2 text-2xl font-bold">{kind==="result"?record.examTitle:kind==="receipt"?"Fee payment receipt":"Issued certificate record"}</h2><p className="mt-3 text-sm">{student.name} · {student.className}{student.sectionName?" / "+student.sectionName:""} · Roll {student.rollNumber}</p>{kind==="result"?<><p className="mt-5 text-sm">Marks {record.totalObtainedMarks}/{record.totalMaxMarks} · {record.percentage}% · Grade {record.overallGrade}{record.rank?" · Rank "+record.rank:""}</p><table className="mt-5 w-full text-left text-sm"><thead><tr><th className="p-2">Subject</th><th className="p-2">Marks</th><th className="p-2">Grade</th></tr></thead><tbody>{record.subjectScores.map((s:any)=><tr key={s.subjectId||s.subjectName} className="border-t"><td className="p-2">{s.subjectName}</td><td className="p-2">{s.obtainedMarks}/{s.maxMarks}</td><td className="p-2">{s.grade}</td></tr>)}</tbody></table>{record.teacherRemarks&&<p className="mt-5 text-sm">Teacher remarks: {record.teacherRemarks}</p>}</>:kind==="receipt"?<dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2">{[["Receipt",record.receiptNumber],["Amount","PKR "+Number(record.amountPKR).toLocaleString("en-PK")],["Payment date",new Date(record.paidAt).toLocaleDateString("en-GB")],["Method",record.paymentMethod],["Reference",record.reference||"Not recorded"]].map(([label,value])=><div key={label}><dt className="text-zinc-500">{label}</dt><dd className="mt-1 font-semibold">{value}</dd></div>)}</dl>:<div className="mt-5 space-y-3 text-sm"><p>Certificate number: {record.certificateNumber}</p><p>Type: {record.type}</p><p>Session: {record.session}</p><p>Issued: {new Date(record.issueDate).toLocaleDateString("en-GB")}</p>{record.conductRemarks&&<p>{record.conductRemarks}</p>}<p className="text-zinc-500">This is the issued record. Contact your school for a signed original certificate.</p></div>}</section></div>;}
+import { profilePhoto } from "@/lib/profile-photo";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/lib/auth-context";
+import { useParent } from "@/lib/parent-context";
+import { defaultDocumentStyle, DocumentType } from "@/lib/document-templates";
+import { DocumentPreviewOverlay } from "./SchoolDocumentPreview";
+export default function ParentReport({
+  record,
+  student,
+  kind,
+  onClose,
+}: {
+  record: any;
+  student: any;
+  kind: "result" | "receipt" | "certificate";
+  onClose: () => void;
+}) {
+  const { user } = useAuth(),
+    parent = useParent();
+  const [photo, setPhoto] = useState("");
+  useEffect(() => {
+    let active = true;
+    setPhoto("");
+    void profilePhoto(student).then((image) => {
+      if (active) setPhoto(image);
+    });
+    return () => {
+      active = false;
+    };
+  }, [student._id, student.photoUrl]);
+  const types: any = {
+    BONAFIDE: "bonafide",
+    CHARACTER: "character",
+    LEAVING: "leaving",
+    TRANSFER: "transfer",
+    RESULT: "report-card",
+  };
+  const type: DocumentType =
+    kind === "result"
+      ? "report-card"
+      : kind === "receipt"
+        ? "fee-receipt"
+        : types[record.type] || "general-certificate";
+  const existing = record.documentSnapshot;
+  const school = parent.data?.documentBranding || user?.school;
+  const challan =
+    kind === "receipt"
+      ? parent.data?.fees?.find(
+          (c: any) =>
+            String(c._id) === String(record.challanId?._id || record.challanId),
+        )
+      : null;
+  const data =
+    kind === "certificate" && existing
+      ? {
+          ...existing,
+          type,
+          certificate: record,
+          generatedAt: record.issueDate,
+        }
+      : {
+          type,
+          school,
+          student,
+          photo,
+          style:
+            kind === "certificate"
+              ? defaultDocumentStyle(type)
+              : existing?.documentStyle ||
+                (kind === "receipt"
+                  ? defaultDocumentStyle(type)
+                  : parent.data?.documentStyles?.[type]) ||
+                defaultDocumentStyle(type),
+          exam: { title: record.examTitle },
+          result: kind === "result" ? record : null,
+          payment:
+            kind === "receipt"
+              ? {
+                  ...record,
+                  challanId: challan || {
+                    feeBreakdown: existing?.feeBreakdown,
+                    challanNumber: existing?.challanNumber,
+                    month: existing?.month,
+                  },
+                }
+              : null,
+          certificate: kind === "certificate" ? record : null,
+          generatedAt: record.publishedAt || record.paidAt || record.issueDate,
+        };
+  return <DocumentPreviewOverlay data={data} onClose={onClose} />;
+}

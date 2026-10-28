@@ -34,11 +34,17 @@ export class ReceptionistService {
       announcements,
     ] = await Promise.all([
       Admission.countDocuments({ schoolId, inquiryDate: { $gte: todayStart } }),
-      Admission.countDocuments({ schoolId, status: { $in: ["NEW", "CONTACTED", "FOLLOW_UP", "APPLIED"] } }),
+      Admission.countDocuments({
+        schoolId,
+        status: { $in: ["NEW", "CONTACTED", "FOLLOW_UP", "APPLIED"] },
+      }),
       Admission.countDocuments({ schoolId, status: "ADMITTED" }),
       Visitor.countDocuments({ schoolId, checkInTime: { $gte: todayStart } }),
       Visitor.countDocuments({ schoolId, status: "IN_PREMISES" }),
-      Appointment.countDocuments({ schoolId, appointmentDate: { $gte: todayStart, $lte: todayEnd } }),
+      Appointment.countDocuments({
+        schoolId,
+        appointmentDate: { $gte: todayStart, $lte: todayEnd },
+      }),
       FrontDeskRequest.countDocuments({ schoolId, status: "PENDING" }),
       Student.countDocuments({ schoolId, status: "ACTIVE" }),
       Admission.find({ schoolId })
@@ -46,11 +52,11 @@ export class ReceptionistService {
         .sort({ inquiryDate: -1 })
         .limit(5)
         .lean(),
-      Visitor.find({ schoolId })
-        .sort({ checkInTime: -1 })
-        .limit(5)
-        .lean(),
-      Appointment.find({ schoolId, appointmentDate: { $gte: todayStart, $lte: todayEnd } })
+      Visitor.find({ schoolId }).sort({ checkInTime: -1 }).limit(5).lean(),
+      Appointment.find({
+        schoolId,
+        appointmentDate: { $gte: todayStart, $lte: todayEnd },
+      })
         .sort({ appointmentDate: 1 })
         .limit(5)
         .lean(),
@@ -102,17 +108,22 @@ export class ReceptionistService {
       to?: string;
       page?: number;
       limit?: number;
-    }
+    },
   ) {
     const page = Math.max(1, options.page || 1);
     const limit = Math.min(100, Math.max(1, options.limit || 25));
     const query: any = { schoolId };
-    if (options.status && options.status !== "ALL") query.status = options.status;
+    if (options.status && options.status !== "ALL")
+      query.status = options.status;
     if (options.classId) query.applyingClassId = options.classId;
     if (options.from || options.to) {
       query.inquiryDate = {
-        ...(options.from ? { $gte: new Date(`${options.from}T00:00:00`) } : {}),
-        ...(options.to ? { $lte: new Date(`${options.to}T23:59:59.999`) } : {}),
+        ...(options.from
+          ? { $gte: new Date(`${options.from}T00:00:00+05:00`) }
+          : {}),
+        ...(options.to
+          ? { $lte: new Date(`${options.to}T23:59:59.999+05:00`) }
+          : {}),
       };
     }
     if (options.search?.trim()) {
@@ -124,15 +135,21 @@ export class ReceptionistService {
         "applicationNumber",
         "admissionNumber",
       ].map((key) => ({
-        [key]: { $regex: term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" },
+        [key]: {
+          $regex: term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+          $options: "i",
+        },
       }));
     }
     const [items, total] = await Promise.all([
       Admission.find(query)
         .populate("applyingClassId", "name")
         .populate("academicSessionId", "name")
-        .populate("studentId", "name admissionNumber rollNumber")
-        .sort({ inquiryDate: -1 })
+        .populate(
+          "studentId",
+          "name admissionNumber rollNumber photoUrl bFormNumber updatedAt",
+        )
+        .sort({ inquiryDate: -1, _id: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
         .lean(),
@@ -143,11 +160,19 @@ export class ReceptionistService {
 
   static async createAdmission(schoolId: string, data: any) {
     const [linkedClass, session] = await Promise.all([
-      ClassModel.findOne({ _id: data.applyingClassId, schoolId }).select("name"),
-      AcademicSession.findOne({ _id: data.academicSessionId, schoolId }).select("name"),
+      ClassModel.findOne({ _id: data.applyingClassId, schoolId }).select(
+        "name",
+      ),
+      AcademicSession.findOne({ _id: data.academicSessionId, schoolId }).select(
+        "name",
+      ),
     ]);
     if (!linkedClass || !session) {
-      throw { statusCode: 400, message: "Select a class and academic session belonging to this school." };
+      throw {
+        statusCode: 400,
+        message:
+          "Select a class and academic session belonging to this school.",
+      };
     }
     const year = new Date().getFullYear();
     return Admission.create({
@@ -169,19 +194,24 @@ export class ReceptionistService {
       followUpDate?: Date | null;
       notes?: string;
       documentsStatus?: "PENDING" | "PARTIAL" | "COMPLETE";
-    }
+    },
   ) {
     const admission = await Admission.findOne({ _id: admissionId, schoolId });
-    if (!admission) throw { statusCode: 404, message: "Admission record not found." };
+    if (!admission)
+      throw { statusCode: 404, message: "Admission record not found." };
     if (
       ["ADMITTED", "REJECTED", "CANCELLED"].includes(admission.status) &&
       data.status &&
       data.status !== admission.status
     ) {
-      throw { statusCode: 409, message: "This admission record is closed and cannot change status." };
+      throw {
+        statusCode: 409,
+        message: "This admission record is closed and cannot change status.",
+      };
     }
     if (data.status) admission.status = data.status;
-    if (data.followUpDate !== undefined) admission.followUpDate = data.followUpDate || undefined;
+    if (data.followUpDate !== undefined)
+      admission.followUpDate = data.followUpDate || undefined;
     if (data.notes !== undefined) admission.notes = data.notes;
     if (data.documentsStatus) admission.documentsStatus = data.documentsStatus;
     return admission.save();
@@ -189,19 +219,30 @@ export class ReceptionistService {
 
   static async admitStudent(schoolId: string, admissionId: string, data: any) {
     const admission = await Admission.findOne({ _id: admissionId, schoolId });
-    if (!admission) throw { statusCode: 404, message: "Admission record not found." };
+    if (!admission)
+      throw { statusCode: 404, message: "Admission record not found." };
     if (admission.status !== "APPROVED") {
-      throw { statusCode: 409, message: "Approve this application before enrolling the student." };
+      throw {
+        statusCode: 409,
+        message: "Approve this application before enrolling the student.",
+      };
     }
     if (admission.studentId) {
-      throw { statusCode: 409, message: "This admission is already linked to a student record." };
+      throw {
+        statusCode: 409,
+        message: "This admission is already linked to a student record.",
+      };
     }
     const section = await SectionModel.findOne({
       _id: data.sectionId,
       classId: admission.applyingClassId,
       schoolId,
     });
-    if (!section) throw { statusCode: 400, message: "Select a section under the requested applying class." };
+    if (!section)
+      throw {
+        statusCode: 400,
+        message: "Select a section under the requested applying class.",
+      };
     const admissionNumber = `ADM-${new Date().getFullYear()}-${randomUUID().slice(0, 8).toUpperCase()}`;
 
     try {
@@ -212,6 +253,9 @@ export class ReceptionistService {
           student = await SchoolAdminService.createStudent(
             schoolId,
             {
+              parentAccount: data.parentPassword
+                ? { password: data.parentPassword }
+                : undefined,
               name: admission.studentName,
               dob: data.dob,
               gender: data.gender,
@@ -223,6 +267,21 @@ export class ReceptionistService {
               address: data.address,
               phone: data.phone,
               photoUrl: data.photoUrl,
+              photoData: data.photoData,
+              bFormNumber: data.bFormNumber,
+              nameUrdu: data.nameUrdu,
+              nationality: data.nationality,
+              religion: data.religion,
+              bloodGroup: data.bloodGroup,
+              placeOfBirth: data.placeOfBirth,
+              permanentAddress: data.permanentAddress,
+              billingAddress: data.billingAddress,
+              motherOccupation: data.motherOccupation,
+              medicalInformation: data.medicalInformation,
+              allergies: data.allergies,
+              supportRequirements: data.supportRequirements,
+              previousSchool: admission.previousSchool || data.previousSchool,
+              previousClass: admission.previousClass || data.previousClass,
               parentInfo: {
                 fatherName: admission.guardianName,
                 fatherPhone: admission.guardianPhone,
@@ -242,7 +301,7 @@ export class ReceptionistService {
               },
             },
             dbSession,
-            false
+            false,
           );
           admission.status = "ADMITTED";
           admission.studentId = student._id;
@@ -260,6 +319,9 @@ export class ReceptionistService {
       const student = await SchoolAdminService.createStudent(
         schoolId,
         {
+          parentAccount: data.parentPassword
+            ? { password: data.parentPassword }
+            : undefined,
           name: admission.studentName,
           dob: data.dob,
           gender: data.gender,
@@ -271,6 +333,21 @@ export class ReceptionistService {
           address: data.address,
           phone: data.phone,
           photoUrl: data.photoUrl,
+          photoData: data.photoData,
+          bFormNumber: data.bFormNumber,
+          nameUrdu: data.nameUrdu,
+          nationality: data.nationality,
+          religion: data.religion,
+          bloodGroup: data.bloodGroup,
+          placeOfBirth: data.placeOfBirth,
+          permanentAddress: data.permanentAddress,
+          billingAddress: data.billingAddress,
+          motherOccupation: data.motherOccupation,
+          medicalInformation: data.medicalInformation,
+          allergies: data.allergies,
+          supportRequirements: data.supportRequirements,
+          previousSchool: admission.previousSchool || data.previousSchool,
+          previousClass: admission.previousClass || data.previousClass,
           parentInfo: {
             fatherName: admission.guardianName,
             fatherPhone: admission.guardianPhone,
@@ -290,7 +367,7 @@ export class ReceptionistService {
           },
         },
         undefined,
-        false
+        false,
       );
       admission.status = "ADMITTED";
       admission.studentId = student._id;
@@ -311,7 +388,7 @@ export class ReceptionistService {
       status?: string;
       page?: number;
       limit?: number;
-    }
+    },
   ) {
     const page = Math.max(1, options.page || 1);
     const limit = Math.min(100, Math.max(1, options.limit || 25));
@@ -327,7 +404,10 @@ export class ReceptionistService {
 
     if (options.search?.trim()) {
       const term = options.search.trim();
-      const regex = { $regex: term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" };
+      const regex = {
+        $regex: term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+        $options: "i",
+      };
       query.$or = [
         { name: regex },
         { rollNumber: regex },
@@ -347,7 +427,7 @@ export class ReceptionistService {
         .populate("sectionId", "name")
         .populate("academicSessionId", "name")
         .select(
-          "name studentId admissionNumber rollNumber classId className sectionId sectionName status dob gender phone parentInfo admissionDate address photoUrl"
+          "name studentId admissionNumber rollNumber classId className sectionId sectionName status dob gender phone parentInfo admissionDate address photoUrl bFormNumber",
         )
         .sort({ rollNumber: 1, name: 1 })
         .skip((page - 1) * limit)
@@ -367,13 +447,22 @@ export class ReceptionistService {
       .select("-__v")
       .lean();
 
-    if (!student) throw { statusCode: 404, message: "Student record not found in your school." };
+    if (!student)
+      throw {
+        statusCode: 404,
+        message: "Student record not found in your school.",
+      };
     return student;
   }
 
   static async getParents(
     schoolId: string,
-    options: { search?: string; classId?: string; page?: number; limit?: number }
+    options: {
+      search?: string;
+      classId?: string;
+      page?: number;
+      limit?: number;
+    },
   ) {
     const page = Math.max(1, options.page || 1);
     const limit = Math.min(100, Math.max(1, options.limit || 25));
@@ -382,7 +471,10 @@ export class ReceptionistService {
     if (options.classId) query.classId = options.classId;
     if (options.search?.trim()) {
       const term = options.search.trim();
-      const regex = { $regex: term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" };
+      const regex = {
+        $regex: term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+        $options: "i",
+      };
       query.$or = [
         { "parentInfo.fatherName": regex },
         { "parentInfo.fatherPhone": regex },
@@ -396,7 +488,9 @@ export class ReceptionistService {
 
     const [students, total] = await Promise.all([
       Student.find(query)
-        .select("name rollNumber className sectionName parentInfo emergencyContact address phone")
+        .select(
+          "name rollNumber className sectionName parentInfo emergencyContact address phone",
+        )
         .sort({ "parentInfo.fatherName": 1, name: 1 })
         .skip((page - 1) * limit)
         .limit(limit)
@@ -415,8 +509,10 @@ export class ReceptionistService {
       fatherOccupation: s.parentInfo?.fatherOccupation || "—",
       motherName: s.parentInfo?.motherName || "—",
       motherPhone: s.parentInfo?.motherPhone || "—",
-      guardianName: s.parentInfo?.guardianName || s.parentInfo?.fatherName || "—",
-      guardianPhone: s.parentInfo?.guardianPhone || s.parentInfo?.fatherPhone || "—",
+      guardianName:
+        s.parentInfo?.guardianName || s.parentInfo?.fatherName || "—",
+      guardianPhone:
+        s.parentInfo?.guardianPhone || s.parentInfo?.fatherPhone || "—",
       guardianEmail: s.parentInfo?.guardianEmail || "—",
       guardianRelation: s.parentInfo?.guardianRelation || "Father",
       address: s.address || "—",
@@ -435,7 +531,7 @@ export class ReceptionistService {
       date?: string;
       page?: number;
       limit?: number;
-    }
+    },
   ) {
     const page = Math.max(1, options.page || 1);
     const limit = Math.min(100, Math.max(1, options.limit || 25));
@@ -452,7 +548,10 @@ export class ReceptionistService {
     }
     if (options.search?.trim()) {
       const term = options.search.trim();
-      const regex = { $regex: term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" };
+      const regex = {
+        $regex: term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+        $options: "i",
+      };
       query.$or = [
         { visitorName: regex },
         { phone: regex },
@@ -475,8 +574,17 @@ export class ReceptionistService {
   }
 
   static async createVisitor(schoolId: string, data: any, recordedBy?: string) {
-    if (!data.visitorName || !data.phone || !data.purpose || !data.personToMeet) {
-      throw { statusCode: 400, message: "Visitor name, phone, purpose, and person to meet are required." };
+    if (
+      !data.visitorName ||
+      !data.phone ||
+      !data.purpose ||
+      !data.personToMeet
+    ) {
+      throw {
+        statusCode: 400,
+        message:
+          "Visitor name, phone, purpose, and person to meet are required.",
+      };
     }
     return Visitor.create({
       ...data,
@@ -489,7 +597,8 @@ export class ReceptionistService {
 
   static async checkoutVisitor(schoolId: string, visitorId: string) {
     const visitor = await Visitor.findOne({ _id: visitorId, schoolId });
-    if (!visitor) throw { statusCode: 404, message: "Visitor record not found." };
+    if (!visitor)
+      throw { statusCode: 404, message: "Visitor record not found." };
     visitor.status = "CHECKED_OUT";
     visitor.checkOutTime = new Date();
     return visitor.save();
@@ -505,7 +614,7 @@ export class ReceptionistService {
       department?: string;
       page?: number;
       limit?: number;
-    }
+    },
   ) {
     const page = Math.max(1, options.page || 1);
     const limit = Math.min(100, Math.max(1, options.limit || 25));
@@ -525,7 +634,10 @@ export class ReceptionistService {
     }
     if (options.search?.trim()) {
       const term = options.search.trim();
-      const regex = { $regex: term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" };
+      const regex = {
+        $regex: term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+        $options: "i",
+      };
       query.$or = [
         { visitorName: regex },
         { phone: regex },
@@ -543,12 +655,33 @@ export class ReceptionistService {
       Appointment.countDocuments(query),
     ]);
 
-    return { appointments, total, page, limit, pages: Math.ceil(total / limit) };
+    return {
+      appointments,
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit),
+    };
   }
 
-  static async createAppointment(schoolId: string, data: any, bookedBy?: string) {
-    if (!data.visitorName || !data.phone || !data.purpose || !data.personToMeet || !data.appointmentDate || !data.timeSlot) {
-      throw { statusCode: 400, message: "Visitor name, phone, purpose, person to meet, date, and time slot are required." };
+  static async createAppointment(
+    schoolId: string,
+    data: any,
+    bookedBy?: string,
+  ) {
+    if (
+      !data.visitorName ||
+      !data.phone ||
+      !data.purpose ||
+      !data.personToMeet ||
+      !data.appointmentDate ||
+      !data.timeSlot
+    ) {
+      throw {
+        statusCode: 400,
+        message:
+          "Visitor name, phone, purpose, person to meet, date, and time slot are required.",
+      };
     }
     return Appointment.create({
       ...data,
@@ -558,12 +691,21 @@ export class ReceptionistService {
     });
   }
 
-  static async updateAppointment(schoolId: string, appointmentId: string, data: any) {
-    const appointment = await Appointment.findOne({ _id: appointmentId, schoolId });
-    if (!appointment) throw { statusCode: 404, message: "Appointment record not found." };
+  static async updateAppointment(
+    schoolId: string,
+    appointmentId: string,
+    data: any,
+  ) {
+    const appointment = await Appointment.findOne({
+      _id: appointmentId,
+      schoolId,
+    });
+    if (!appointment)
+      throw { statusCode: 404, message: "Appointment record not found." };
 
     if (data.status) appointment.status = data.status;
-    if (data.appointmentDate) appointment.appointmentDate = new Date(data.appointmentDate);
+    if (data.appointmentDate)
+      appointment.appointmentDate = new Date(data.appointmentDate);
     if (data.timeSlot) appointment.timeSlot = data.timeSlot;
     if (data.notes !== undefined) appointment.notes = data.notes;
     if (data.personToMeet) appointment.personToMeet = data.personToMeet;
@@ -582,19 +724,25 @@ export class ReceptionistService {
       department?: string;
       page?: number;
       limit?: number;
-    }
+    },
   ) {
     const page = Math.max(1, options.page || 1);
     const limit = Math.min(100, Math.max(1, options.limit || 25));
     const query: any = { schoolId };
 
-    if (options.status && options.status !== "ALL") query.status = options.status;
-    if (options.requestType && options.requestType !== "ALL") query.requestType = options.requestType;
-    if (options.department && options.department !== "ALL") query.assignedDepartment = options.department;
+    if (options.status && options.status !== "ALL")
+      query.status = options.status;
+    if (options.requestType && options.requestType !== "ALL")
+      query.requestType = options.requestType;
+    if (options.department && options.department !== "ALL")
+      query.assignedDepartment = options.department;
 
     if (options.search?.trim()) {
       const term = options.search.trim();
-      const regex = { $regex: term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" };
+      const regex = {
+        $regex: term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+        $options: "i",
+      };
       query.$or = [
         { requesterName: regex },
         { phone: regex },
@@ -618,7 +766,10 @@ export class ReceptionistService {
 
   static async createRequest(schoolId: string, data: any, recordedBy?: string) {
     if (!data.requesterName || !data.phone || !data.details) {
-      throw { statusCode: 400, message: "Requester name, phone, and request details are required." };
+      throw {
+        statusCode: 400,
+        message: "Requester name, phone, and request details are required.",
+      };
     }
     const year = new Date().getFullYear();
     const requestNumber = `REQ-${year}-${randomUUID().slice(0, 8).toUpperCase()}`;
@@ -633,12 +784,18 @@ export class ReceptionistService {
   }
 
   static async updateRequest(schoolId: string, requestId: string, data: any) {
-    const request = await FrontDeskRequest.findOne({ _id: requestId, schoolId });
-    if (!request) throw { statusCode: 404, message: "Request record not found." };
+    const request = await FrontDeskRequest.findOne({
+      _id: requestId,
+      schoolId,
+    });
+    if (!request)
+      throw { statusCode: 404, message: "Request record not found." };
 
     if (data.status) request.status = data.status;
-    if (data.assignedDepartment) request.assignedDepartment = data.assignedDepartment;
-    if (data.resolutionNotes !== undefined) request.resolutionNotes = data.resolutionNotes;
+    if (data.assignedDepartment)
+      request.assignedDepartment = data.assignedDepartment;
+    if (data.resolutionNotes !== undefined)
+      request.resolutionNotes = data.resolutionNotes;
 
     return request.save();
   }
@@ -649,13 +806,20 @@ export class ReceptionistService {
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    const [pendingFollowUps, todayAppointments, pendingRequests, announcements] = await Promise.all([
+    const [
+      pendingFollowUps,
+      todayAppointments,
+      pendingRequests,
+      announcements,
+    ] = await Promise.all([
       Admission.find({
         schoolId,
         followUpDate: { $lte: todayEnd },
         status: { $in: ["NEW", "CONTACTED", "FOLLOW_UP"] },
       })
-        .select("studentName guardianName guardianPhone followUpDate status applyingClassName")
+        .select(
+          "studentName guardianName guardianPhone followUpDate status applyingClassName",
+        )
         .sort({ followUpDate: 1 })
         .limit(10)
         .lean(),
@@ -692,7 +856,9 @@ export class ReceptionistService {
     ]);
 
     const totalUnread =
-      pendingFollowUps.length + todayAppointments.length + pendingRequests.length;
+      pendingFollowUps.length +
+      todayAppointments.length +
+      pendingRequests.length;
 
     return {
       totalUnread,

@@ -1,0 +1,17 @@
+[
+  {
+    "code": "STARTER",
+    "priceMonthlyPKR": 2000,
+    "priceAnnualPKR": 1600
+  },
+  {
+    "code": "PROFESSIONAL",
+    "priceMonthlyPKR": 4000,
+    "priceAnnualPKR": 3200
+  },
+  {
+    "code": "ENTERPRISE",
+    "priceMonthlyPKR": 8000,
+    "priceAnnualPKR": 6400
+  }
+]

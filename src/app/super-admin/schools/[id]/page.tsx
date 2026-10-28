@@ -23,6 +23,7 @@ import {
   Lock,
   Key
 } from "lucide-react";
+import OrganizationAccountControl from "@/components/OrganizationAccountControl";
 import { superAdminApi } from "@/lib/superAdminApi";
 
 export default function SchoolDetailsPage() {
@@ -85,6 +86,7 @@ export default function SchoolDetailsPage() {
         </div>
       </div>
 
+      <section className="rounded-lg border bg-white p-5"><h2 className="mb-3 font-bold">Organization account access</h2><OrganizationAccountControl school={school} onChanged={async()=>setDetails((await superAdminApi.getSchoolDetails(schoolId)).data)}/></section>
       {/* Grid of Info Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
@@ -109,11 +111,11 @@ export default function SchoolDetailsPage() {
             </div>
             <div className="pt-2 flex justify-between border-t border-zinc-100 font-medium">
               <span>Student Scale:</span>
-              <strong className="text-zinc-950">{school.studentCountRange || "500+"}</strong>
+              <strong className="text-zinc-950">{school.studentCountRange || "Not configured"}</strong>
             </div>
             <div className="flex justify-between font-medium">
               <span>Teachers Count:</span>
-              <strong className="text-zinc-950">{school.teacherCount || 45}</strong>
+              <strong className="text-zinc-950">{school.teacherCount ?? 0}</strong>
             </div>
           </div>
         </div>

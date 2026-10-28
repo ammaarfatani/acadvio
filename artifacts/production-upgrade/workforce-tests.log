@@ -1,0 +1,3 @@
+Connected disposable database; initializing indexes.
+Indexes ready; checking real workforce endpoints.
+PASS: 121 real workforce HTTP/MongoDB checks.

@@ -1,0 +1,41 @@
+Practice website: http://127.0.0.1:3001
+Practice API only: http://127.0.0.1:5001/api
+  ▲ Next.js 14.2.35
+  - Local:        http://127.0.0.1:3001
+  - Network:      http://127.0.0.1:3001
+  - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 59.2s
+ ✓ Compiled /src/middleware in 14.6s
+ ✓ Compiled (72 modules)
+(node:19472) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ○ Compiling /login ...
+Failed to proxy http://localhost:3001/login?schoolSlug=biometric-practice Error: socket hang up
+    at Socket.socketCloseListener (node:_http_client:548:27)
+    at Socket.emit (node:events:531:35)
+    at TCP.<anonymous> (node:net:347:12)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17) {
+  code: 'ECONNRESET'
+}
+Error: socket hang up
+    at Socket.socketCloseListener (node:_http_client:548:27)
+    at Socket.emit (node:events:531:35)
+    at TCP.<anonymous> (node:net:347:12)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17) {
+  code: 'ECONNRESET'
+}
+ ✓ Compiled /_error in 119.7s (859 modules)
+ ✓ Compiled in 1595ms (493 modules)
+ GET /login?schoolSlug=biometric-practice 200 in 487ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 3.3s (396 modules)
+ GET /favicon.ico 200 in 3691ms
+ ○ Compiling /school-admin ...
+ ✓ Compiled /school-admin in 11.7s (1015 modules)
+ ✓ Compiled in 3.1s (1019 modules)
+ ○ Compiling /school-admin/subscription ...
+ ✓ Compiled /school-admin/subscription in 4.8s (978 modules)
+ GET /school-admin/subscription 200 in 5828ms
+ ✓ Compiled in 8.7s (1050 modules)

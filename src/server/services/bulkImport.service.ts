@@ -83,7 +83,7 @@ export function parseImportFile(entity: ImportEntity, filename: string, encoded:
         const cell = sheet[XLSX.utils.encode_cell({ r: 0, c })], label = String(cell?.v ?? "").trim();
         if (!label)
             continue;
-        const column = columns.find(v => key(v.label) === key(label));
+        const column = columns.find(v => key(v.label) === key(label)||(v.key==="bFormNumber"&&["studentbformnumber","bform"].includes(key(label))));
         if (!column)
             return fail(`Unsupported column '${label}'. Use the ${entity} template.`);
         if (header.has(column.key))
@@ -154,7 +154,7 @@ function rowData(entity: ImportEntity, row: Row, ctx: Awaited<ReturnType<typeof 
         const rollNumber = v.rollNumber || `${prefix}${reserved.get(group)! + 1}`;
         if (!v.rollNumber)
             reserved.set(group, reserved.get(group)! + 1);
-        return StudentCreateSchema.parse({ name: v.name, dob: strictDate(v.dob, "Date of Birth"), gender: v.gender, classId: String(cls._id), className: cls.name, sectionId: String(section._id), sectionName: section.name, academicSessionId: String(session._id), academicSessionName: session.name, rollNumber, studentId: v.studentId || `STU-${randomUUID()}`, admissionNumber: v.admissionNumber || `ADM-${new Date().getFullYear()}-${randomUUID().slice(0, 12)}`, admissionDate: strictDate(v.admissionDate, "Admission Date", true) || new Date(), address: v.address, phone: v.phone || undefined, parentInfo: { fatherName: v.fatherName, fatherPhone: v.fatherPhone, fatherCnic: v.fatherCnic, fatherOccupation: v.fatherOccupation, motherName: v.motherName, motherPhone: v.motherPhone, guardianName: v.guardianName, guardianPhone: v.guardianPhone, guardianEmail: v.guardianEmail, guardianRelation: v.guardianRelation }, emergencyContact: { name: v.emergencyName, phone: v.emergencyPhone, relation: v.emergencyRelation } });
+        return StudentCreateSchema.parse({ bFormNumber:v.bFormNumber||undefined, name: v.name, dob: strictDate(v.dob, "Date of Birth"), gender: v.gender, classId: String(cls._id), className: cls.name, sectionId: String(section._id), sectionName: section.name, academicSessionId: String(session._id), academicSessionName: session.name, rollNumber, studentId: v.studentId || `STU-${randomUUID()}`, admissionNumber: v.admissionNumber || `ADM-${new Date().getFullYear()}-${randomUUID().slice(0, 12)}`, admissionDate: strictDate(v.admissionDate, "Admission Date", true) || new Date(), address: v.address, phone: v.phone || undefined, parentInfo: { fatherName: v.fatherName, fatherPhone: v.fatherPhone, fatherCnic: v.fatherCnic, fatherOccupation: v.fatherOccupation, motherName: v.motherName, motherPhone: v.motherPhone, guardianName: v.guardianName, guardianPhone: v.guardianPhone, guardianEmail: v.guardianEmail, guardianRelation: v.guardianRelation }, emergencyContact: { name: v.emergencyName, phone: v.emergencyPhone, relation: v.emergencyRelation } });
     }
     const assignments: any[] = [];
     if (v.class || v.section || v.subject) {
@@ -370,6 +370,8 @@ export class BulkImportService {
                             if (entity === "students")
                                 await Student.insertMany(items.map(({ row: r }) => ({ ...r.data, _id: new Types.ObjectId(r.recordId), schoolId, status: "ACTIVE" })), { session, ordered: true });
                             else {
+                                const {permanentIdentity}=await import("./permanentIdentity.service");
+                                for(const {row:r} of items)r.data.employeeId=await permanentIdentity(schoolId,"employee",r.recordId);
                                 await User.insertMany(items.map(({ row: r }) => ({ _id: new Types.ObjectId(r.recordId), schoolId, roleId: role._id, userType: UserType.TEACHER, name: r.data.name, email: r.data.email, passwordHash: r.data.passwordHash, status: UserStatus.ACTIVE, isEmailVerified: true })), { session });
                                 await TeacherProfile.insertMany(items.map(({ row: r }) => ({ schoolId, userId: r.recordId, qualification: r.data.qualification, employeeId: r.data.employeeId, phone: r.data.phone })), { session });
                                 const assignments = items.flatMap(({ row: r }) => r.data.assignments.map((a: any) => ({ ...a, schoolId, teacherUserId: r.recordId, status: "ACTIVE" })));

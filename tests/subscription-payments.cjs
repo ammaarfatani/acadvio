@@ -25,7 +25,7 @@ const otherSchool = new mongoose.Types.ObjectId().toString();
 const userId = new mongoose.Types.ObjectId().toString();
 const superId = new mongoose.Types.ObjectId().toString();
 let school = { _id: schoolId, status: "PENDING_APPROVAL", registrationType: "paid" };
-let user = { _id: userId, schoolId, status: "PENDING_APPROVAL", userType: "SCHOOL_ADMIN", email: "test@example.invalid" };
+let user = { _id: userId, schoolId, status: "PENDING_APPROVAL", userType: "SCHOOL_ADMIN", isOrganizationOwner: true, roleId: { permissions: ["organization.manage"] }, email: "test@example.invalid" };
 const superUser = { _id: superId, status: "ACTIVE", userType: "SUPER_ADMIN" };
 let sub = { _id: new mongoose.Types.ObjectId().toString(), schoolId, plan: "PROFESSIONAL", price: 9999, billingCycle: "monthly" };
 let payments = [];
@@ -47,7 +47,9 @@ User.findById = id => chain(id === superId ? superUser : user);
 School.findById = () => chain(school);
 School.updateMany = async (filter, update) => matches(school, filter) ? apply(school, update) : {};
 Subscription.updateMany = async (filter, update) => matches(sub, filter) ? apply(sub, update) : {};
-Subscription.findOne = () => Promise.resolve(sub);
+Subscription.findOne = () => chain(sub);
+Subscription.find = filter => chain(matches(sub,filter)?[sub]:[]);
+Subscription.exists = filter => Promise.resolve(matches(sub,filter));
 Subscription.findById = () => chain(sub);
 Payment.init = async () => {};
 const { AcademicSession } = require("../src/server/models/academicSession.model.ts");
@@ -81,7 +83,7 @@ const tokens = { user: generateAccessToken({ userId, userType: "SCHOOL_ADMIN", e
       for (const cycle of ["monthly", "annual"]) {
         const quote = await call("/subscription-payments/quote?plan="+plan.code+"&billingCycle="+cycle);
         assert.equal(quote.status, 200);
-        assert.equal(quote.body.data.subscription.price, cycle === "annual" ? plan.priceAnnualPKR*12 : plan.priceMonthlyPKR);
+        assert.equal(quote.body.data.subscription.price, cycle === "annual" ? plan.priceMonthlyPKR*10 : plan.priceMonthlyPKR);
       }
     }
     assert.equal((await call("/subscription-payments/quote?plan=INVALID&billingCycle=monthly")).status, 400);
@@ -116,7 +118,7 @@ const tokens = { user: generateAccessToken({ userId, userType: "SCHOOL_ADMIN", e
     const next = await call("/subscription-payments", "user", "POST", { screenshot: freshPng, plan: "ENTERPRISE", billingCycle: "annual", amount: 1 });
     assert.equal(next.status, 200);
     assert.equal((await call("/subscription-payments/"+next.body.data.id+"/review", "super", "PATCH", { status: "APPROVED" })).status, 200);
-    assert.equal(payments[1].amount, 15999*12); assert.equal(sub.plan, "ENTERPRISE"); assert.equal(school.plan, "ENTERPRISE"); assert.equal(sub.billingCycle, "annual");
+    assert.equal(payments[1].amount, 19999*10); assert.equal(sub.plan, "ENTERPRISE"); assert.equal(school.plan, "ENTERPRISE"); assert.equal(sub.billingCycle, "annual");
     assert.equal(school.status, "ACTIVE"); assert.equal(user.status, "ACTIVE"); assert.equal(sub.paymentStatus, "PAID"); assert.ok(sub.currentPeriodEnd > new Date());
     // A failed school activation remains visible and resumable, without extending the period twice.
     school.status = "TRIAL_EXPIRED";

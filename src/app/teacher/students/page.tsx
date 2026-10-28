@@ -1,4 +1,5 @@
 "use client";
+import {StudentAvatar} from "@/components/StudentAvatar";
 
 
 
@@ -179,7 +180,7 @@ export default function MyAssignedStudentsPage() {
                 return (
                   <tr key={student._id} className="hover:bg-zinc-50">
                     <td className="p-3.5 font-mono font-bold text-zinc-950">{student.rollNumber}</td>
-                    <td className="p-3.5 font-bold text-zinc-900">{student.name}</td>
+                    <td className="p-3.5 font-bold text-zinc-900"><div className="flex items-center gap-3"><StudentAvatar student={student}/>{student.name}</div></td>
                     <td className="p-3.5">{student.className}</td>
                     <td className="p-3.5 font-semibold text-zinc-700">{student.sectionId?.name || student.sectionName || "Section A"}</td>
                     <td className="p-3.5">

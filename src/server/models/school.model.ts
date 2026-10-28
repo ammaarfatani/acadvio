@@ -2,6 +2,12 @@ import mongoose, { Schema, Document } from "mongoose";
 import { SubscriptionStatus, SubscriptionPlan } from "../constants/subscription.constant";
 
 export interface ISchool extends Document {
+  documentSettings?:any; documentSettingsRevision?:number; documentSetupCompletedAt?:Date;
+  accountStatus?: "ACTIVE" | "DEACTIVATED";
+  accountRevision?: number;
+  accountStatusReason?: string;
+  accountStatusChangedAt?: Date;
+  accountStatusChangedBy?: mongoose.Types.ObjectId;
   workforceRevision?: number;
   academicRevision?: number;
   attendanceMode?: "MANUAL" | "BIOMETRIC";
@@ -40,7 +46,14 @@ export interface ISchool extends Document {
 
 const SchoolSchema = new Schema<ISchool>(
   {
+    accountStatus: {type:String,enum:["ACTIVE","DEACTIVATED"],default:"ACTIVE"},
+    accountRevision: {type:Number,default:0},
+    accountStatusReason: String, accountStatusChangedAt: Date,
+    accountStatusChangedBy: {type:Schema.Types.ObjectId,ref:"User"},
     workforceRevision: {type:Number,default:0},
+    documentSettings:Schema.Types.Mixed,
+    documentSettingsRevision:{type:Number,default:0},
+    documentSetupCompletedAt:Date,
     academicRevision: {type:Number,default:0},
     attendanceMode: {type:String,enum:["MANUAL","BIOMETRIC"]},
     attendanceSetupCompletedAt: Date,

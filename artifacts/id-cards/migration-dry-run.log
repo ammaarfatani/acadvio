@@ -1,0 +1,8 @@
+{
+  "mode": "dry-run",
+  "employees": 5,
+  "students": 1,
+  "missingEmployeeIds": 5,
+  "missingStudentIds": 0,
+  "conflicts": []
+}

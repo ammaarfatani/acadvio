@@ -1,4 +1,9 @@
+import {ensureExchangeRates} from "../services/exchangeRates.service";
+import {regionalPlan,regionalQuote,marketSelection,requirePayableMarket} from "../services/regionalPricing.service";
+import {frontendLink} from "../utils/emailTemplate";
+import {env} from "../config/env";
 import { Router } from "express";
+import { requireSchoolBillingOwner } from "../middlewares/billing.middleware";
 import mongoose from "mongoose";
 import crypto from "crypto";
 import { z } from "zod";
@@ -18,43 +23,46 @@ import { decodePaymentImage } from "../services/paymentImage";
 const router = Router();
 
 export const paymentBank = () => ({ Bank: process.env.PAYMENT_BANK_NAME || "UBL (United Bank Limited)", "Account Title": process.env.PAYMENT_ACCOUNT_TITLE || "Ammar Afzal", "Account Number": process.env.PAYMENT_ACCOUNT_NUMBER || "2139402047933", IBAN: process.env.PAYMENT_IBAN || "PK22UNIL0109000402047933" });
-async function quoteSelection(plan: unknown, billingCycle: unknown) {
+async function quoteSelection(plan: unknown, billingCycle: unknown, marketInput?: unknown, payable=false) {
   const selection = z.object({ plan: z.enum(["STARTER", "PROFESSIONAL", "ENTERPRISE"]), billingCycle: z.enum(["monthly", "annual"]) }).safeParse({ plan, billingCycle });
   if (!selection.success) throw { statusCode: 400, message: "Select a valid plan and monthly or annual billing." };
   const catalogue = await SuperAdminService.getPlans();
   const chosen = catalogue.find((item: any) => item.code === selection.data.plan && item.isActive);
   if (!chosen) throw { statusCode: 400, message: "This subscription plan is not available." };
-  const monthlyPrice = selection.data.billingCycle === "annual" ? chosen.priceAnnualPKR : chosen.priceMonthlyPKR;
-  const price = selection.data.billingCycle === "annual" ? monthlyPrice * 12 : monthlyPrice;
-  if (!Number.isSafeInteger(price) || price <= 0) throw { statusCode: 400, message: "The selected plan does not have a valid price. Contact support." };
-  return { plan: chosen.code, name: chosen.name, price, monthlyPrice, billingCycle: selection.data.billingCycle, durationMonths: selection.data.billingCycle === "annual" ? 12 : 1 };
+  const market=marketSelection(marketInput);
+  if(payable)requirePayableMarket(market);
+  if(!["PK","US","GB","IN"].includes(market))await ensureExchangeRates();
+  return regionalQuote(chosen,selection.data.billingCycle,market);
 }
-router.get("/plans", async (_req, res, next) => {
+router.get("/plans", async (req, res, next) => {
   try {
     const plans = await SuperAdminService.getPlans();
-    return sendSuccess(res, plans.filter((p: any) => p.isActive).map((p: any) => ({ code: p.code, name: p.name, priceMonthlyPKR: p.priceMonthlyPKR, priceAnnualPKR: p.priceAnnualPKR })));
+    const market=marketSelection(req.query.market);
+    if(!["PK","US","GB","IN"].includes(market))await ensureExchangeRates();
+    return sendSuccess(res, plans.filter((p: any) => p.isActive).map((p: any) => ({...regionalPlan(p,market),priceMonthlyPKR:p.priceMonthlyPKR,priceAnnualPKR:regionalPlan(p,market).annualTotal/12})));
   } catch (e) { next(e); }
 });
 router.get("/quote", async (req, res, next) => {
-  try { return sendSuccess(res, { subscription: await quoteSelection(req.query.plan, req.query.billingCycle), bank: paymentBank() }); } catch (e) { next(e); }
+  try { const subscription=await quoteSelection(req.query.plan, req.query.billingCycle,req.query.market);return sendSuccess(res, {subscription, bank:subscription.checkoutAvailable?paymentBank():null}); } catch (e) { next(e); }
 });
 router.use(authenticate);
-const schoolOnly = requireExactUserType(UserType.SCHOOL_ADMIN);
+const schoolOnly = requireSchoolBillingOwner;
 router.get("/mine", schoolOnly, async (req, res, next) => {
   try {
     const subscription = await Subscription.findOne({ schoolId: req.user!.schoolId });
     const payments = await SubscriptionPayment.find({ schoolId: req.user!.schoolId }).sort({ submittedAt: -1 }).limit(100).lean();
-    const selected = req.query.plan !== undefined || req.query.billingCycle !== undefined ? await quoteSelection(req.query.plan, req.query.billingCycle) : subscription;
+    const selected = req.query.plan !== undefined || req.query.billingCycle !== undefined ? await quoteSelection(req.query.plan, req.query.billingCycle,req.query.market,true) : subscription && subscription.plan!=="FREE_TRIAL" ? {...(subscription.toObject?.()||subscription),...await quoteSelection(subscription.plan,subscription.billingCycle,"PK",true)} : subscription;
     return sendSuccess(res, { bank: paymentBank(), subscription: selected, payments });
   } catch (e) { next(e); }
 });
 router.post("/", schoolOnly, async (req, res, next) => {
   try {
-    const input = z.object({ screenshot: z.string(), reference: z.string().trim().max(160).optional(), plan: z.string().optional(), billingCycle: z.string().optional() }).parse(req.body);
+    const input = z.object({ screenshot: z.string(), reference: z.string().trim().max(160).optional(), plan: z.string().optional(), billingCycle: z.string().optional(),market:z.string().optional() }).parse(req.body);
+    requirePayableMarket(marketSelection(input.market));
     const image = decodePaymentImage(input.screenshot);
     const sub = await Subscription.findOne({ schoolId: req.user!.schoolId });
     if (!sub) throw { statusCode: 400, message: "A valid subscription is required before payment." };
-    const selected = input.plan !== undefined || input.billingCycle !== undefined ? await quoteSelection(input.plan, input.billingCycle) : sub;
+    const selected = input.plan !== undefined || input.billingCycle !== undefined ? await quoteSelection(input.plan, input.billingCycle,input.market,true) : await quoteSelection(sub.plan,sub.billingCycle,"PK",true);
     if (!(selected.price > 0) || selected.plan === "FREE_TRIAL") throw { statusCode: 400, message: "Select a paid plan from Pricing before submitting payment." };
     const incomplete = await SubscriptionPayment.findOne({ schoolId: req.user!.schoolId, status: "APPROVED", activationComplete: false });
     if (incomplete) throw { statusCode: 409, message: "Your approved payment activation is being completed. Please contact support." };
@@ -70,6 +78,7 @@ router.get("/:id/screenshot", async (req, res, next) => {
   try {
     if (!mongoose.isValidObjectId(req.params.id)) throw { statusCode: 404, message: "Screenshot not found." };
     if (!req.user!.isSuperAdmin && req.user!.userType !== UserType.SCHOOL_ADMIN) throw { statusCode: 403, message: "Access denied." };
+    if (!req.user!.isSuperAdmin) requireSchoolBillingOwner(req, res, (error?: any) => { if (error) throw error; });
     const filter = req.user!.isSuperAdmin ? { _id: req.params.id } : { _id: req.params.id, schoolId: req.user!.schoolId };
     const payment = await SubscriptionPayment.findOne(filter).select("+screenshot");
     if (!payment) throw { statusCode: 404, message: "Screenshot not found." };
@@ -85,7 +94,7 @@ router.patch("/:id/review", requireSuperAdmin, async (req, res, next) => {
     let notified = false;
     try {
       const user = await User.findById(reviewed.userId).select("email");
-      if (user) notified = await sendEmailNotification({ to: user.email, subject: "Subscription payment "+input.status.toLowerCase(), text: input.status === "APPROVED" ? "Your payment has been approved. Your Acadivo school account is now ready. Please log in with your existing credentials to continue setup." : "Your payment was rejected: "+input.rejectionReason+". Sign in to submit new payment proof." });
+      if (user) notified = await sendEmailNotification({ to: user.email, subject: "Subscription payment "+input.status.toLowerCase(), text: input.status === "APPROVED" ? "Your payment has been approved and your subscription period has been updated. Administrative account restrictions may still apply. Sign in to view your current account status." : "Your payment was rejected: "+input.rejectionReason+". Sign in to submit new payment proof.",actionLabel:"View Subscription",actionUrl:frontendLink(env.FRONTEND_URL,"/school-admin/subscription",env.NODE_ENV==="production") });
     } catch { console.error("[Payment review] Notification delivery unavailable; review remains saved."); }
     return sendSuccess(res, { status: input.status, emailSent: notified }, "Payment "+input.status.toLowerCase()+"."+ (notified ? " Notification sent." : " Email delivery unavailable; status is visible on the payment page."));
   } catch (e: any) {

@@ -2,17 +2,17 @@
 import { useRef, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-export default function SchoolLogoEditor() {
+export default function SchoolLogoEditor({logoUrl,onSaved}:{logoUrl?:string;onSaved?:()=>void}={}) {
   const { user, refreshUser } = useAuth();
   const [preview, setPreview] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const input = useRef<HTMLInputElement>(null);
-  const logo = preview || user?.school?.logoUrl;
+  const logo = preview || (logoUrl!==undefined?logoUrl:user?.school?.logoUrl);
   async function save(image: string | null) {
     setBusy(true); setError(""); setNotice("");
-    try { const result = await apiFetch("/schools/logo", { method: "PUT", body: JSON.stringify({ image }) }); await refreshUser(); setPreview(""); setNotice(result.message); }
+    try { const result = await apiFetch("/schools/logo", { method: "PUT", body: JSON.stringify({ image }) }); await refreshUser(); setPreview(""); setNotice(result.message);onSaved?.(); }
     catch (e: any) { setError(e.message); } finally { setBusy(false); }
   }
   function choose(file?: File) {

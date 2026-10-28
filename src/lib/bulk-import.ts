@@ -9,6 +9,7 @@ export interface ImportColumn {
 }
 export const IMPORT_COLUMNS: Record<ImportEntity, ImportColumn[]> = {
     students: [
+        {key:"bFormNumber",label:"B-Form Number",example:"00123-4567890-1",instruction:"Optional. Format the Excel cell as Text to preserve leading zeros."},
         { key: "studentId", label: "Student ID", example: "ST-1024", instruction: "Optional; generated if blank. Must be unique within your school." },
         { key: "admissionNumber", label: "Admission Number", example: "ADM-1024", instruction: "Optional; generated if blank. Must be unique within your school." },
         { key: "name", label: "Name", required: true, example: "Example Student", instruction: "Full student name, matching the existing student record." },

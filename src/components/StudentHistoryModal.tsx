@@ -1,5 +1,6 @@
 "use client";
 
+import {StudentAvatar} from "./StudentAvatar";
 import { useEffect, useState } from "react";
 import { X, User, GraduationCap, Calendar, CheckSquare, Award, Phone, Mail, MapPin, FileText, ShieldCheck, AlertCircle } from "lucide-react";
 import { apiFetch } from "@/lib/api";
@@ -50,9 +51,7 @@ export function StudentHistoryModal({ studentId, isOpen, onClose, portalType = "
         {/* Modal Header */}
         <div className="p-6 border-b border-zinc-200 bg-zinc-950 text-white flex justify-between items-start">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-red-600 text-white font-black flex items-center justify-center text-xl shadow-inner">
-              {student?.name?.charAt(0) || "S"}
-            </div>
+            <StudentAvatar student={student} size={56}/>
             <div>
               <h2 className="text-lg font-black text-white flex items-center gap-2">
                 {student?.name || "Student History"}
@@ -63,7 +62,7 @@ export function StudentHistoryModal({ studentId, isOpen, onClose, portalType = "
                 </span>
               </h2>
               <p className="text-xs text-zinc-400 font-mono">
-                Admission No: {student?.admissionNumber || "N/A"} | Roll No: {student?.rollNumber || "N/A"} | Class: {student?.className} ({student?.sectionName || "Sec A"})
+                Student ID: {student?.studentId || "Not recorded"} | Admission No: {student?.admissionNumber || "N/A"} | Roll No: {student?.rollNumber || "N/A"} | Class: {student?.className} ({student?.sectionName || "Sec A"})
               </p>
             </div>
           </div>
@@ -132,6 +131,7 @@ export function StudentHistoryModal({ studentId, isOpen, onClose, portalType = "
                     <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200 space-y-2">
                       <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Basic Identity</span>
                       <div className="space-y-1 text-zinc-800">
+                        <div><strong className="text-zinc-950">B-Form Number:</strong> {student.bFormNumber || "Not provided"}</div>
                         <div><strong className="text-zinc-950">Full Name:</strong> {student.name}</div>
                         <div><strong className="text-zinc-950">Gender:</strong> {student.gender}</div>
                         <div><strong className="text-zinc-950">Date of Birth:</strong> {student.dob ? new Date(student.dob).toLocaleDateString("en-GB") : "N/A"}</div>

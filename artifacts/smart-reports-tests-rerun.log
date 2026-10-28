@@ -1,0 +1,38 @@
+Error: Branch validation failed: phone: Path `phone` is required., address: Path `address` is required.
+    at ValidationError.inspect (D:\CRM\school-crm\node_modules\.pnpm\mongoose@8.24.4\node_modules\mongoose\lib\error\validation.js:52:26)
+    at formatValue (node:internal/util/inspect:897:19)
+    at inspect (node:internal/util/inspect:409:10)
+    at formatWithOptionsInternal (node:internal/util/inspect:2643:40)
+    at formatWithOptions (node:internal/util/inspect:2505:10)
+    at console.value (node:internal/console/constructor:366:14)
+    at console.error (node:internal/console/constructor:433:61)
+    at D:\CRM\school-crm\tests\smart-reports.cjs:41:20
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  errors: {
+    phone: ValidatorError: Path `phone` is required.
+        at validate (D:\CRM\school-crm\node_modules\.pnpm\mongoose@8.24.4\node_modules\mongoose\lib\schemaType.js:1440:13)
+        at SchemaType.doValidate (D:\CRM\school-crm\node_modules\.pnpm\mongoose@8.24.4\node_modules\mongoose\lib\schemaType.js:1424:7)
+        at D:\CRM\school-crm\node_modules\.pnpm\mongoose@8.24.4\node_modules\mongoose\lib\document.js:3140:18
+        at process.processTicksAndRejections (node:internal/process/task_queues:84:11) {
+      properties: [Object],
+      kind: 'required',
+      path: 'phone',
+      value: undefined,
+      reason: undefined,
+      [Symbol(mongoose#validatorError)]: true
+    },
+    address: ValidatorError: Path `address` is required.
+        at validate (D:\CRM\school-crm\node_modules\.pnpm\mongoose@8.24.4\node_modules\mongoose\lib\schemaType.js:1440:13)
+        at SchemaType.doValidate (D:\CRM\school-crm\node_modules\.pnpm\mongoose@8.24.4\node_modules\mongoose\lib\schemaType.js:1424:7)
+        at D:\CRM\school-crm\node_modules\.pnpm\mongoose@8.24.4\node_modules\mongoose\lib\document.js:3140:18
+        at process.processTicksAndRejections (node:internal/process/task_queues:84:11) {
+      properties: [Object],
+      kind: 'required',
+      path: 'address',
+      value: undefined,
+      reason: undefined,
+      [Symbol(mongoose#validatorError)]: true
+    }
+  },
+  _message: 'Branch validation failed'
+}

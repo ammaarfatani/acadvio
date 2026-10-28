@@ -241,7 +241,9 @@ export class SchoolAdminController {
         req.body.challanId,
         req.body.amountPKR,
         req.body.paymentMethod,
-        cashierName
+        cashierName,
+        req.body.requestId,
+        req.body.transactionReference
       );
       return sendSuccess(res, result, "Payment collected & receipt generated.");
     } catch (error) {

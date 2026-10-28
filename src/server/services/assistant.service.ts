@@ -62,6 +62,8 @@ async function completion(messages:any[],extra:any={}) {
     const data:any=await response.json();if(!data.choices?.[0]?.message)throw new Error("Invalid provider response");return data.choices[0].message;
   }catch {throw {statusCode:502,message:"The AI provider could not answer right now. Please try again or use your CRM reports."};}
 }
+// Shared server-side provider boundary. Callers must supply only authorized, minimized evidence.
+export const configuredCompletion = completion;
 export async function answerWorkspaceQuestion(actor:AuthenticatedUser,message:string) {
   const reports=availableReports(actor);
   if(!reports.length)throw {statusCode:403,message:"No reports are available for your permissions."};

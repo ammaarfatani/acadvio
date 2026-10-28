@@ -11,6 +11,7 @@ export interface ISubscription extends Document {
   trialEndsAt?: Date;
   currentPeriodStart?: Date;
   currentPeriodEnd?: Date;
+  expiryReminderClaims?: string[];
   cancelAtPeriodEnd: boolean;
   paymentStatus: "UNPAID" | "PAID" | "FAILED";
   createdAt: Date;
@@ -28,6 +29,7 @@ const SubscriptionSchema = new Schema<ISubscription>(
     trialEndsAt: { type: Date },
     currentPeriodStart: { type: Date },
     currentPeriodEnd: { type: Date },
+    expiryReminderClaims: {type:[String],default:[]},
     cancelAtPeriodEnd: { type: Boolean, default: false },
     paymentStatus: { type: String, enum: ["UNPAID", "PAID", "FAILED"], default: "UNPAID" },
   },

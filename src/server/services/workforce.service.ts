@@ -18,9 +18,9 @@ export async function selfEmployee(actor:any){employeeActor(actor);if(actor.user
 export async function employee(actor: any, id: string) { const user = await User.findOne({ _id: id, schoolId: actor.schoolId, userType: { $nin: ["PARENT", "SUPER_ADMIN"] } }).select("name email userType status"); if (!user)
     throw { statusCode: 404, message: "Employee not found in this branch." }; return user; }
 export async function audit(actor: any, action: string, resource: string, id: any, previous: any, value: any, session?: any) { await AuditLog.create([{ schoolId: actor.schoolId, actorUserId: actor.userId, actorEmail: actor.email, actorRole: actor.userType, action, resource, entityId: String(id), previousValue: previous, newValue: value }], session ? { session } : {}); }
-export async function transaction<T>(work: (session: mongoose.ClientSession) => Promise<T>): Promise<T> { const session = await mongoose.startSession(); try {
+export async function transaction<T>(work: (session: mongoose.ClientSession) => Promise<T>, options: {demo?: boolean} = {}): Promise<T> { const session = await mongoose.startSession(); try {
     let result: T;
-    await session.withTransaction(async () => { const schoolId = branchContext.getStore()?.organizationId; if (schoolId)
+    await session.withTransaction(async () => { const schoolId = branchContext.getStore()?.organizationId; if (schoolId && !options.demo)
         await School.updateOne({ _id: schoolId }, { $inc: { workforceRevision: 1 } }, { session }); result = await work(session); });
     return result!;
 }
@@ -32,10 +32,10 @@ export async function unlocked(actor: any, id: string, date: string, session?: a
     throw { statusCode: 409, message: "Approved/paid payroll locks attendance for this month." }; }
 export async function settings(actor: any) { const school = await School.findById(actor.schoolId).select("attendanceMode attendanceSetupCompletedAt attendancePolicy").lean(); if (!school)
     throw { statusCode: 404, message: "School not found." }; return { mode: (school as any).attendanceMode || null, setupCompletedAt: (school as any).attendanceSetupCompletedAt || null, policy: { ...DEFAULT_POLICY, ...(school as any).attendancePolicy } }; }
-export async function policyFor(actor: any, id: string, date: string) {
-    const config = await settings(actor), employment: any = await StaffEmployment.findOne({ schoolId: actor.schoolId, userId: id }).lean();
+export async function policyFor(actor: any, id: string, date: string, preloaded?: {config:any;employment:any;user:any}) {
+    const config = preloaded?.config || await settings(actor), employment: any = preloaded ? preloaded.employment : await StaffEmployment.findOne({ schoolId: actor.schoolId, userId: id }).lean();
     const p = { ...config.policy, ...(employment as any)?.schedule };
-    const user = await employee(actor, id);
+    const user = preloaded?.user || await employee(actor, id);
     if (user.userType === "TEACHER" && p.teacherStart === "FIRST_CLASS") {
         const day = new Date(date + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" });
         const current = await AcademicSession.findOne({ schoolId: actor.schoolId, isCurrent: true });
@@ -80,7 +80,9 @@ export async function correction(actor: any, input: any) { const { p } = await p
 else if (ci || co)
     throw { statusCode: 400, message: "Absent/leave records cannot contain punches." }; return transaction(async (session) => { await periodLock(actor, input.date.slice(0, 7), session); await unlocked(actor, input.employeeId, input.date, session); const previous: any = await StaffAttendance.findOne({ schoolId: actor.schoolId, employeeId: input.employeeId, date: input.date }).session(session).lean(); const values = attendanceValues(input.date, ci, co, p); const next = await StaffAttendance.findOneAndUpdate({ schoolId: actor.schoolId, employeeId: input.employeeId, date: input.date }, { $set: { ...values, status: ci ? values.status : input.status, source: previous?.source || "MANUAL", checkedInAt: ci || null, checkedOutAt: co || null, corrected: true, correctionReason: input.reason }, $inc: { revision: 1 } }, { new: true, upsert: true, session }); await audit(actor, "ATTENDANCE_CORRECTION", "StaffAttendance", next._id, previous, next.toObject(), session); return next; }); }
 export async function saveEmployment(actor: any, id: string, input: any) {
-    await employee(actor, id);
+    const target=await User.findOne({_id:id,schoolId:actor.schoolId,userType:{$nin:["PARENT","SUPER_ADMIN"]}});if(!target)throw {statusCode:404,message:"Employee not found."};
+    const {ensureEmployeeIdentity}=await import("./permanentIdentity.service");const permanentId=await ensureEmployeeIdentity(target);
+    input={...input,employeeId:permanentId};
     return transaction(async (session) => {
         const previous = await StaffEmployment.findOne({ schoolId: actor.schoolId, userId: id }).session(session);
         const history: any[] = [...(previous?.salaryHistory || [])].map((x: any) => x.toObject ? x.toObject() : x);
@@ -109,7 +111,7 @@ export async function saveSettings(actor: any, input: any) {
         throw { statusCode: 400, message: "Confirm attendance mode change. History will remain unchanged." };
     if (input.complete && input.mode === "BIOMETRIC") {
         const { BiometricDevice } = await import("../models/workforce.model");
-        const connected = await BiometricDevice.findOne({ schoolId: actor.schoolId, enabled: true, lastDeviceSuccessAt: { $gt: new Date(Date.now() - 10 * 60000) }, "mappings.0": { $exists: true } });
+        const connected = await BiometricDevice.findOne({ schoolId: actor.schoolId, enabled: true, demoOnly: {$ne:true}, lastDeviceSuccessAt: { $gt: new Date(Date.now() - 10 * 60000) }, "mappings.0": { $exists: true } });
         if (!connected)
             throw { statusCode: 409, message: "Connect a device and map at least one employee before completing biometric setup." };
     }

@@ -37,13 +37,14 @@ async function fixture(suffix) {
  const subject=await Subject.create({schoolId:school._id,classId:cls._id,className:cls.name,name:'Mathematics',code:'MATH'});
  return {school,role,actor,cls,section,session,subject};
 }
-function student(i,overrides={}) {return {name:'Verification Student '+i,studentId:'ST-'+i,admissionNumber:'ADM-'+i,dob:'2012-04-15',gender:'Male',academicSession:'2026-2027',class:'G10',section:'A',address:'Isolated verification address',fatherName:'Verification Parent',fatherPhone:'03001234567',emergencyName:'Verification Parent',emergencyPhone:'03001234567',emergencyRelation:'Father',...overrides};}
+function student(i,overrides={}) {return {bFormNumber:i===0?'00123-4567890-1':undefined,name:'Verification Student '+i,studentId:'ST-'+i,admissionNumber:'ADM-'+i,dob:'2012-04-15',gender:'Male',academicSession:'2026-2027',class:'G10',section:'A',address:'Isolated verification address',fatherName:'Verification Parent',fatherPhone:'03001234567',emergencyName:'Verification Parent',emergencyPhone:'03001234567',emergencyRelation:'Father',...overrides};}
 function teacher(i,overrides={}) {return {name:'Verification Teacher '+i,email:'teacher-'+i+'@example.com',password,employeeId:'EMP-'+i,qualification:'B.Ed',class:'G10',section:'A',subject:'MATH',academicSession:'2026-2027',...overrides};}
 (async()=>{
  try {
   await mongoose.connect(env.MONGODB_URI,{dbName,serverSelectionTimeoutMS:15000});connected=true;
   const hello=await mongoose.connection.db.admin().command({hello:1});assert(hello.setName||hello.msg==='isdbgrid','Verification MongoDB must support transactions');
   await Promise.all([BulkImport,School,Student,User,Role,ClassModel,SectionModel,AcademicSession,Subject,TeacherProfile,TeachingAssignment,AuditLog].map(m=>m.init()));
+  const legacyColumns=IMPORT_COLUMNS.students.filter(c=>c.key!=='bFormNumber'),legacyBook=XLSX.utils.book_new();XLSX.utils.book_append_sheet(legacyBook,XLSX.utils.aoa_to_sheet([legacyColumns.map(c=>c.label),legacyColumns.map(c=>student(9999)[c.key]??'')]),'Students');assert.equal(parseImportFile('students','legacy.xlsx',XLSX.write(legacyBook,{type:'buffer',bookType:'xlsx'}).toString('base64')).length,1,'old template without B-Form still accepted');
   const a=await fixture('a'),b=await fixture('b'),sid=String(a.school._id),aid=String(a.actor._id);
   server=createApp().listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));const base='http://127.0.0.1:'+server.address().port+'/api';
   const token=(f,type='SCHOOL_ADMIN')=>generateAccessToken({userId:String(f.actor._id),schoolId:String(f.school._id),email:f.actor.email,userType:type});
@@ -59,6 +60,7 @@ function teacher(i,overrides={}) {return {name:'Verification Teacher '+i,email:'
   const completed=await wait(id);assert.equal(completed.status,'COMPLETED',completed.message);assert.equal(completed.summary.imported,1001);assert.equal(await Student.countDocuments({schoolId:sid}),1001);assert.equal(await Student.countDocuments({schoolId:b.school._id}),0);
   await request('/school-admin/students/bulk-import/'+id+'/commit',{skipDuplicates:true});assert.equal(await Student.countDocuments({schoolId:sid}),1001);
   assert.equal((await request('/school-admin/students/bulk-import/'+id+'?page=21')).body.data.rows.length,1);
+  assert.equal((await Student.findOne({schoolId:sid,studentId:'ST-0'})).bFormNumber,'00123-4567890-1');
   console.log('PASS: 1,001 real MongoDB student inserts, transactions, replay prevention, tenant isolation and pagination');
   const mixed=[student(0),student(2000,{name:''}),student(2001,{class:'Unknown'}),student(2002,{section:'Unknown'}),student(2003,{dob:'2026-02-30'}),student(2004,{guardianEmail:'invalid'}),student(2005),student(2005),student(2006,{class:String(b.cls._id)})];
   const issues=await BulkImportService.preview(sid,aid,'students','errors.xlsx',file('students',mixed));assert.equal(issues.summary.duplicate,3);assert.equal(issues.summary.invalid,6);assert.equal(issues.summary.ready,0);
@@ -72,7 +74,8 @@ function teacher(i,overrides={}) {return {name:'Verification Teacher '+i,email:'
   await BulkImportService.start(sid,aid,tp.id,true);const tj=await wait(tp.id);assert.equal(tj.summary.imported,2,tj.message);assert.equal(await TeacherProfile.countDocuments({schoolId:sid}),2);assert.equal(await TeachingAssignment.countDocuments({schoolId:sid}),1);
   const imported=await User.findOne({email:'teacher-1@example.com'});assert(await comparePassword(password,imported.passwordHash));assert.equal(imported.userType,'TEACHER');
   const teacherReport=XLSX.read(await BulkImportService.errorReport(sid,aid,tp.id));assert(!JSON.stringify(XLSX.utils.sheet_to_json(teacherReport.Sheets['Import errors'])).includes(password));
-  const teacherDup=await BulkImportService.preview(sid,aid,'teachers','duplicate.xlsx',file('teachers',[teacher(1),teacher(9,{employeeId:'EMP-2'}),teacher(10,{email:b.actor.email})]));assert.equal(teacherDup.summary.duplicate,3);
+  assert(/^EMPD\d+$/.test(imported.employeeId),'Imported staff must have automatic IDs');assert.equal((await TeacherProfile.findOne({userId:imported._id})).employeeId,imported.employeeId);const importedSecond=await User.findOne({email:'teacher-2@example.com'});
+  const teacherDup=await BulkImportService.preview(sid,aid,'teachers','duplicate.xlsx',file('teachers',[teacher(1),teacher(9,{employeeId:importedSecond.employeeId}),teacher(10,{email:b.actor.email})]));assert.equal(teacherDup.summary.duplicate,3);
   const race=await BulkImportService.preview(sid,aid,'teachers','race.xlsx',file('teachers',[teacher(20)]));
   const manualTeacher=await request('/school-admin/teachers',{name:'Manual Regression Teacher',email:'teacher-20@example.com',password,employeeId:'EMP-20',assignments:[{academicSessionId:String(a.session._id),classId:String(a.cls._id),sectionId:String(a.section._id),subjectId:String(a.subject._id)}]});assert.equal(manualTeacher.status,201,JSON.stringify(manualTeacher.body));
   await BulkImportService.start(sid,aid,race.id,true);assert.equal((await wait(race.id)).summary.duplicate,1);

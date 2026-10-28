@@ -1,0 +1,58 @@
+Practice website: http://127.0.0.1:3001
+Practice API only: http://127.0.0.1:5001/api
+  ▲ Next.js 14.2.35
+  - Local:        http://127.0.0.1:3001
+  - Network:      http://127.0.0.1:3001
+  - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 36.6s
+ ○ Compiling /src/middleware ...
+ ✓ Compiled /src/middleware in 2.4s (72 modules)
+ ○ Compiling /school-admin/settings/document-templates ...
+ ✓ Compiled /_error in 101.7s (968 modules)
+ ✓ Compiled in 875ms (954 modules)
+ GET /school-admin/settings/document-templates 200 in 654ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 2.8s (451 modules)
+ GET /favicon.ico 200 in 4671ms
+ ○ Compiling /login ...
+ ✓ Compiled /login in 4s (1008 modules)
+ ○ Compiling /school-admin ...
+ ✓ Compiled /school-admin in 2.2s (1024 modules)
+ ✓ Compiled in 2.4s (1064 modules)
+ ✓ Compiled in 7.5s (1019 modules)
+ GET /school-admin/settings/document-templates 200 in 1296ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 1136ms (473 modules)
+ GET /favicon.ico 200 in 1893ms
+ ○ Compiling /school-admin/documents ...
+ ✓ Compiled /school-admin/documents in 7.2s (1001 modules)
+ GET /school-admin/documents 200 in 8526ms
+ ✓ Compiled in 5.7s (1015 modules)
+ ✓ Compiled in 1798ms (568 modules)
+ ✓ Compiled in 7.3s (1028 modules)
+ ✓ Compiled in 4.7s (1028 modules)
+ ✓ Compiled in 4.3s (1028 modules)
+ ✓ Compiled in 5s (1015 modules)
+ ✓ Compiled in 14.5s (1015 modules)
+ ✓ Compiled in 6s (1028 modules)
+ ✓ Compiled in 2.8s (1015 modules)
+ ✓ Compiled in 3.6s (1015 modules)
+ ✓ Compiled in 2.1s (1028 modules)
+ ✓ Compiled in 3s (1015 modules)
+ ✓ Compiled in 3s (1028 modules)
+ ✓ Compiled in 8.1s (1015 modules)
+ GET /school-admin/settings/document-templates 200 in 319ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 2.3s (479 modules)
+ GET /favicon.ico 200 in 2750ms
+ GET /school-admin/settings/document-templates 200 in 473ms
+ GET /favicon.ico 200 in 122ms
+ GET /school-admin 200 in 125ms
+ GET /school-admin/documents 200 in 568ms
+ GET /favicon.ico 200 in 75ms
+ ✓ Compiled in 1955ms (1047 modules)
+ GET /favicon.ico 200 in 83ms
+ GET /favicon.ico 200 in 58ms
+ ✓ Compiled in 1358ms (1105 modules)

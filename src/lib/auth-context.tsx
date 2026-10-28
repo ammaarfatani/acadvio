@@ -13,7 +13,7 @@ export type SessionUser = {
   branchId?: string | null;
   isOrganizationOwner?: boolean;
   features?: string[];
-  school?: { attendanceMode?: "MANUAL" | "BIOMETRIC"; attendanceSetupCompletedAt?: string; _id?: string; name: string; slug?: string; code?: string; status?: string; registrationType?: "trial" | "paid"; plan?: string; logoUrl?: string; address?: string; phone?: string } | null;
+  school?: { documentSetupCompletedAt?:string; accountStatus?: "ACTIVE" | "DEACTIVATED"; accountStatusReason?: string; attendanceMode?: "MANUAL" | "BIOMETRIC"; attendanceSetupCompletedAt?: string; _id?: string; name: string; slug?: string; code?: string; status?: string; registrationType?: "trial" | "paid"; plan?: string; logoUrl?: string; address?: string; phone?: string } | null;
   permissions?: string[];
 };
 

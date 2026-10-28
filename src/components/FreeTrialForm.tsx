@@ -86,7 +86,7 @@ export function FreeTrialForm({ checkout = false, selectedPlan, onRegistered }: 
     <div className="max-w-3xl mx-auto bg-white border border-zinc-200 rounded-2xl p-6 sm:p-10 shadow-xl space-y-8">
       
       {/* Notice Banner */}
-      <div className="p-4 rounded-xl bg-zinc-950 text-white text-xs flex items-start gap-3 border border-zinc-800">
+      <div className="ac-registration-notice p-4 rounded-xl bg-zinc-950 text-white text-xs flex items-start gap-3 border border-zinc-800">
         <ShieldCheck className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
         <div className="space-y-1">
           <div className="font-bold text-[#d60811] text-sm">
@@ -297,9 +297,9 @@ export function FreeTrialForm({ checkout = false, selectedPlan, onRegistered }: 
                 onChange={handleChange}
                 className="w-full px-3 py-2.5 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-medium text-zinc-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-600/20 focus:border-red-600 font-semibold text-red-600"
               >
-                {checkout ? <option value={preselectedPlan}>{preselectedPlan.toUpperCase()} · selected above</option> : <><option value="starter">Starter Plan (PKR 4,999/mo)</option>
-                <option value="professional">Professional Plan (PKR 9,999/mo)</option>
-                <option value="enterprise">Enterprise Plan (PKR 19,999/mo)</option></>}
+                {checkout ? <option value={preselectedPlan}>{preselectedPlan.toUpperCase()} · selected above</option> : <><option value="starter">Starter Plan</option>
+                <option value="professional">Professional Plan</option>
+                <option value="enterprise">Enterprise Plan</option></>}
               </select>
             </div>}
           </div>

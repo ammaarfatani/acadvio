@@ -1,0 +1,35 @@
+
+-----
+
+WeasyPrint could not import some external libraries. Please carefully follow the installation steps before reporting an issue:
+https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#installation
+https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#troubleshooting 
+
+-----
+
+Traceback (most recent call last):
+  File "<stdin>", line 3, in <module>
+  File "D:\CRM\school-crm\artifacts/production-upgrade/html-pdf-runtime\weasyprint\__init__.py", line 376, in <module>
+    from .css import preprocess_stylesheet  # noqa: I001, E402
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CRM\school-crm\artifacts/production-upgrade/html-pdf-runtime\weasyprint\css\__init__.py", line 30, in <module>
+    from ..text.fonts import FontConfiguration
+  File "D:\CRM\school-crm\artifacts/production-upgrade/html-pdf-runtime\weasyprint\text\fonts.py", line 17, in <module>
+    from .constants import (  # isort:skip
+  File "D:\CRM\school-crm\artifacts/production-upgrade/html-pdf-runtime\weasyprint\text\constants.py", line 5, in <module>
+    from .ffi import pango
+  File "D:\CRM\school-crm\artifacts/production-upgrade/html-pdf-runtime\weasyprint\text\ffi.py", line 503, in <module>
+    gobject = _dlopen(
+              ^^^^^^^^
+  File "D:\CRM\school-crm\artifacts/production-upgrade/html-pdf-runtime\weasyprint\text\ffi.py", line 490, in _dlopen
+    return ffi.dlopen(names[0], flags)  # pragma: no cover
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CRM\school-crm\artifacts/production-upgrade/html-pdf-runtime\cffi\api.py", line 143, in dlopen
+    lib, function_cache = _make_ffi_library(self, name, flags)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CRM\school-crm\artifacts/production-upgrade/html-pdf-runtime\cffi\api.py", line 827, in _make_ffi_library
+    backendlib = _load_backend_lib(backend, libname, flags)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CRM\school-crm\artifacts/production-upgrade/html-pdf-runtime\cffi\api.py", line 822, in _load_backend_lib
+    raise OSError(msg)
+OSError: cannot load library 'libgobject-2.0-0': error 0x7e.  Additionally, ctypes.util.find_library() did not manage to locate a library called 'libgobject-2.0-0'

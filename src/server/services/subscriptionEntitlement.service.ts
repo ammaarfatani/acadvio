@@ -1,3 +1,4 @@
+import { DEFAULT_SUBSCRIPTION_PRICES } from "../../lib/subscription-prices";
 import { withoutBranchScope } from "../utils/branchScope";
 import { hasFeature, PLAN_FEATURES } from "../../lib/plan-features";
 import { expireTrials } from "./trialLifecycle.service";
@@ -26,7 +27,7 @@ export const PLAN_CONFIGS: Record<string, PlanLimits> = {
   },
   STARTER: {
     name: "Starter Plan",
-    pricePKR: 4999,
+    pricePKR: DEFAULT_SUBSCRIPTION_PRICES.STARTER.monthly,
     maxStudents: 300,
     maxTeachers: 15,
     features: {
@@ -38,7 +39,7 @@ export const PLAN_CONFIGS: Record<string, PlanLimits> = {
   },
   PROFESSIONAL: {
     name: "Professional Plan",
-    pricePKR: 9999,
+    pricePKR: DEFAULT_SUBSCRIPTION_PRICES.PROFESSIONAL.monthly,
     maxStudents: 1500,
     maxTeachers: 75,
     features: {
@@ -50,7 +51,7 @@ export const PLAN_CONFIGS: Record<string, PlanLimits> = {
   },
   ENTERPRISE: {
     name: "Enterprise Plan",
-    pricePKR: 19999,
+    pricePKR: DEFAULT_SUBSCRIPTION_PRICES.ENTERPRISE.monthly,
     maxStudents: 999999,
     maxTeachers: 999999,
     features: {

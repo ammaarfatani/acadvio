@@ -1,0 +1,8 @@
+Connected disposable database; initializing indexes.
+Indexes ready; checking real workforce endpoints.
+[Payment review] {
+  paymentId: '6ad230173ec6261b232bcb16',
+  code: undefined,
+  message: 'Payment was already completed, does not exist, or is being reviewed. Refresh and retry.'
+}
+PASS: 87 production-upgrade real HTTP/MongoDB checks.

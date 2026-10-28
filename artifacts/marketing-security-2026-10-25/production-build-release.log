@@ -1,0 +1,301 @@
+
+> acadivo-school-crm@1.0.0 build D:\CRM\school-crm
+> next build
+
+   ▲ Next.js 15.5.28
+   - Environments: .env
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 3.1min
+   Linting and checking validity of types ...
+
+./src/app/exam-staff/marks/page.tsx
+125:6  Warning: React Hook useEffect has a missing dependency: 'loadMarks'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/app/exam-staff/reports/page.tsx
+105:6  Warning: React Hook useEffect has a missing dependency: 'loadReportData'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/app/exam-staff/results/page.tsx
+65:6  Warning: React Hook useEffect has a missing dependency: 'loadResults'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/app/finance/reports/page.tsx
+49:6  Warning: React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/app/school-admin/examinations/marks/page.tsx
+144:6  Warning: React Hook useEffect has a missing dependency: 'saving'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/app/school-admin/students/page.tsx
+140:6  Warning: React Hook useEffect has a missing dependency: 'fetchStudents'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/app/super-admin/users/page.tsx
+29:6  Warning: React Hook useEffect has a missing dependency: 'fetchUsers'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/app/teacher/marks/page.tsx
+17:505  Warning: React Hook useEffect has a missing dependency: 'context'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/components/AnnualMarksheet.tsx
+139:13  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/AudiencePicker.tsx
+6:541  Warning: React Hook useEffect has a missing dependency: 'onError'. Either include it or remove the dependency array. If 'onError' changes too often, find the parent component that defines it and wrap that definition in useCallback.  react-hooks/exhaustive-deps
+
+./src/components/BulkDocumentPrint.tsx
+89:5  Warning: React Hook useEffect has a complex expression in the dependency array. Extract it to a separate variable so it can be statically checked.  react-hooks/exhaustive-deps
+
+./src/components/DocumentProfilePhoto.tsx
+26:6  Warning: React Hook useEffect has a missing dependency: 'student'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+31:9  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/DocumentSignatures.tsx
+33:29  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+35:17  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/DocumentStyleSetupNotice.tsx
+29:6  Warning: React Hook useEffect has missing dependencies: 'user?.permissions' and 'user?.userType'. Either include them or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/components/DocumentTemplateManager.tsx
+598:25  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/FeeVerification.tsx
+10:2635  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/HeroDashboardPreview.tsx
+2:386  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/IdentityCards.tsx
+46:6  Warning: React Hook useCallback has an unnecessary dependency: 'user.branchId'. Either exclude it or remove the dependency array.  react-hooks/exhaustive-deps
+50:18  Warning: The ref value 'generation.current' will likely have changed by the time this effect cleanup function runs. If this ref points to a node rendered by React, copy 'generation.current' to a variable inside the effect, and use that variable in the cleanup function.  react-hooks/exhaustive-deps
+236:19  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/NoticeBoard.tsx
+97:6  Warning: React Hook useCallback has an unnecessary dependency: 'user.branchId'. Either exclude it or remove the dependency array.  react-hooks/exhaustive-deps
+102:18  Warning: The ref value 'generation.current' will likely have changed by the time this effect cleanup function runs. If this ref points to a node rendered by React, copy 'generation.current' to a variable inside the effect, and use that variable in the cleanup function.  react-hooks/exhaustive-deps
+
+./src/components/OrganizationWorkspace.tsx
+89:15  Warning: The ref value 'request.current' will likely have changed by the time this effect cleanup function runs. If this ref points to a node rendered by React, copy 'request.current' to a variable inside the effect, and use that variable in the cleanup function.  react-hooks/exhaustive-deps
+
+./src/components/ParentFeePayment.tsx
+24:141  Warning: The ref value 'fileVersion.current' will likely have changed by the time this effect cleanup function runs. If this ref points to a node rendered by React, copy 'fileVersion.current' to a variable inside the effect, and use that variable in the cleanup function.  react-hooks/exhaustive-deps
+60:904  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/ParentReport.tsx
+31:6  Warning: React Hook useEffect has a missing dependency: 'student'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/components/PublicLogo.tsx
+5:7  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/SchoolDocumentGallery.tsx
+43:6  Warning: React Hook useEffect has a missing dependency: 'categories'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+43:7  Warning: React Hook useEffect has a complex expression in the dependency array. Extract it to a separate variable so it can be statically checked.  react-hooks/exhaustive-deps
+
+./src/components/SchoolDocuments.tsx
+37:11  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/SchoolDocumentTemplate.tsx
+194:13  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+249:15  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+293:21  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+322:15  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+391:19  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/SchoolLogo.tsx
+8:42  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/SchoolLogoEditor.tsx
+28:320  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/ScreenshotCapture.tsx
+9:62  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/StudentAvatar.tsx
+40:6  Warning: React Hook useEffect has a missing dependency: 'student'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+62:9  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/StudentPhotoField.tsx
+7:203  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/SubscriptionOverview.tsx
+35:6  Warning: React Hook useCallback has a missing dependency: 'user'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+297:6  Warning: React Hook useEffect has a missing dependency: 'user'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/components/SubscriptionPayments.tsx
+34:97  Warning: React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+79:43  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+88:507  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/WorkspaceNotifications.tsx
+28:6  Warning: React Hook useCallback has unnecessary dependencies: 'user.branchId' and 'user.id'. Either exclude them or remove the dependency array.  react-hooks/exhaustive-deps
+33:18  Warning: The ref value 'generation.current' will likely have changed by the time this effect cleanup function runs. If this ref points to a node rendered by React, copy 'generation.current' to a variable inside the effect, and use that variable in the cleanup function.  react-hooks/exhaustive-deps
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+   Collecting page data ...
+   Generating static pages (0/151) ...
+   Generating static pages (37/151) 
+   Generating static pages (75/151) 
+   Generating static pages (113/151) 
+ ✓ Generating static pages (151/151)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                       Size  First Load JS
+┌ ○ /                                            129 B         114 kB
+├ ○ /_not-found                                  139 B         103 kB
+├ ○ /about                                     1.49 kB         108 kB
+├ ƒ /api/attendance-connector                    139 B         103 kB
+├ ○ /contact                                   2.65 kB         105 kB
+├ ○ /demo                                       3.2 kB         109 kB
+├ ○ /exam-staff                                4.74 kB         115 kB
+├ ○ /exam-staff/candidates                     5.13 kB         108 kB
+├ ○ /exam-staff/certificates                     170 B         123 kB
+├ ○ /exam-staff/documents                        135 B         129 kB
+├ ○ /exam-staff/exams                            129 B         113 kB
+├ ○ /exam-staff/id-cards                         180 B         112 kB
+├ ○ /exam-staff/marks                          7.22 kB         110 kB
+├ ○ /exam-staff/marksheets                       128 B         119 kB
+├ ○ /exam-staff/my-attendance                  1.85 kB         122 kB
+├ ○ /exam-staff/notices                          122 B         111 kB
+├ ○ /exam-staff/notifications                  4.45 kB         107 kB
+├ ○ /exam-staff/profile                         4.7 kB         107 kB
+├ ○ /exam-staff/reports                        4.19 kB         117 kB
+├ ○ /exam-staff/results                        6.44 kB         109 kB
+├ ○ /exam-staff/salary                         1.85 kB         122 kB
+├ ○ /exam-staff/settings                         139 B         103 kB
+├ ○ /exam-staff/subscription                     133 B         113 kB
+├ ○ /features                                  1.49 kB         108 kB
+├ ○ /finance                                   3.93 kB         114 kB
+├ ○ /finance/challans                            223 B         124 kB
+├ ○ /finance/collection                        9.91 kB         116 kB
+├ ○ /finance/documents                           136 B         129 kB
+├ ○ /finance/expenses                          8.21 kB         111 kB
+├ ○ /finance/id-cards                            180 B         112 kB
+├ ○ /finance/my-attendance                     1.85 kB         122 kB
+├ ○ /finance/notices                             123 B         111 kB
+├ ○ /finance/payment-requests                    122 B         107 kB
+├ ○ /finance/payroll                             137 B         129 kB
+├ ○ /finance/receipts                          2.53 kB         115 kB
+├ ○ /finance/reports                           6.46 kB         109 kB
+├ ○ /finance/salary                            1.85 kB         122 kB
+├ ○ /finance/settings                          5.63 kB         108 kB
+├ ○ /finance/structures                        6.58 kB         109 kB
+├ ○ /finance/subscription                        134 B         113 kB
+├ ○ /forgot-password                           2.89 kB         106 kB
+├ ○ /free-trial                                  793 B         111 kB
+├ ○ /guide                                       165 B         106 kB
+├ ○ /login                                     7.26 kB         113 kB
+├ ○ /parent                                    6.65 kB         113 kB
+├ ○ /parent/academics                            137 B         133 kB
+├ ○ /parent/children                             137 B         133 kB
+├ ○ /parent/documents                            136 B         124 kB
+├ ○ /parent/fees                                 137 B         133 kB
+├ ○ /parent/id-cards                             180 B         112 kB
+├ ○ /parent/notices                              136 B         124 kB
+├ ○ /parent/notifications                        136 B         124 kB
+├ ○ /parent/profile                            5.72 kB         108 kB
+├ ○ /parent/subscription                         134 B         113 kB
+├ ○ /payment                                   1.54 kB         119 kB
+├ ○ /pricing                                     129 B         114 kB
+├ ○ /receptionist                              5.42 kB         116 kB
+├ ○ /receptionist/admissions                   8.72 kB         121 kB
+├ ○ /receptionist/appointments                 6.93 kB         110 kB
+├ ○ /receptionist/documents                      135 B         129 kB
+├ ○ /receptionist/id-cards                       180 B         112 kB
+├ ○ /receptionist/my-attendance                1.85 kB         122 kB
+├ ○ /receptionist/notices                        124 B         111 kB
+├ ○ /receptionist/notifications                6.22 kB         112 kB
+├ ○ /receptionist/parents                      6.19 kB         109 kB
+├ ○ /receptionist/profile                      4.91 kB         108 kB
+├ ○ /receptionist/requests                     8.02 kB         111 kB
+├ ○ /receptionist/salary                       1.85 kB         122 kB
+├ ○ /receptionist/settings                       139 B         103 kB
+├ ○ /receptionist/students                     7.24 kB         113 kB
+├ ƒ /receptionist/students/[id]                5.97 kB         112 kB
+├ ○ /receptionist/subscription                   134 B         113 kB
+├ ○ /receptionist/visitors                     6.96 kB         110 kB
+├ ○ /reset-password                            2.97 kB         106 kB
+├ ○ /school-admin                              4.79 kB         120 kB
+├ ○ /school-admin/academics/classes            5.99 kB         109 kB
+├ ○ /school-admin/academics/sections           6.07 kB         109 kB
+├ ○ /school-admin/academics/sessions           4.49 kB         114 kB
+├ ○ /school-admin/academics/subjects           4.74 kB         107 kB
+├ ○ /school-admin/academics/timetable          5.73 kB         108 kB
+├ ○ /school-admin/attendance/calendar            137 B         129 kB
+├ ○ /school-admin/attendance/devices             137 B         129 kB
+├ ○ /school-admin/attendance/settings            136 B         129 kB
+├ ○ /school-admin/attendance/staff               137 B         129 kB
+├ ○ /school-admin/attendance/students             5 kB         108 kB
+├ ○ /school-admin/attendance/teachers            137 B         129 kB
+├ ○ /school-admin/communication/announcements    123 B         111 kB
+├ ○ /school-admin/communication/notifications  5.31 kB         108 kB
+├ ○ /school-admin/documents                      135 B         129 kB
+├ ○ /school-admin/examinations/certificates      224 B         123 kB
+├ ○ /school-admin/examinations/exams             128 B         113 kB
+├ ○ /school-admin/examinations/marks           8.46 kB         111 kB
+├ ○ /school-admin/examinations/marksheets        128 B         119 kB
+├ ○ /school-admin/examinations/report-cards      409 B         103 kB
+├ ○ /school-admin/examinations/results         7.81 kB         114 kB
+├ ○ /school-admin/finance                      5.41 kB         111 kB
+├ ○ /school-admin/finance/challans               224 B         124 kB
+├ ○ /school-admin/finance/collection           5.49 kB         108 kB
+├ ○ /school-admin/finance/expenses              4.7 kB         107 kB
+├ ○ /school-admin/finance/payment-requests       123 B         107 kB
+├ ○ /school-admin/finance/receipts             3.73 kB         116 kB
+├ ○ /school-admin/finance/structures           4.79 kB         107 kB
+├ ○ /school-admin/id-cards                       163 B         112 kB
+├ ○ /school-admin/intelligence                   122 B         115 kB
+├ ○ /school-admin/my-attendance                  137 B         129 kB
+├ ○ /school-admin/my-id-card                     180 B         112 kB
+├ ○ /school-admin/organization                   131 B         112 kB
+├ ○ /school-admin/organization/branches          131 B         112 kB
+├ ○ /school-admin/organization/reports           131 B         112 kB
+├ ○ /school-admin/parents                      2.39 kB         112 kB
+├ ○ /school-admin/payments                       171 B         114 kB
+├ ○ /school-admin/payroll                        137 B         129 kB
+├ ○ /school-admin/payroll/calendar               136 B         129 kB
+├ ○ /school-admin/payroll/salaries               136 B         129 kB
+├ ○ /school-admin/reports                        124 B         115 kB
+├ ○ /school-admin/reports/basic                  163 B         107 kB
+├ ○ /school-admin/salary                         137 B         129 kB
+├ ○ /school-admin/settings                     7.48 kB         114 kB
+├ ○ /school-admin/settings/document-templates  5.28 kB         122 kB
+├ ○ /school-admin/staff                        6.08 kB         116 kB
+├ ○ /school-admin/students                     8.63 kB         140 kB
+├ ○ /school-admin/subscription                   134 B         113 kB
+├ ○ /school-admin/teachers                     8.29 kB         132 kB
+├ ○ /school-admin/teachers/leave-requests      5.31 kB         108 kB
+├ ○ /super-admin                               5.31 kB         111 kB
+├ ○ /super-admin/applications                  6.55 kB         113 kB
+├ ○ /super-admin/audit-logs                    4.53 kB         107 kB
+├ ○ /super-admin/notices                         123 B         111 kB
+├ ○ /super-admin/payments                        171 B         114 kB
+├ ○ /super-admin/plans                         4.33 kB         107 kB
+├ ○ /super-admin/schools                       4.58 kB         116 kB
+├ ƒ /super-admin/schools/[id]                  2.92 kB         114 kB
+├ ○ /super-admin/settings                       2.6 kB         105 kB
+├ ○ /super-admin/subscriptions                 4.64 kB         107 kB
+├ ○ /super-admin/users                         5.21 kB         108 kB
+├ ○ /teacher                                   6.17 kB         116 kB
+├ ○ /teacher/announcements                       123 B         111 kB
+├ ○ /teacher/attendance                        6.37 kB         109 kB
+├ ○ /teacher/attendance/reports                 4.5 kB         107 kB
+├ ○ /teacher/id-cards                            180 B         112 kB
+├ ○ /teacher/leave                             4.85 kB         107 kB
+├ ○ /teacher/marks                             5.55 kB         108 kB
+├ ○ /teacher/my-attendance                     1.85 kB         122 kB
+├ ○ /teacher/my-classes                        6.45 kB         112 kB
+├ ○ /teacher/profile                           4.64 kB         107 kB
+├ ○ /teacher/salary                            1.85 kB         122 kB
+├ ○ /teacher/students                          7.25 kB         117 kB
+├ ○ /teacher/subjects                           6.3 kB         112 kB
+├ ○ /teacher/subscription                        135 B         113 kB
+└ ○ /teacher/timetable                          2.2 kB         112 kB
++ First Load JS shared by all                   103 kB
+  ├ chunks/5807-9908ab82a0c5a7c9.js            46.3 kB
+  ├ chunks/f31ffd5e-b5fe8f0f53ee0a9f.js        54.2 kB
+  └ other shared chunks (total)                2.05 kB
+
+
+ƒ Middleware                                   34.2 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

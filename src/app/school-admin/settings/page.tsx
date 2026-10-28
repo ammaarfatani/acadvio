@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from "react";
 import { Settings, Save, Building2, ShieldCheck, CheckCircle2, DollarSign, Calendar } from "lucide-react";
+import Link from "next/link";
 import SchoolLogoEditor from "@/components/SchoolLogoEditor";
 import { useAuth } from "@/lib/auth-context";
 import { schoolAdminApi } from "@/lib/schoolAdminApi";
@@ -70,6 +71,7 @@ export default function SchoolSettingsPage() {
       {saveError && <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">{saveError}</div>}
       {loadError && <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">{loadError}</div>}
 
+      <Link href={(user?.school?.slug?"/"+user.school.slug+"/admin":"/school-admin")+"/settings/document-templates"} className="block rounded-lg border border-red-100 bg-red-50 p-4"><strong>Document Templates</strong><p className="mt-1 text-xs text-zinc-600">Choose school document designs and manage shared signatures, stamp and print settings.</p></Link>
       <SchoolLogoEditor/>
       <form onSubmit={handleSaveSettings} className="space-y-6">
         

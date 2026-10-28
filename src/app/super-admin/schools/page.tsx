@@ -2,6 +2,8 @@
 
 
 
+import OrganizationAccountControl from "@/components/OrganizationAccountControl";
+import {apiFetch} from "@/lib/api";
 import {Presence} from "@/components/Motion";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -26,6 +28,9 @@ import {
 import { superAdminApi } from "@/lib/superAdminApi";
 
 export default function SuperAdminSchoolsPage() {
+  const [actionBusy,setActionBusy]=useState(false);
+  const [actionError,setActionError]=useState("");
+  const [catalogue,setCatalogue]=useState<any[]>([]);
   const [schools, setSchools] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -42,18 +47,20 @@ export default function SuperAdminSchoolsPage() {
     try {
       const res = await superAdminApi.getAllSchools();
       if (res?.data) setSchools(res.data);
-    } catch (e) { console.error("Unable to load schools:", e); setSchools([]); } finally {
+    } catch (e:any) { setActionError(e.message||"Unable to load schools. Retry."); } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchSchools();
+    apiFetch("/subscription-payments/plans").then(r=>setCatalogue(r.data)).catch(e=>setActionError(e.message));
   }, []);
 
   const handleActionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedSchool) return;
+    if (!selectedSchool||actionBusy) return;
+    setActionBusy(true);setActionError("");
 
     try {
       if (modalType === "extendTrial") {
@@ -63,20 +70,18 @@ export default function SuperAdminSchoolsPage() {
         await superAdminApi.updateSubscriptionStatus(selectedSchool._id, selectedSchool.status, modalInput.plan);
         setActionNotice(`Plan updated to ${modalInput.plan} for '${selectedSchool.name}'.`);
       } else if (modalType === "suspend") {
-        await superAdminApi.rejectSchool(selectedSchool._id, "Suspended by Super Admin");
+        await apiFetch("/super-admin/schools/"+selectedSchool._id+"/account-status",{method:"PATCH",body:JSON.stringify({status:"DEACTIVATED",expectedRevision:selectedSchool.accountRevision||0})});
         setActionNotice(`School '${selectedSchool.name}' suspended.`);
       } else if (modalType === "resetPassword") {
-        const res = await superAdminApi.resetAdminPassword(selectedSchool._id, modalInput.newPassword);
-        setActionNotice(`Admin password reset. Temporary credentials: ${res.data?.tempPassword || "Generated successfully"}`);
+        const details=await superAdminApi.getSchoolDetails(selectedSchool._id);
+        const admin=details.data.users.find((u:any)=>u.userType==="SCHOOL_ADMIN");
+        if(!admin)throw new Error("No school administrator found.");
+        await apiFetch("/auth/forgot-password",{method:"POST",body:JSON.stringify({email:admin.email})});
+        setActionNotice("Password reset instructions requested. No password was exposed or changed by this action.");
       }
-      fetchSchools();
-    } catch (err: any) {
-      setActionNotice(`Action processed for '${selectedSchool.name}'.`);
-      fetchSchools();
-    } finally {
-      setModalType(null);
-      setSelectedSchool(null);
-    }
+      await fetchSchools();setModalType(null);setSelectedSchool(null);
+    } catch (err: any) { setActionError(err.message||"The action could not be completed. Please retry."); }
+    finally {setActionBusy(false);}
   };
 
   const filteredSchools = schools.filter((s) => {
@@ -90,6 +95,7 @@ export default function SuperAdminSchoolsPage() {
 
   return (
     <div className="space-y-6 pb-12">
+      {actionError&&<p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{actionError}</p>}
       
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200 pb-4">
@@ -159,7 +165,7 @@ export default function SuperAdminSchoolsPage() {
                 <th className="p-3.5">Status</th>
                 <th className="p-3.5">Scale</th>
                 <th className="p-3.5">Trial / Expiry</th>
-                <th className="p-3.5 text-right">Tenant Actions</th>
+                <th className="p-3.5">Account access</th><th className="p-3.5 text-right">Tenant Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200 text-zinc-800">
@@ -202,14 +208,15 @@ export default function SuperAdminSchoolsPage() {
                     </td>
 
                     <td className="p-3.5">
-                      <div className="font-semibold text-zinc-800">{s.studentCountRange || "500+"} Students</div>
-                      <div className="text-[10px] text-zinc-500">{s.teacherCount || 30} Teachers</div>
+                      <div className="font-semibold text-zinc-800">{s.studentCountRange || "Not configured"} Students</div>
+                      <div className="text-[10px] text-zinc-500">{s.teacherCount ?? 0} Teachers</div>
                     </td>
 
                     <td className="p-3.5 font-mono text-zinc-600">
                       {s.trialEndsAt ? new Date(s.trialEndsAt).toLocaleDateString() : "N/A"}
                     </td>
 
+                    <td className="p-3.5"><OrganizationAccountControl school={s} onChanged={fetchSchools}/></td>
                     <td className="p-3.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <Link
@@ -245,7 +252,7 @@ export default function SuperAdminSchoolsPage() {
                         <button
                           onClick={() => { setSelectedSchool(s); setModalType("suspend"); }}
                           className="p-1.5 text-zinc-400 hover:text-red-600 rounded-lg"
-                          title="Suspend School"
+                          title="Deactivate organization"
                         >
                           <ShieldAlert className="w-4 h-4" />
                         </button>
@@ -275,7 +282,7 @@ export default function SuperAdminSchoolsPage() {
               </button>
             </div>
 
-            <form onSubmit={handleActionSubmit} className="space-y-4">
+            <form aria-label="School account action" onSubmit={handleActionSubmit} className="space-y-4">
               
               {modalType === "extendTrial" && (
                 <div>
@@ -300,9 +307,7 @@ export default function SuperAdminSchoolsPage() {
                     onChange={(e) => setModalInput({ ...modalInput, plan: e.target.value })}
                     className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-semibold"
                   >
-                    <option value="STARTER">Starter Plan (PKR 4,999/mo)</option>
-                    <option value="PROFESSIONAL">Professional Plan (PKR 9,999/mo)</option>
-                    <option value="ENTERPRISE">Enterprise Plan (PKR 19,999/mo)</option>
+                    {catalogue.map(p=><option value={p.code} key={p.code}>{p.name} (PKR {p.priceMonthlyPKR.toLocaleString()}/mo)</option>)}
                   </select>
                 </div>
               )}
@@ -310,25 +315,16 @@ export default function SuperAdminSchoolsPage() {
               {modalType === "resetPassword" && (
                 <div className="space-y-2">
                   <p className="text-xs text-zinc-600">
-                    This will safely generate a new temporary password for <strong>{selectedSchool.email}</strong>. Plaintext passwords will never be exposed.
+                    Request password reset instructions for <strong>{selectedSchool.email}</strong>. An expiring reset link will be emailed to the registered school administrator.
                   </p>
-                  <div>
-                    <label className="block text-xs font-semibold text-zinc-700 mb-1">Custom Password (Optional)</label>
-                    <input
-                      type="password"
-                      placeholder="Leave empty for auto-generated password"
-                      value={modalInput.newPassword || ""}
-                      onChange={(e) => setModalInput({ ...modalInput, newPassword: e.target.value })}
-                      className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs"
-                    />
-                  </div>
+
                 </div>
               )}
 
               {modalType === "suspend" && (
                 <div className="p-3 bg-red-50 text-red-900 border border-red-200 rounded-xl text-xs space-y-1">
-                  <div className="font-bold">Warning: Destructive Action</div>
-                  <p>Suspending this school will restrict all staff logins and turn off active modules.</p>
+                  <div className="font-bold">Deactivate organization</div>
+                  <p>Deactivation preserves all data and subscription dates. Staff access is restricted; administrator billing remains available.</p>
                 </div>
               )}
 
@@ -341,10 +337,10 @@ export default function SuperAdminSchoolsPage() {
                   Cancel
                 </button>
                 <button
-                  type="submit"
+                  type="submit" disabled={actionBusy}
                   className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-xs"
                 >
-                  Confirm Action
+                  {actionBusy?"Saving...":"Confirm Action"}
                 </button>
               </div>
             </form>

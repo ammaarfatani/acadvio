@@ -1,2 +1,2 @@
-import ParentDocuments from "@/components/ParentDocuments";
-export default function Page(){return <ParentDocuments manage/>;}
+import SchoolDocumentGallery from "@/components/SchoolDocumentGallery";
+export default function Page(){return <SchoolDocumentGallery/>;}

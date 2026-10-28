@@ -1,0 +1,17 @@
+Progress: resolved 1, reused 0, downloaded 0, added 0
+Packages: +1
++
+Progress: resolved 1, reused 0, downloaded 1, added 0
+Progress: resolved 1, reused 0, downloaded 1, added 1, done
+src/lib/document-templates.ts 807ms
+src/components/SchoolDocumentTemplate.tsx 1285ms
+src/components/SchoolDocumentPreview.tsx 491ms
+src/components/DocumentTemplateManager.tsx 570ms
+src/components/SchoolDocumentGallery.tsx 295ms
+src/components/DocumentStyleSetupNotice.tsx 61ms
+src/components/OptionalStudentDetails.tsx 81ms
+src/components/useDocumentStyle.ts 70ms
+src/server/services/schoolDocument.service.ts 531ms
+src/server/routes/schoolDocument.routes.ts 503ms
+src/server/models/schoolDocument.model.ts 11ms
+tests/document-templates.cjs 1042ms

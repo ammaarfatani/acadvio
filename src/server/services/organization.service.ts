@@ -33,7 +33,13 @@ export async function branchAdministrator(actor: AuthenticatedUser, branchId: st
 }
 export async function assignAdministrator(actor: AuthenticatedUser, branchId: string, userId: string) {
   if (!await Branch.exists({_id:branchId,organizationId:actor.schoolId,status:"ACTIVE"})) throw {statusCode:404,message:"Active branch not found."};
-  return withoutBranchScope(async () => { const user=await User.findOne({_id:userId,schoolId:actor.schoolId,userType:"SCHOOL_ADMIN",isOrganizationOwner:false}); if(!user)throw{statusCode:404,message:"Branch administrator not found."}; user.branchId=branchId;user.organizationId=actor.schoolId;await user.save();return{id:user._id,branchId}; });
+  return withoutBranchScope(async () => { const user=await User.findOne({_id:userId,schoolId:actor.schoolId,userType:"SCHOOL_ADMIN",isOrganizationOwner:false}); if(!user)throw{statusCode:404,message:"Branch administrator not found."}; user.branchId=branchId;user.organizationId=actor.schoolId;await user.save();
+  // This owner-authorized transfer already runs without branch narrowing. Keep
+  // the identity record with its person and require approval at the new campus.
+  const {IdentityCard}=await import("../models/identityCard.model");
+  const card:any=await IdentityCard.findOne({schoolId:actor.schoolId,kind:"staff",subjectId:userId});
+  if(card&&String(card.branchId)!==branchId){await IdentityCard.updateOne({_id:card._id},{$set:{branchId,status:"NEEDS_CORRECTION",reason:"Branch assignment changed. Review and reissue at the new branch."},$inc:{revision:1}});const {AuditLog}=await import("../models/auditLog.model");await AuditLog.create({schoolId:actor.schoolId,organizationId:actor.schoolId,branchId,actorUserId:actor.userId,actorRole:actor.userType,action:"ID_CARD_BRANCH_CHANGED",resource:"IdentityCard",entityId:String(card._id),newValue:{status:"NEEDS_CORRECTION",branchId}});}
+  return{id:user._id,branchId}; });
 }
 export async function branchDirectory(actor: AuthenticatedUser, branchId: string) {
   if (!await Branch.exists({_id:branchId,organizationId:actor.schoolId}))throw{statusCode:404,message:"Branch not found."};

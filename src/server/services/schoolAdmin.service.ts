@@ -1,3 +1,5 @@
+import {validateStudentPhoto,storeStudentPhoto,deleteStudentPhoto} from "./studentPhoto.service";
+import { FinanceService } from "./finance.service";
 import {persistMarks} from "./marksPersistence.service";
 import {linkPrimaryParent} from "./primaryParent.service";
 import {teacherBatches,mergeTeacherBatches} from "./workforce.service";
@@ -105,7 +107,7 @@ export class SchoolAdminService {
   }
 
   // 2. STUDENT MANAGEMENT
-  static async getNextStudentRollNumber(schoolId: string, classId: string, sectionId?: string, sessionId?: string) {
+  static async getNextStudentRollNumber(schoolId: string, classId: string, sectionId?: string, sessionId?: string, reserve = false) {
     if (!sectionId) throw { statusCode: 400, message: "Select a section to generate a roll number." };
     const [linkedClass, section, session] = await Promise.all([
       ClassModel.findOne({ _id: classId, schoolId }).select("name numericLevel"),
@@ -124,7 +126,12 @@ export class SchoolAdminService {
       const suffix = String(row.rollNumber || "").startsWith(rollPrefix) ? String(row.rollNumber).slice(rollPrefix.length) : "";
       return /^\d+$/.test(suffix) ? Math.max(max, Number(suffix)) : max;
     }, 0) + 1;
-    return `${rollPrefix}${next}`;
+    const counters=mongoose.connection.db!.collection("identitysequences");
+    const sequenceKey=`${schoolId}:roll:${classId}:${sectionId||""}:${session?._id||""}`;
+    if(!reserve){const counter=await counters.findOne({_id:sequenceKey as any});return `${rollPrefix}${Math.max(next,Number(counter?.value||0)+1)}`;}
+    try{await counters.updateOne({_id:sequenceKey as any},{$max:{value:next-1}},{upsert:true});}catch(error:any){if(error.code!==11000)throw error;}
+    const counter=await counters.findOneAndUpdate({_id:sequenceKey as any},{$inc:{value:1}},{returnDocument:"after"});
+    return `${rollPrefix}${counter!.value}`;
   }
 
   static async getStudents(schoolId: string, filterClassId?: string, search?: string, statusFilter?: string) {
@@ -142,13 +149,15 @@ export class SchoolAdminService {
   }
 
   static async createStudent(schoolId: string, data: any, dbSession?: ClientSession, sendAssignmentNotifications = true) {
-    if(data.parentInfo?.guardianEmail&&!dbSession){
+    if((data.parentInfo?.guardianEmail||data.photoData)&&!dbSession){
       const session=await mongoose.startSession();let result:any;
-      try{await session.withTransaction(async()=>{result=await this.createStudent(schoolId,data,session,false);});
+      try{await session.withTransaction(async()=>{if(result?.photoStorageId)await deleteStudentPhoto(result.photoStorageId).catch(()=>{});result=await this.createStudent(schoolId,data,session,false);});
         if(sendAssignmentNotifications){const teachers=await TeachingAssignment.find({schoolId,classId:result.classId,sectionId:result.sectionId,academicSessionId:result.academicSessionId,status:"ACTIVE"}).distinct("teacherUserId");if(teachers.length)void TeacherNotification.insertMany(teachers.map(teacherUserId=>({schoolId,teacherUserId,title:"Student added to your class",message:`${result.name} was added to ${result.className} · ${result.sectionName}.`,href:"/teacher/students"}))).catch(()=>console.warn("[TEACHER-NOTIFICATION] Unable to create student assignment notifications."));}return result;
-      }finally{await session.endSession();}
+      }catch(error){if(result?.photoStorageId)await deleteStudentPhoto(result.photoStorageId).catch(()=>{});throw error;}finally{await session.endSession();}
     }
 
+    if(data.photoUrl)throw {statusCode:400,message:"Use the Student Photo upload field instead of an image URL."};
+    const photoBytes=await validateStudentPhoto(data.photoData);
     const linkedClass = await ClassModel.findOne({ _id: data.classId, schoolId }).select("_id name numericLevel").session(dbSession || null);
     if (!linkedClass) throw { statusCode: 400, message: "Select a class that belongs to your school." };
     data.className = linkedClass.name;
@@ -160,15 +169,17 @@ export class SchoolAdminService {
     if (!academicSession) throw { statusCode: 400, message: "Create or select an academic session for this school." };
     data.academicSessionId = academicSession._id; data.academicSessionName = academicSession.name;
     await SubscriptionEntitlementService.checkCapacityLimit(schoolId, "students");
-    const studentCount = await Student.countDocuments({ schoolId }).session(dbSession || null);
-    const admissionNumber = data.admissionNumber || `ADM-${new Date().getFullYear()}-${String(studentCount + 1).padStart(4, "0")}`;
-    const studentId = data.studentId || `STU-${Math.floor(100000 + Math.random() * 900000)}`;
+    const {permanentIdentity}=await import("./permanentIdentity.service");
+    const allocatedId=new mongoose.Types.ObjectId();
+    const admissionNumber=await permanentIdentity(schoolId,"admission",allocatedId);
+    const studentId=await permanentIdentity(schoolId,"student",allocatedId);
 
     // Includes archived students to prevent a deleted/archived number from being reused.
-    const rollNumber = await this.getNextStudentRollNumber(schoolId, String(linkedClass._id), section?._id?.toString(), academicSession._id.toString());
+    const rollNumber = await this.getNextStudentRollNumber(schoolId, String(linkedClass._id), section?._id?.toString(), academicSession._id.toString(), true);
 
     const studentData = {
       ...data,
+      _id:allocatedId,
       schoolId,
       studentId,
       admissionNumber,
@@ -177,14 +188,17 @@ export class SchoolAdminService {
     };
     const student = dbSession ? (await Student.create([studentData], { session: dbSession }))[0] : await Student.create(studentData);
     if(data.parentInfo?.guardianEmail&&dbSession)student.$locals.primaryParent=await linkPrimaryParent(schoolId,student,data.parentAccount?.password,dbSession);
+    if(photoBytes){const fileId=await storeStudentPhoto(student,photoBytes);try{student.photoStorageId=fileId;student.photoUrl=`/student-media/${student._id}/photo`;await student.save({session:dbSession||undefined});}catch(error){await deleteStudentPhoto(fileId).catch(()=>{});throw error;}}
     const assignedTeachers = sendAssignmentNotifications ? await TeachingAssignment.find({ schoolId, classId: linkedClass._id, sectionId: section?._id, academicSessionId: academicSession._id, status: "ACTIVE" }).distinct("teacherUserId") : [];
     if (assignedTeachers.length) void TeacherNotification.insertMany(assignedTeachers.map((teacherUserId: any) => ({ schoolId, teacherUserId, title: "Student added to your class", message: `${student.name} was added to ${linkedClass.name} · ${section.name}.`, href: "/teacher/students" }))).catch(() => console.warn("[TEACHER-NOTIFICATION] Unable to create student assignment notifications."));
     return student;
   }
 
   static async updateStudent(schoolId: string, studentId: string, data: any) {
-    const existing = await Student.findOne({ _id: studentId, schoolId });
+    const existing = await Student.findOne({ _id: studentId, schoolId }).select("+photoStorageId");
     if (!existing) throw { statusCode: 404, message: "Student record not found." };
+    if(data.photoUrl!==undefined&&data.photoUrl!==existing.photoUrl)throw {statusCode:400,message:"Use the Student Photo upload field instead of an image URL."};
+    const photoBytes=await validateStudentPhoto(data.photoData);
     const effectiveClassId = data.classId || existing.classId.toString();
     if (data.classId) {
       const linkedClass = await ClassModel.findOne({ _id: effectiveClassId, schoolId }).select("name");
@@ -201,9 +215,15 @@ export class SchoolAdminService {
       if (!session) throw { statusCode: 400, message: "Select an academic session belonging to this school." };
       data.academicSessionName = session.name;
     }
-    const { schoolId: ignoredSchoolId, ...safeData } = data;
+    const { schoolId: ignoredSchoolId, studentId: ignoredPermanentId, admissionNumber: ignoredAdmission, photoData, photoStorageId: ignoredStorageId, ...safeData } = data;
+    void ignoredStorageId;
+    let newFileId:string|undefined;
+    if(photoData!==undefined){if(photoBytes){newFileId=await storeStudentPhoto(existing,photoBytes);safeData.photoStorageId=newFileId;safeData.photoUrl=`/student-media/${existing._id}/photo`;}else{safeData.photoStorageId=null;safeData.photoUrl="";}}
+
     void ignoredSchoolId;
-    const student = await Student.findOneAndUpdate({ _id: studentId, schoolId }, { $set: safeData }, { new: true });
+    let student:any;
+    try{student=await Student.findOneAndUpdate({ _id: studentId, schoolId, updatedAt:existing.updatedAt }, { $set: safeData }, { new: true,runValidators:true });if(!student)throw {statusCode:409,message:"Student changed. Refresh before saving."};}catch(error){if(newFileId)await deleteStudentPhoto(newFileId).catch(()=>{});throw error;}
+    if(photoData!==undefined&&existing.photoStorageId)await deleteStudentPhoto(existing.photoStorageId).catch(()=>console.warn("[STUDENT-PHOTO] Old image cleanup requires retry."));
     if (!student) throw { statusCode: 404, message: "Student record not found." };
     return student;
   }
@@ -266,7 +286,7 @@ export class SchoolAdminService {
   }
 
   static async getSchoolTeachers(schoolId: string) {
-    const users = await User.find({ schoolId, userType: UserType.TEACHER }).select("name email userType status branchId").sort({ name: 1 }).lean();
+    const users = await User.find({ schoolId, userType: UserType.TEACHER }).select("name email employeeId userType status branchId").sort({ name: 1 }).lean();
     const ids = users.map((teacher: any) => teacher._id);
     const [profiles, assignments, classAssignments,employment] = await Promise.all([
       TeacherProfile.find({ schoolId, userId: { $in: ids } }).lean(),
@@ -315,7 +335,7 @@ export class SchoolAdminService {
     const teacher = await UserService.createStaffUser(schoolId, { ...data, userType: UserType.TEACHER });
     try {
       if(data.classAssignments)await this.saveClassAssignments(schoolId,String(teacher.id),data.name,data.classAssignments);
-      await TeacherProfile.create({ schoolId, userId: teacher.id, qualification: data.qualification, employeeId: data.employeeId, phone: data.phone });
+      await TeacherProfile.create({ schoolId, userId: teacher.id, qualification: data.qualification, employeeId: teacher.employeeId, phone: data.phone });
       if (data.assignments?.length) await TeachingAssignment.insertMany(data.assignments.map((item: any) => ({ ...item, schoolId, teacherUserId: teacher.id, status: "ACTIVE" })));
       if (data.assignments?.length) await TeacherNotification.insertMany(await Promise.all(data.assignments.map(async (item: any) => {
         const [classRecord, section, subject] = await Promise.all([ClassModel.findOne({ _id: item.classId, schoolId }).select("name"), SectionModel.findOne({ _id: item.sectionId, schoolId }).select("name"), Subject.findOne({ _id: item.subjectId, schoolId }).select("name")]);
@@ -339,7 +359,7 @@ export class SchoolAdminService {
     await teacher.save();
     if (data.status && data.status !== "ACTIVE") await TeachingAssignment.updateMany({ schoolId, teacherUserId: teacherId, status: "ACTIVE" }, { $set: { status: "ENDED", endedAt: new Date() } });
     if(data.classAssignments)await this.saveClassAssignments(schoolId,teacherId,teacher.name,data.classAssignments);
-    const { assignments, classAssignments, name, status, ...profileData } = data;
+    const { assignments, classAssignments, name, status, employeeId: ignoredEmployeeId, ...profileData } = data;
     if (Object.keys(profileData).length) await TeacherProfile.findOneAndUpdate({ schoolId, userId: teacherId }, { $set: profileData, $setOnInsert: { schoolId, userId: teacherId } }, { upsert: true, new: true });
     if (assignments) {
       await TeachingAssignment.updateMany({ schoolId, teacherUserId: teacherId, status: "ACTIVE" }, { $set: { status: "ENDED", endedAt: new Date() } });
@@ -504,34 +524,11 @@ export class SchoolAdminService {
   }
 
   static async getFeeChallans(schoolId: string, statusFilter?: string) {
-    const query: any = { schoolId };
-    if (statusFilter && statusFilter !== "ALL") query.status = statusFilter;
-    return FeeChallan.find(query).sort({ createdAt: -1 });
+    return FinanceService.getChallans(schoolId, statusFilter);
   }
 
-  static async collectFeePayment(schoolId: string, challanId: string, paidAmount: number, paymentMethod: any, cashierName: string) {
-    const challan = await FeeChallan.findOne({ _id: challanId, schoolId, isVoided: { $ne: true } });
-    if (!challan) throw { statusCode: 404, message: "Fee Challan not found." };
-    const receiptNumber = `REC-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}-${randomUUID().slice(0, 8).toUpperCase()}`;
-    const paidAt = new Date();
-    const updated: any = await FeeChallan.findOneAndUpdate(
-      { _id: challanId, schoolId, isVoided: { $ne: true }, remainingAmountPKR: { $gte: paidAmount } },
-      [
-        { $set: { paidAmountPKR: { $add: [{ $ifNull: ["$paidAmountPKR", 0] }, paidAmount] }, remainingAmountPKR: { $subtract: ["$remainingAmountPKR", paidAmount] }, paidDate: paidAt, paymentMethod, receiptNumber, collectedByUserName: cashierName } },
-        { $set: { status: { $cond: [{ $lte: ["$remainingAmountPKR", 0] }, "PAID", "PARTIAL"] } } },
-      ] as any,
-      { new: true, updatePipeline: true } as any
-    );
-    if (!updated) throw { statusCode: 409, message: "Payment exceeds the remaining balance or the challan changed. Refresh and try again." };
-    try {
-      return await FeePayment.create({ schoolId, challanId: updated._id, studentId: updated.studentId, studentName: updated.studentName, rollNumber: updated.rollNumber, className: updated.className, amountPKR: paidAmount, paymentMethod, paidAt: updated.paidDate, receiptNumber, collectedByUserName: cashierName });
-    } catch (error) {
-      await FeeChallan.updateOne({ _id: updated._id, schoolId }, [
-        { $set: { paidAmountPKR: { $subtract: ["$paidAmountPKR", paidAmount] }, remainingAmountPKR: { $add: ["$remainingAmountPKR", paidAmount] } } },
-        { $set: { status: { $cond: [{ $lte: ["$remainingAmountPKR", 0] }, "PAID", { $cond: [{ $gt: ["$paidAmountPKR", 0] }, "PARTIAL", "PENDING"] }] } } },
-      ] as any);
-      throw error;
-    }
+  static async collectFeePayment(schoolId: string, challanId: string, paidAmount: number, paymentMethod: any, cashierName: string, requestId?: string, transactionReference?: string) {
+    return FinanceService.collectPayment(schoolId, challanId, { amountPKR: paidAmount, paymentMethod, requestId, transactionReference }, cashierName);
   }
 
   static async getExpenses(schoolId: string) {

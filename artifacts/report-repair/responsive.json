@@ -1,0 +1,50 @@
+[
+  {
+    "requested": 320,
+    "body": 320,
+    "root": 320,
+    "tableRegionWidth": 251,
+    "tableScrollWidth": 598,
+    "width": 320
+  },
+  {
+    "requested": 375,
+    "body": 375,
+    "root": 375,
+    "tableRegionWidth": 305,
+    "tableScrollWidth": 598,
+    "width": 375
+  },
+  {
+    "requested": 390,
+    "body": 390,
+    "root": 390,
+    "tableRegionWidth": 320,
+    "tableScrollWidth": 598,
+    "width": 390
+  },
+  {
+    "requested": 768,
+    "body": 768,
+    "root": 768,
+    "tableRegionWidth": 646,
+    "tableScrollWidth": 670,
+    "width": 768
+  },
+  {
+    "requested": 1024,
+    "body": 1024,
+    "root": 1024,
+    "tableRegionWidth": 646,
+    "tableScrollWidth": 670,
+    "width": 1024
+  },
+  {
+    "requested": 1440,
+    "body": 1440,
+    "root": 1440,
+    "tableRegionWidth": 834,
+    "tableScrollWidth": 834,
+    "width": 1440
+  }
+]

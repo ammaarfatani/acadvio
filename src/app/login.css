@@ -1,0 +1,48 @@
+/* Public sign-in: presentation only; authentication and portal routing stay shared. */
+.marketing-site .ac-login-page{padding:44px 32px 64px;background:#f0f2f5}
+.marketing-site .ac-login-page .m-login-grid{max-width:1180px;grid-template-columns:1.08fr 1fr;border:1px solid #dce0e6;border-radius:12px;box-shadow:0 24px 64px #18202d0d}
+.marketing-site .ac-login-page .m-login-visual{background:#191c22;padding:36px 38px;border:0;overflow:hidden;position:relative}
+.marketing-site .ac-login-page .m-login-brand{gap:18px;background:transparent;padding:0;border-radius:0}
+.marketing-site .ac-login-page .m-login-brand>a{background:white;padding:10px 13px;border-radius:4px;display:inline-flex;flex-shrink:0}
+.marketing-site .ac-login-page .m-login-brand>a>span{width:140px}
+.marketing-site .ac-login-page .m-login-brand>span{display:flex;align-items:center;gap:7px;color:#cbd0d8;font-size:10px;max-width:none;text-align:left}
+.marketing-site .ac-login-status-dot{width:5px;height:5px;border-radius:50%;background:#ff636a;flex-shrink:0}
+.marketing-site .ac-login-page .m-login-story{margin:45px 0 27px}
+.marketing-site .ac-login-page .m-login-story .m-eyebrow{color:#ff979c;font-size:10px;letter-spacing:1.6px;margin:0 0 17px}
+.marketing-site .ac-login-page .m-login-story h2{font-size:clamp(32px,3.1vw,42px);line-height:1.12;letter-spacing:-1.6px;color:#fff;margin:0}
+.marketing-site .ac-login-page .m-login-story h2 em{display:block;font-style:normal;color:#ff777f}
+.marketing-site .ac-login-page .m-login-story h2 br{display:none}
+.marketing-site .ac-login-page .m-login-story p:not(.m-eyebrow){font-size:13px;line-height:1.85;color:#c4cbd4;max-width:385px;margin-top:17px}
+.marketing-site .ac-login-preview{padding:15px 15px 0;background:#282d36;border:1px solid #424956;border-radius:8px;box-shadow:0 18px 30px #00000026}
+.marketing-site .ac-login-preview-label{display:flex;justify-content:space-between;gap:10px;padding-bottom:12px;color:#d6dbe3;font-size:9px;letter-spacing:.6px}
+.marketing-site .ac-login-preview-label>span:first-child{font-weight:600;color:#ff9da2}
+.marketing-site .ac-login-page .ac-login-preview .m-product-frame{width:100%;margin:0;transform:none;border:0;border-radius:4px 4px 0 0;box-shadow:none;background:white;overflow:hidden}
+.marketing-site .ac-login-preview .m-frame-bar,.marketing-site .ac-login-preview figcaption{display:none}
+.marketing-site .ac-login-preview .m-shot-wrap{aspect-ratio:1.84;overflow:hidden}
+.marketing-site .ac-login-preview .m-product-image{display:block;width:100%;height:auto;transform:none;object-fit:cover;object-position:top}
+.marketing-site .ac-login-modules{display:flex;gap:0;justify-content:space-between;font-size:10px;color:#c4cbd4;margin:17px 0 27px}
+.marketing-site .ac-login-modules>span+span{border-left:1px solid #474e59;padding-left:14px}
+.marketing-site .ac-login-page .m-login-trust{border-top:1px solid #3a414c;margin-top:auto;padding-top:21px;color:#cbd1da;gap:10px}
+.marketing-site .ac-login-page .m-login-trust svg{color:#ff8189;margin-top:2px}
+.marketing-site .ac-login-page .m-login-trust p{color:#e0e4eb;font-size:12px;line-height:1.7;margin:0}
+.marketing-site .ac-login-page .m-login-trust p>span{display:block;color:#aeb8c6;font-size:10px;margin-top:3px}
+.marketing-site .ac-login-page .m-login-form{background:white;padding:38px 48px;align-self:stretch;min-width:0}
+.marketing-site .ac-login-form-heading{display:flex;align-items:center;gap:11px;font-size:9px;letter-spacing:1.3px;font-weight:600;color:#626d7c;margin-bottom:29px}
+.marketing-site .ac-login-lock{display:grid;place-items:center;width:40px;height:40px;border:1px solid #f2d5d8;background:#fff3f4;border-radius:8px;color:#c60010}
+.marketing-site .ac-login-page .m-login-form .m-eyebrow{color:#b6000d;font-size:10px;letter-spacing:1.5px;margin-bottom:10px}
+.marketing-site .ac-login-page .m-login-form h1{font-size:31px;line-height:1.15;letter-spacing:-1px;color:#222831;max-width:330px}
+.marketing-site .ac-login-page .m-login-form>p:not(.m-eyebrow){font-size:12px;line-height:1.8;color:#596575;margin-top:12px;max-width:350px}
+.marketing-site .ac-login-page .m-login-form form{margin-top:25px}
+.marketing-site .ac-login-page .m-login-form label{font-size:12px;color:#343e4b;font-weight:600}
+.marketing-site .ac-login-page .m-login-form input{min-height:48px;background:#f8f9fb;border:1px solid #dce1e8;border-radius:6px;color:#27313f;font-size:13px;transition:background .15s,border-color .15s}
+.marketing-site .ac-login-page .m-login-form input:focus{background:white;border-color:#d0000c;box-shadow:0 0 0 3px #d0000c0d}
+.marketing-site .ac-login-page .m-login-form input::placeholder{color:#748091;font-size:12px}
+.marketing-site .ac-login-page .m-login-form button[type=submit]{min-height:48px;color:white;background:#d5000e;border-radius:6px;box-shadow:0 5px 12px #d5000e14}
+.marketing-site .ac-login-page .m-login-form button[type=submit]:hover{background:#b5000c}
+.marketing-site .ac-login-page .ac-login-forgot{font-size:12px;font-weight:600;color:#b5000c;margin-top:16px}
+.marketing-site .ac-login-page .m-login-form>p.text-xs{font-size:11px;line-height:1.8;margin-top:16px}
+.marketing-site .ac-login-page .ac-login-new{background:#f6f7f9;border:1px solid #e5e8ed;padding:16px 18px;margin-top:23px;border-radius:6px}
+.marketing-site .ac-login-new p{font-size:12px;color:#596575}.marketing-site .ac-login-new a{font-size:12px;color:#b5000c;margin-top:5px}
+@media(max-width:1000px){.marketing-site .ac-login-page .m-login-visual{padding:30px 25px}.marketing-site .ac-login-page .m-login-form{padding:34px 30px}.marketing-site .ac-login-page .m-login-brand>span{display:none}.marketing-site .ac-login-modules{font-size:9px}.marketing-site .ac-login-modules>span+span{padding-left:9px}}
+@media(max-width:720px){.marketing-site .ac-login-page{padding:24px 18px 40px}.marketing-site .ac-login-page .m-login-grid{grid-template-columns:1fr;max-width:520px}.marketing-site .ac-login-page .m-login-visual{display:flex;padding:25px}.marketing-site .ac-login-page .m-login-brand>span{display:flex}.marketing-site .ac-login-page .m-login-story{margin:25px 0 0}.marketing-site .ac-login-page .m-login-story h2{font-size:26px;letter-spacing:-.8px}.marketing-site .ac-login-page .m-login-story p:not(.m-eyebrow){margin-top:12px;font-size:12px}.marketing-site .ac-login-preview,.marketing-site .ac-login-modules,.marketing-site .ac-login-page .m-login-trust{display:none}.marketing-site .ac-login-page .m-login-form{padding:28px 25px}.marketing-site .ac-login-form-heading{margin-bottom:22px}.marketing-site .ac-login-page .m-login-form h1{font-size:29px}}
+@media(max-width:380px){.marketing-site .ac-login-page .m-login-brand>span{display:none}.marketing-site .ac-login-page .m-login-form,.marketing-site .ac-login-page .m-login-visual{padding:23px 20px}}

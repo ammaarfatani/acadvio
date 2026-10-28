@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { routeFeature } from "@/lib/plan-features";
 import { Presence, RouteMotion } from "./Motion";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { WebsiteGuide } from "@/components/WebsiteGuide";
+import { canManageSchoolBilling } from "@/lib/billing-access";
 import { useAuth } from "@/lib/auth-context";
 
 const roleHome: Record<string, string> = {
@@ -45,14 +46,17 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
   const { user, loading, clearSession } = useAuth();
   const [feedback, setFeedback] = useState<{ type: "error" | "success"; message: string } | null>(null);
 
+  useEffect(()=>{setFeedback(null);},[user?.id,pathname]);
+  const feedbackTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
   useEffect(() => {
     const onFeedback = (event: Event) => {
       const detail = (event as CustomEvent<{ type: "error" | "success"; message: string }>).detail;
       if (detail?.message) setFeedback(detail);
-      window.setTimeout(() => setFeedback(null), 5000);
+      if(feedbackTimer.current)clearTimeout(feedbackTimer.current);
+      if(detail.type!=="error")feedbackTimer.current=setTimeout(()=>setFeedback(null),5000);
     };
     window.addEventListener("acadivo:feedback", onFeedback);
-    return () => window.removeEventListener("acadivo:feedback", onFeedback);
+    return () => {window.removeEventListener("acadivo:feedback", onFeedback);if(feedbackTimer.current)clearTimeout(feedbackTimer.current);};
   }, []);
 
   useEffect(() => {
@@ -84,7 +88,12 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
         return;
       }
     }
-    const billingOnly = user.userType === "SCHOOL_ADMIN" && (user.status === "PENDING_APPROVAL" || (user.school?.status && !["ACTIVE", "TRIAL"].includes(user.school.status)));
+    if (/\/(subscription|payments)$/.test(pathname) && user.userType !== "SUPER_ADMIN" && !canManageSchoolBilling(user)) {
+      router.replace(user.school?.slug ? `/${user.school.slug}/${({SCHOOL_ADMIN:"admin",RECEPTIONIST:"staff"} as Record<string,string>)[user.userType] || user.userType.toLowerCase().replace("_","-")}` : roleHome[user.userType]);
+      return;
+    }
+    if (user.userType === "SCHOOL_ADMIN" && !canManageSchoolBilling(user) && (user.school?.accountStatus === "DEACTIVATED" || (user.school?.status && !["ACTIVE", "TRIAL"].includes(user.school.status)))) return;
+    const billingOnly = user.userType === "SCHOOL_ADMIN" && (user.school?.accountStatus === "DEACTIVATED" || user.status === "PENDING_APPROVAL" || (user.school?.status && !["ACTIVE", "TRIAL"].includes(user.school.status)));
     if (billingOnly && !pathname.endsWith("/payments") && !pathname.endsWith("/subscription")) {
       const destination = user.school?.status === "TRIAL_EXPIRED" ? "subscription" : "payments";
       router.replace((user.school?.slug ? "/"+user.school.slug+"/admin/" : "/school-admin/")+destination);
@@ -121,9 +130,11 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
     const root = parts[1] === "admin" ? "school-admin" : parts[1] === "staff" ? "receptionist" : parts[1];
     const normalized = roleHome[parts[0].toUpperCase().replace("-", "_")] ? pathname : `/${root}${parts.length > 2 ? "/"+parts.slice(2).join("/") : ""}`;
     if (!canAccessPortal(normalized, user.userType)) return <main className="grid min-h-screen place-items-center bg-zinc-100 text-sm text-zinc-500">Redirecting to your portal…</main>;
+    if (/\/(subscription|payments)$/.test(pathname) && user.userType !== "SUPER_ADMIN" && !canManageSchoolBilling(user)) return null;
+    if (user.userType === "SCHOOL_ADMIN" && !canManageSchoolBilling(user) && (user.school?.accountStatus === "DEACTIVATED" || (user.school?.status && !["ACTIVE", "TRIAL"].includes(user.school.status)))) return <main className="grid min-h-screen place-items-center bg-zinc-100 p-6"><div className="max-w-md rounded-lg border bg-white p-6"><h1 className="font-semibold">School workspace unavailable</h1><p className="mt-3 text-sm text-zinc-600">Please contact your main school administrator to review the school&apos;s access status.</p></div></main>;
     const feature = routeFeature(pathname);
     if (user.userType !== "SUPER_ADMIN" && feature && !user.features?.includes(feature)) return <main className="grid min-h-screen place-items-center bg-zinc-100 p-6"><div className="rounded-xl border bg-white p-6"><h1 className="font-bold">Feature unavailable on your plan</h1><p className="mt-2 text-sm text-zinc-500">Contact your school administrator to upgrade the subscription.</p><button onClick={()=>router.replace(roleHome[user.userType] || "/login")} className="mt-4 rounded bg-red-600 px-4 py-2 text-sm text-white">Return to your portal</button></div></main>;
-    return <>{children}<Presence show={!!feedback} kind="toast">{feedback && <div className={`fixed bottom-4 right-4 z-[100] max-w-md rounded-xl border px-4 py-3 text-sm shadow-xl ${feedback.type === "error" ? "border-red-300 bg-red-50 text-red-900" : "border-emerald-300 bg-emerald-50 text-emerald-900"}`} role="status">{feedback.message}</div>}</Presence></>;
+    return <>{children}<Presence show={!!feedback} kind="toast">{feedback && <div className={`fixed bottom-4 right-4 z-[100] max-w-md rounded-xl border px-4 py-3 text-sm shadow-xl ${feedback.type === "error" ? "border-red-300 bg-red-50 text-red-900" : "border-emerald-300 bg-emerald-50 text-emerald-900"}`} role="status">{feedback.message}<button aria-label="Dismiss notification" className="ml-4 shrink-0 font-bold" onClick={()=>setFeedback(null)}>×</button></div>}</Presence></>;
   }
 
   return (
@@ -132,7 +143,7 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
       <main className="flex-grow"><RouteMotion>{children}</RouteMotion></main>
       <Footer />
       <WebsiteGuide />
-      <Presence show={!!feedback} kind="toast">{feedback && <div className={`fixed bottom-4 right-4 z-[100] max-w-md rounded-xl border px-4 py-3 text-sm shadow-xl ${feedback.type === "error" ? "border-red-300 bg-red-50 text-red-900" : "border-emerald-300 bg-emerald-50 text-emerald-900"}`} role="status">{feedback.message}</div>}</Presence>
+      <Presence show={!!feedback} kind="toast">{feedback && <div className={`fixed bottom-4 right-4 z-[100] max-w-md rounded-xl border px-4 py-3 text-sm shadow-xl ${feedback.type === "error" ? "border-red-300 bg-red-50 text-red-900" : "border-emerald-300 bg-emerald-50 text-emerald-900"}`} role="status">{feedback.message}<button aria-label="Dismiss notification" className="ml-4 shrink-0 font-bold" onClick={()=>setFeedback(null)}>×</button></div>}</Presence>
     </div>
   );
 }

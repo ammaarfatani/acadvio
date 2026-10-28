@@ -1,0 +1,8 @@
+Hello Test Administrator,
+
+Development preview for an existing transactional event. This uses synthetic test data only.
+
+Reset Your Password: https://app.example.invalid/reset-password#token=fixture-only-token
+
+Acadivo | School management
+Support: hello@aktech.tech
