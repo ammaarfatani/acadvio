@@ -1,13 +1,18 @@
 "use client";
+import {TableScroll} from "@/components/TableScroll";
+
+import {RecordFilters,matchesRecordSearch} from "@/components/RecordFilters";
 import { StudentAvatar } from "@/components/StudentAvatar";
 
 import { useEffect, useState } from "react";
 import { schoolAdminApi } from "@/lib/schoolAdminApi";
 
 export default function FeeCollectionPage() {
+  const [search,setSearch]=useState("");
   const [challans, setChallans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [filterClass,setFilterClass]=useState(""),[filterMonth,setFilterMonth]=useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
   useEffect(() => {
@@ -20,10 +25,7 @@ export default function FeeCollectionPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered =
-    statusFilter === "ALL"
-      ? challans
-      : challans.filter((item) => item.status === statusFilter);
+  const filtered=challans.filter(item=>(statusFilter==="ALL"||item.status===statusFilter)&&(!filterClass||item.className===filterClass)&&(!filterMonth||item.month===filterMonth)&&matchesRecordSearch([item.studentName,item.challanNumber,item.admissionNumber,item.rollNumber,item.className,item.month],search));
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 pb-12">
@@ -64,6 +66,8 @@ export default function FeeCollectionPage() {
         </p>
       )}
 
+
+      <RecordFilters search={search} onSearch={setSearch} placeholder="Search name, admission, roll, class or challan" count={filtered.length} total={challans.length} filters={[{label:"Class",value:filterClass,onChange:setFilterClass,options:Array.from(new Set(challans.map(c=>c.className).filter(Boolean)))},{label:"Month",value:filterMonth,onChange:setFilterMonth,options:Array.from(new Set(challans.map(c=>c.month).filter(Boolean))).sort().reverse()}]} onReset={()=>{setSearch("");setStatusFilter("ALL");setFilterClass("");setFilterMonth("")}}/>
       {loading ? (
         <p
           role="status"
@@ -73,7 +77,7 @@ export default function FeeCollectionPage() {
         </p>
       ) : filtered.length ? (
         <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-xs">
-          <table className="w-full min-w-[700px] text-left text-xs">
+          <TableScroll><table className="w-full min-w-[700px] text-left text-xs">
             <thead className="bg-zinc-950 text-white text-[10px] uppercase font-bold">
               <tr>
                 <th className="p-3.5">Challan No</th>
@@ -140,7 +144,7 @@ export default function FeeCollectionPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></TableScroll>
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-10 text-center">

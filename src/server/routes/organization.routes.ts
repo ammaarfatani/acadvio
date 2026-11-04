@@ -15,7 +15,8 @@ router.get("/admins",handle((req:any)=>withoutBranchScope(()=>User.find({schoolI
 router.get("/branches",handle((req:any)=>service.organizationBranches(req.user.schoolId)));
 router.post("/branches",handle((req:any)=>service.saveBranch(req.user.schoolId,branch.parse(req.body))));
 router.put("/branches/:id",handle((req:any)=>service.saveBranch(req.user.schoolId,branch.parse(req.body),id.parse(req.params.id))));
-router.get("/branches/:id/directory",handle((req:any)=>service.branchDirectory(req.user,id.parse(req.params.id))));
+router.get("/branches/:id/directory",handle((req:any)=>service.branchDirectory(req.user,id.parse(req.params.id),req.query.summary==="1")));
+router.get("/branches/:id/history",handle((req:any)=>service.branchHistory(req.user,id.parse(req.params.id),z.object({from:z.string().date().optional(),to:z.string().date().optional(),page:z.coerce.number().int().min(1).max(100000).optional()}).strict().refine(v=>!v.from||!v.to||v.from<=v.to,"End date must be on or after start date.").parse(req.query))));
 router.post("/branches/:id/admins",handle((req:any)=>service.branchAdministrator(req.user,id.parse(req.params.id),admin.parse(req.body))));
 router.patch("/branches/:id/admins/:userId",handle((req:any)=>service.assignAdministrator(req.user,id.parse(req.params.id),id.parse(req.params.userId))));
 router.get("/reports",handle((req:any)=>service.organizationReport(req.user,z.object({branchId:id.optional(),from:z.coerce.date().optional(),to:z.coerce.date().optional(),classId:id.optional(),sectionId:id.optional(),academicSessionId:id.optional(),department:z.enum(["TEACHER","PARENT","FINANCE","EXAM_STAFF","RECEPTIONIST","SCHOOL_ADMIN"]).optional()}).strict().refine(v=>!v.from||!v.to||v.to>=v.from,"Invalid date range.").parse(req.query))));

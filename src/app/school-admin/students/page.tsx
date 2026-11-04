@@ -1,4 +1,6 @@
 "use client";
+import {TableScroll} from "@/components/TableScroll";
+
 import { useRecordRefresh } from "@/lib/use-record-refresh";
 import { OptionalStudentDetails } from "@/components/OptionalStudentDetails";
 import { OPTIONAL_STUDENT_FIELDS } from "@/lib/document-templates";
@@ -448,7 +450,7 @@ export default function StudentsPage() {
       {/* Students Table */}
       <div className="bg-white border border-zinc-200 rounded-2xl shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <TableScroll><table className="w-full text-left text-xs">
             <thead className="bg-zinc-50 text-zinc-600 uppercase text-[10px] font-semibold tracking-wider">
               <tr>
                 <th className="p-3.5">Admission #</th>
@@ -593,7 +595,7 @@ export default function StudentsPage() {
                 ))
               )}
             </tbody>
-          </table>
+          </table></TableScroll>
         </div>
       </div>
 

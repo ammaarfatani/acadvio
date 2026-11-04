@@ -1,4 +1,6 @@
 "use client";
+import {WorkspaceDialog,workspacePrimary} from "@/components/WorkspaceDialog";
+import {RecordFilters,matchesRecordSearch} from "@/components/RecordFilters";
 
 
 
@@ -7,6 +9,7 @@ import { GraduationCap, Plus, BookOpen, Layers, Info, CheckCircle2, AlertCircle 
 import { schoolAdminApi } from "@/lib/schoolAdminApi";
 
 export default function ClassesPage() {
+  const [showCreate,setShowCreate]=useState(false),[query,setQuery]=useState(""),[filterClass,setFilterClass]=useState(""),[filterStatus,setFilterStatus]=useState("");
   const [classes, setClasses] = useState<any[]>([]);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
@@ -48,6 +51,7 @@ export default function ClassesPage() {
       setCode("");
       setNumericLevel("1");
       setNotice(`Class '${name}' created successfully.`);
+      setShowCreate(false);
       await load();
     } catch (e: any) {
       setError(e.message || "Could not create academic class.");
@@ -56,6 +60,7 @@ export default function ClassesPage() {
     }
   };
 
+  const filteredClasses=classes.filter(c=>matchesRecordSearch([c.name,c.code,c.numericLevel],query));
   return (
     <div className="space-y-6 pb-12 font-sans">
       {/* Page Header */}
@@ -89,7 +94,8 @@ export default function ClassesPage() {
         </div>
       )}
 
-      {/* Add Class Form Card */}
+<div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-zinc-500">Browse records below. Use the button to add a new record.</p><button className={workspacePrimary} onClick={()=>setShowCreate(true)}>Add class</button></div>
+ {showCreate&&<WorkspaceDialog title="Add class" description="Create the academic level first. Add its sections from the Sections page." busy={saving} onClose={()=>setShowCreate(false)} wide>{error&&<p role="alert" className="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}      {/* Add Class Form Card */}
       <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-xs space-y-4">
         <div className="flex items-center gap-2 border-b border-zinc-100 pb-3">
           <Plus className="w-4 h-4 text-red-600" />
@@ -171,9 +177,11 @@ export default function ClassesPage() {
             </button>
           </div>
         </form>
-      </div>
+      </div></WorkspaceDialog>}
+
 
       {/* Class Directory Grid */}
+<RecordFilters search={query} onSearch={setQuery} placeholder="Search classes, names or identifiers" count={filteredClasses.length} total={classes.length} onReset={()=>{setQuery("");setFilterClass("");setFilterStatus("")}}/>
       {loading ? (
         <div className="p-8 text-center text-xs font-bold text-zinc-400 animate-pulse">
           Loading academic classes directory…
@@ -188,7 +196,7 @@ export default function ClassesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {classes.map((cls) => (
+          {filteredClasses.map((cls) => (
             <div
               key={cls._id}
               className="bg-white border border-zinc-200 rounded-2xl p-5 shadow-xs hover:border-zinc-300 transition-all space-y-4"

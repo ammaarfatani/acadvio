@@ -1,4 +1,6 @@
 "use client";
+import {TableScroll} from "@/components/TableScroll";
+
 
 
 
@@ -189,7 +191,7 @@ export default function SchoolDetailsPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <TableScroll><table className="w-full text-left text-xs">
             <thead className="bg-zinc-950 text-white uppercase text-[10px] font-semibold tracking-wider">
               <tr>
                 <th className="p-3.5">User Name</th>
@@ -212,7 +214,7 @@ export default function SchoolDetailsPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></TableScroll>
         </div>
       </div>
 

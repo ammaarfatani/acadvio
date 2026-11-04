@@ -4,6 +4,8 @@ import { User } from "../models/user.model";
 import { hasFeature } from "../../lib/plan-features";
 import { withoutBranchScope, BranchScope } from "../utils/branchScope";
 export async function mainBranch(school: any) {
+  const existing = await Branch.findOne({_id:school._id,organizationId:school._id});
+  if (existing) return existing;
   return Branch.findOneAndUpdate({ _id: school._id, organizationId: school._id }, { $setOnInsert: { isMain: true, name: school.name, code: "main", address: school.address, phone: school.phone, email: school.email, status: "ACTIVE" } }, { upsert: true, new: true, runValidators: true });
 }
 export async function resolveBranchContext(user: any, school: any, selection?: string): Promise<BranchScope> {

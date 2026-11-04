@@ -1,0 +1,16 @@
+Connected disposable database; initializing indexes.
+Indexes ready; checking real workforce endpoints.
+AssertionError [ERR_ASSERTION]: cross-school certificate hidden
+
+403 !== 404
+
+    at eq (D:\CRM\school-crm\tests\certificate-management.cjs:11:268)
+    at D:\CRM\school-crm\tests\certificate-management.cjs:60:2351
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 403,
+  expected: 404,
+  operator: 'strictEqual',
+  diff: 'simple'
+}

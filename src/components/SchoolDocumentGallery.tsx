@@ -1,7 +1,11 @@
 "use client";
+import {TableScroll} from "@/components/TableScroll";
+
+import {StudentRecordFinder} from "./StudentRecordFinder";
+import {WorkspaceTabs} from "./WorkspaceDialog";
 import { BulkDocumentPrint } from "./BulkDocumentPrint";
 import { PhotoRecordPicker } from "./PhotoRecordPicker";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { apiFetch } from "@/lib/api";
 import {
   documentLibraryTypesForRole,
@@ -15,6 +19,7 @@ import { useAuth } from "@/lib/auth-context";
 import { confirmAction } from "./ConfirmationHost";
 export default function SchoolDocumentGallery() {
   const { user } = useAuth();
+  const [workflow,setWorkflow]=useState("individual");
   const pathname = usePathname();
   const portalRoot = pathname.replace(/\/documents\/?$/, "");
   const isAdmin = user?.userType === "SCHOOL_ADMIN";
@@ -25,9 +30,8 @@ export default function SchoolDocumentGallery() {
   const field =
     "min-h-11 w-full min-w-0 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-normal focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100";
   const needBranch = !!user?.isOrganizationOwner && !user.branchId;
-  const categories = documentLibraryTypesForRole(
-    user?.userType || "SCHOOL_ADMIN",
-  );
+  const role = user?.userType || "SCHOOL_ADMIN";
+  const categories = useMemo(() => documentLibraryTypesForRole(role), [role]);
   const [type, setType] = useState<DocumentType>(categories[0] || "admission"),
     [choices, setChoices] = useState<any>({}),
     [records, setRecords] = useState<any[]>([]),
@@ -40,9 +44,9 @@ export default function SchoolDocumentGallery() {
   const requestId = useRef("");
   useEffect(() => {
     if (categories.length && !categories.includes(type)) setType(categories[0]);
-  }, [categories.join(","), type]);
+  }, [categories, type]);
   async function refreshChoices() {
-    const response = await apiFetch("/school-documents/choices?type=" + type);
+    const response = await apiFetch("/school-documents/choices?picker=1&type=" + type);
     setChoices(response.data);
   }
   useEffect(() => {
@@ -50,7 +54,7 @@ export default function SchoolDocumentGallery() {
     setForm({});
     setChoices({});
     setError("");
-    apiFetch("/school-documents/choices?type=" + type)
+    apiFetch("/school-documents/choices?picker=1&type=" + type)
       .then((r) => {
         if (active) setChoices(r.data);
       })
@@ -65,6 +69,7 @@ export default function SchoolDocumentGallery() {
     requestId.current = "";
   }, [type, form]);
   useEffect(() => {
+    if(workflow!=="archive")return;
     let active = true;
     apiFetch(
       "/school-documents/issued?type=" +
@@ -81,7 +86,7 @@ export default function SchoolDocumentGallery() {
     return () => {
       active = false;
     };
-  }, [type, search]);
+  }, [type, search,workflow]);
   async function preview() {
     if (busy) return;
     setBusy(true);
@@ -152,7 +157,7 @@ export default function SchoolDocumentGallery() {
     );
   return (
     <main className="document-library min-w-0 space-y-5 pb-10">
-      <header className="border-l-4 border-red-600 bg-[#f2f0ed] p-5 sm:p-6">
+      <header className="border-l-4 border-red-600 bg-zinc-50 p-5 sm:p-6">
         <p className="text-xs font-semibold uppercase tracking-widest text-red-700">
           School document library
         </p>
@@ -163,46 +168,11 @@ export default function SchoolDocumentGallery() {
           a permanent record.
         </p>
       </header>
-      {isAdmin && (
-        <section
-          className="grid gap-3 md:grid-cols-3"
-          aria-label="Document workflows"
-        >
-          <div className="rounded-lg border bg-white p-4">
-            <h2 className="font-semibold">Forms & information sheets</h2>
-            <p className="mt-2 text-sm leading-6 text-zinc-600">
-              Choose a student for one document, or prepare a class below. No
-              certificate issuance is needed.
-            </p>
-          </div>
-          <div className="rounded-lg border bg-white p-4">
-            <h2 className="font-semibold">Official certificates</h2>
-            <p className="mt-2 text-sm leading-6 text-zinc-600">
-              Certificates receive an official number when issued. Issue missing
-              class certificates below, or manage individual and bulk issuance
-              in Examinations.
-            </p>
-            <Link
-              className="mt-2 inline-block text-sm font-semibold text-red-700"
-              href={certificatesHref}
-            >
-              Open Certificates
-            </Link>
-          </div>
-          <div className="rounded-lg border bg-zinc-900 p-4 text-white">
-            <h2 className="font-semibold">Dedicated print desks</h2>
-            <p className="mt-2 text-sm leading-6 text-zinc-300">
-              Marksheets and fee receipts stay with their examination and
-              finance records.
-            </p>
-            <div className="mt-3 flex flex-wrap gap-4 text-sm font-semibold">
-              <Link href={marksheetsHref}>Marksheets</Link>
-              <Link href={portalRoot + "/finance/receipts"}>Fee receipts</Link>
-              <Link href={portalRoot + "/id-cards"}>ID Card Management</Link>
-            </div>
-          </div>
-        </section>
-      )}
+      {isAdmin && <section aria-label="Certificate workflows" className="grid gap-3 md:grid-cols-2">
+        <Link href={certificatesHref} className="group rounded-lg border border-zinc-200 bg-white p-4 transition hover:border-red-300 hover:shadow-sm"><span className="text-xs font-semibold uppercase tracking-wide text-red-700">Student records</span><strong className="mt-1 block text-base text-zinc-900">School certificates</strong><span className="mt-1 block text-sm text-zinc-600">Issue, review and print student certificates and awards.</span><span className="mt-3 inline-block text-sm font-semibold text-red-700">Open school certificates →</span></Link>
+        <Link href={portalRoot+"/staff-certificates"} className="group rounded-lg border border-zinc-200 bg-white p-4 transition hover:border-red-300 hover:shadow-sm"><span className="text-xs font-semibold uppercase tracking-wide text-red-700">Staff records</span><strong className="mt-1 block text-base text-zinc-900">Staff certificates</strong><span className="mt-1 block text-sm text-zinc-600">Manage approved templates, employment certificates and issue history.</span><span className="mt-3 inline-block text-sm font-semibold text-red-700">Open staff certificates →</span></Link>
+      </section>}
+      <details className="rounded-lg border bg-zinc-50 px-4 py-3 text-sm text-zinc-600"><summary className="cursor-pointer font-semibold">Which document workflow should I use?</summary><p className="mt-3 leading-6">Use Individual for one student&apos;s form, Class / bulk for a complete class, and Archive for saved copies. Official certificates are issued in Examinations; marksheets and fee receipts stay in their own modules.</p>{isAdmin&&<div className="mt-3 flex flex-wrap gap-4 font-semibold text-school-primary"><Link href={certificatesHref}>Certificates</Link><Link href={marksheetsHref}>Marksheets</Link><Link href={portalRoot+"/id-cards"}>ID cards</Link></div>}</details>
       {error && (
         <p
           role="alert"
@@ -217,14 +187,11 @@ export default function SchoolDocumentGallery() {
           Preview remains available.
         </p>
       )}
-      <fieldset
-        disabled={busy || bulkBusy}
-        className="document-library-form grid min-w-0 items-start gap-5 rounded-lg border border-zinc-200 bg-white p-5 sm:grid-cols-2 lg:grid-cols-3 sm:p-6"
-      >
-        <label className="grid min-w-0 content-start gap-1 text-xs font-semibold">
+      <div className="max-w-md">        <label className="grid min-w-0 content-start gap-1 text-xs font-semibold">
           Document category
           <select
             value={type}
+            disabled={busy || bulkBusy}
             onChange={(e) => setType(e.target.value as DocumentType)}
             className={field}
           >
@@ -234,8 +201,15 @@ export default function SchoolDocumentGallery() {
               </option>
             ))}
           </select>
-        </label>
-        <PhotoRecordPicker
+        </label></div>
+      <WorkspaceTabs value={workflow} onChange={setWorkflow} tabs={[{value:"individual",label:"Individual document",description:"Find one student and preview"},{value:"bulk",label:"Class / bulk printing",description:"Prepare documents for a class"},{value:"archive",label:"Archived copies",description:"Search previously saved documents"}]}/>
+      {workflow==="individual"&&<>
+      <fieldset
+        disabled={busy || bulkBusy}
+        className="document-library-form grid min-w-0 items-start gap-5 rounded-lg border border-zinc-200 bg-white p-5 sm:grid-cols-2 lg:grid-cols-3 sm:p-6"
+      >
+
+        {staff?<>        <PhotoRecordPicker
           label={staff ? "Staff member" : "Student"}
           kind={staff ? "staff" : "student"}
           records={(staff ? choices.staff : choices.students) || []}
@@ -252,7 +226,8 @@ export default function SchoolDocumentGallery() {
               ...(latest ? { certificateId: latest._id } : {}),
             });
           }}
-        />
+        /></>:<div className="sm:col-span-2 lg:col-span-3"><h2 className="mb-4 text-base font-semibold">1. Find your student</h2><StudentRecordFinder key={type} endpoint={"/school-documents/students?type="+type} selected={form.studentId?[form.studentId]:[]} onChange={ids=>{const id=ids[0]||"",latest=certificate?choices.certificates?.find((r:any)=>String(r.studentId)===id&&r.type===type.toUpperCase()):null;setForm({studentId:id,...(latest?{certificateId:latest._id}:{})})}}/></div>}
+
 
         {type === "report-card" && (
           <label className="grid min-w-0 content-start gap-1 text-xs font-semibold">
@@ -391,7 +366,7 @@ export default function SchoolDocumentGallery() {
               : "Save archived copy (optional)"}
           </button>
         </div>
-      </fieldset>
+      </fieldset></>}
       {isAdmin && type === "student-id" && (
         <p className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950">
           ID cards use the reviewed card records in{" "}
@@ -404,7 +379,7 @@ export default function SchoolDocumentGallery() {
           . Open that page to issue and print a complete class of cards.
         </p>
       )}
-      {!["student-id", "staff-id", "fee-receipt"].includes(type) && (
+      {workflow==="bulk"&&!["student-id", "staff-id", "fee-receipt"].includes(type) && (
         <BulkDocumentPrint
           key={type}
           type={type}
@@ -415,7 +390,8 @@ export default function SchoolDocumentGallery() {
           }
         />
       )}
-      <section className="rounded-lg border bg-white p-5">
+      {workflow==="bulk"&&type==="fee-receipt"&&<p className="rounded-lg border bg-zinc-50 p-5 text-sm leading-6">Fee receipts are created from recorded payments. Open Fee Collection or Receipts to find and print genuine payment receipts.</p>}
+      {workflow==="archive"&&<section className="rounded-lg border bg-white p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-semibold">Previously archived documents</h2>
           <input
@@ -430,7 +406,7 @@ export default function SchoolDocumentGallery() {
           Latest 100 records for the selected category.
         </p>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <TableScroll><table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b">
                 <th className="p-3">Reference</th>
@@ -461,14 +437,14 @@ export default function SchoolDocumentGallery() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></TableScroll>
           {!records.length && (
             <p className="p-6 text-sm text-zinc-500">
               No archived documents for this category.
             </p>
           )}
         </div>
-      </section>
+      </section>}
       {data && (
         <DocumentPreviewOverlay data={data} onClose={() => setData(null)} />
       )}

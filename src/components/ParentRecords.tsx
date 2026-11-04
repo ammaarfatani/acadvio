@@ -1,4 +1,6 @@
 "use client";
+import {TableScroll} from "@/components/TableScroll";
+
 
 import { PageHeading } from "./ProductUI";
 import { StudentAvatar } from "./StudentAvatar";
@@ -38,6 +40,7 @@ export default function ParentRecords({
     [tab, setTab] = useState(section === "fees" ? "Fees" : "Profile"),
     [invoice, setInvoice] = useState<any>(null);
   const [month, setMonth] = useState("");
+  useEffect(()=>{if(section!=="fees"||!data?.fees)return;const id=new URLSearchParams(window.location.search).get("challanId");if(id){const match=data.fees.find((f:any)=>String(f._id)===id);if(match)setInvoice(match)}},[section,data]);
   useEffect(() => setTab(section === "fees" ? "Fees" : "Profile"), [section]);
   const finance = !!user?.features?.includes("FINANCE"),
     exams = !!user?.features?.includes("EXAMINATIONS");
@@ -182,7 +185,7 @@ export default function ParentRecords({
                   </header>
                   {data.subjects.length ? (
                     <div className="family-table-scroll">
-                      <table className="family-data-table">
+                      <TableScroll><table className="family-data-table">
                         <thead>
                           <tr>
                             <th>Subject</th>
@@ -201,7 +204,7 @@ export default function ParentRecords({
                             </tr>
                           ))}
                         </tbody>
-                      </table>
+                      </table></TableScroll>
                     </div>
                   ) : (
                     <p className="family-empty">
@@ -334,7 +337,7 @@ export default function ParentRecords({
                   <h2 className="font-bold">Exam date sheet</h2>
                   {data.examTimetable?.length ? (
                     <div className="mt-4 overflow-x-auto">
-                      <table className="w-full text-left text-sm">
+                      <TableScroll><table className="w-full text-left text-sm">
                         <thead>
                           <tr>
                             {["Date", "Time", "Subject", "Room"].map((h) => (
@@ -358,7 +361,7 @@ export default function ParentRecords({
                             </tr>
                           ))}
                         </tbody>
-                      </table>
+                      </table></TableScroll>
                     </div>
                   ) : (
                     <p className="mt-3 text-sm text-zinc-500">
@@ -386,7 +389,7 @@ export default function ParentRecords({
                       </p>
                       {r.rank && <p className="mt-1 text-sm">Rank: {r.rank}</p>}
                       <div className="mt-4 overflow-x-auto">
-                        <table className="w-full text-left text-sm">
+                        <TableScroll><table className="w-full text-left text-sm">
                           <thead>
                             <tr>
                               {["Subject", "Marks", "Grade", "Remarks"].map(
@@ -415,7 +418,7 @@ export default function ParentRecords({
                               </tr>
                             ))}
                           </tbody>
-                        </table>
+                        </table></TableScroll>
                       </div>
                       {r.teacherRemarks && (
                         <p className="mt-3 text-sm">

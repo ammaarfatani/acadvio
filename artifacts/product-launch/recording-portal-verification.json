@@ -1,0 +1,75 @@
+{
+  "localOnly": true,
+  "recorded": false,
+  "superAdminOpened": false,
+  "studentPortal": {
+    "available": false,
+    "reason": "No Student user type, route or login workflow is implemented."
+  },
+  "results": [
+    {
+      "role": "SCHOOL_ADMIN",
+      "login": 200,
+      "endpoints": [
+        {
+          "endpoint": "/school-admin/dashboard",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "role": "TEACHER",
+      "login": 200,
+      "endpoints": [
+        {
+          "endpoint": "/teacher/dashboard",
+          "status": 200
+        },
+        {
+          "endpoint": "/workforce/self",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "role": "PARENT",
+      "login": 200,
+      "endpoints": [
+        {
+          "endpoint": "/parent/children",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "role": "EXAM_STAFF",
+      "login": 200,
+      "endpoints": [
+        {
+          "endpoint": "/exams/dashboard",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "role": "FINANCE",
+      "login": 200,
+      "endpoints": [
+        {
+          "endpoint": "/finance/dashboard",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "role": "RECEPTIONIST",
+      "login": 200,
+      "endpoints": [
+        {
+          "endpoint": "/receptionist/dashboard",
+          "status": 200
+        }
+      ]
+    }
+  ]
+}

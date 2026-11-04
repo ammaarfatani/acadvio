@@ -1,3 +1,4 @@
+import {studentLookup} from "../services/studentLookup.service";
 import { SchoolService } from "../services/school.service";
 import { ClassModel, SectionModel } from "../models/classSection.model";
 import { AcademicSession } from "../models/academicSession.model";
@@ -272,6 +273,7 @@ router.put(
     }
   },
 );
+router.get("/students",(req,res,next)=>{try{const t=type.parse(req.query.type||"admission");checkDocumentRole(req.user!,t);return requirePermission(documentPermission(t))(req,res,next);}catch(e){next(e)}},async(req,res,next)=>{try{return sendSuccess(res,await studentLookup(req.user!.schoolId!,req.query));}catch(e){next(e)}});
 router.get(
   "/choices",
   (req, res, next) => {
@@ -290,7 +292,7 @@ router.get(
         t = type.parse(req.query.type || "admission");
       const [students, staff, exams, certificates, payments] =
         await Promise.all([
-          !["staff-id", "experience"].includes(t)
+          !["staff-id", "experience"].includes(t) && req.query.picker!=="1"
             ? Student.find({ schoolId })
                 .select("name admissionNumber className")
                 .sort({ name: 1 })
@@ -519,6 +521,7 @@ router.post(
       const documents = [];
       for (const certId of certificateIds) {
         const cert: any = records.find((c) => String(c._id) === certId)!;
+        if(cert.status==="REVOKED")throw {statusCode:409,message:"Revoked certificates cannot be included in a valid print batch. Open the individual revoked preview instead."};
         const type = (
           {
             BONAFIDE: "bonafide",

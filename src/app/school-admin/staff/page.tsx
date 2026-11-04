@@ -1,10 +1,12 @@
 "use client";
+import {WorkspaceDialog,workspacePrimary,workspaceSecondary} from "@/components/WorkspaceDialog";
 import { StaffAvatar } from "@/components/StudentAvatar";
 import { confirmAction } from "@/components/ConfirmationHost";
 
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { schoolAdminApi } from "@/lib/schoolAdminApi";
+import { useAuth } from "@/lib/auth-context";
 import {
   Text,
   Select,
@@ -25,6 +27,8 @@ const blank = {
   salary: "",
 };
 export default function StaffPage() {
+  const { user } = useAuth();
+  const [createOpen,setCreateOpen]=useState(false),[departmentOpen,setDepartmentOpen]=useState(false);
   const [users, setUsers] = useState<any[]>([]),
     [departments, setDepartments] = useState<any[]>([]),
     [form, setForm] = useState(blank),
@@ -37,18 +41,20 @@ export default function StaffPage() {
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
     [loading, setLoading] = useState(true);
+  const [financePayrollAccess,setFinancePayrollAccess]=useState<{enabled:boolean;financeAccounts:number}|null>(null),[accessBusy,setAccessBusy]=useState(false);
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [u, d, e] = await Promise.all([
         schoolAdminApi.getSchoolUsers(),
-        apiFetch("/workforce/departments/initialize", {
-          method: "POST",
-          body: "{}",
-        }),
+        apiFetch("/workforce/departments"),
         apiFetch("/workforce/employees"),
       ]);
-      setDepartments(d.data);
+      setDepartments(d.data.length?d.data:(await apiFetch("/workforce/departments/initialize",{method:"POST",body:"{}"})).data);
+      if(user?.permissions?.includes("payroll.manage")){
+        try{const access=await apiFetch("/users/finance-payroll-access");setFinancePayrollAccess(access.data)}catch{setFinancePayrollAccess(null)}
+      }
+      setError("");
       setUsers(
         u.data
           .filter((u: any) => !["PARENT", "SUPER_ADMIN"].includes(u.userType))
@@ -62,7 +68,7 @@ export default function StaffPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.permissions]);
   useEffect(() => {
     void load();
   }, [load]);
@@ -91,8 +97,13 @@ export default function StaffPage() {
           {notice}
         </p>
       )}
-      <form
-        className={card + " grid gap-4 sm:grid-cols-2 lg:grid-cols-3"}
+      <div className="flex flex-wrap gap-3"><button className={workspacePrimary} onClick={()=>{setError("");setCreateOpen(true)}}>Create Staff Account</button><button className={workspaceSecondary} onClick={()=>{setError("");setDepartmentOpen(true)}}>Add Department</button></div>
+      {user?.permissions?.includes("payroll.manage")&&<section className={card+" grid gap-5 border-l-4 border-red-600 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"}>
+        <div><div className="flex flex-wrap items-center gap-3"><h2 className="font-semibold">Finance salary payments</h2><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${financePayrollAccess?.enabled?"bg-emerald-100 text-emerald-800":"bg-amber-100 text-amber-900"}`}>{financePayrollAccess?.enabled?"Enabled":"Review only"}</span></div><p className="mt-2 max-w-3xl text-sm text-zinc-600">{financePayrollAccess?.enabled?`Authorized Finance accounts can record approved salary payments, attach proof and notify each employee. ${financePayrollAccess.financeAccounts} Finance account(s) are covered across this school.`:"Finance can review payroll but cannot record salary payments yet. Enable this for Finance staff responsible for disbursements."}</p><p className="mt-2 text-xs leading-5 text-zinc-500">School Admins can also record payments from Monthly Payroll. Only approved payroll can be paid. Bank transfers require a reference; cash payments do not. Finance users should refresh their portal after access changes.</p>{!financePayrollAccess?.financeAccounts&&<p className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900">No Finance account exists yet. This permission will also apply to Finance accounts created later.</p>}</div>
+        <div className="flex flex-col items-start gap-2 sm:items-end">{user?.features?.includes("MULTI_BRANCH")&&user?.isOrganizationOwner===false?<p className="max-w-56 text-sm text-zinc-600">Only the organization owner can change this school-wide setting.</p>:<button type="button" role="switch" aria-checked={!!financePayrollAccess?.enabled} disabled={accessBusy||!financePayrollAccess} className={`inline-flex min-h-11 items-center gap-3 rounded-lg border px-4 py-2 text-sm font-semibold disabled:opacity-50 ${financePayrollAccess?.enabled?"border-emerald-300 bg-emerald-50 text-emerald-900":"border-zinc-300 bg-white text-zinc-800"}`} onClick={async()=>{if(!financePayrollAccess)return;setAccessBusy(true);setError("");setNotice("");try{const result=await apiFetch("/users/finance-payroll-access",{method:"PATCH",body:JSON.stringify({enabled:!financePayrollAccess.enabled})});setFinancePayrollAccess({...financePayrollAccess,...result.data});setNotice(result.data.enabled?"Finance payroll payments enabled for this school. Refresh the Finance portal to load the new access.":"Finance payroll payment access disabled for this school.")}catch(e:any){setError(e.message||"Could not update Finance payroll access.")}finally{setAccessBusy(false)}}}><span aria-hidden="true" className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${financePayrollAccess?.enabled?"bg-emerald-600":"bg-zinc-300"}`}><span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${financePayrollAccess?.enabled?"translate-x-4":"translate-x-0"}`}/></span>{accessBusy?"Saving…":financePayrollAccess?.enabled?"Allow Finance to pay salaries":"Allow salary payments"}</button>}<span className="text-xs text-zinc-500">School-wide permission · server-checked</span></div>
+      </section>}
+      {createOpen&&<WorkspaceDialog title="Create staff account" description="Create an employee account using the existing role and department permissions." onClose={()=>{setCreateOpen(false);setForm(blank)}} busy={busy} wide>{error&&<p role="alert" className="mb-4 text-sm text-red-800">{error}</p>}<form
+        className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3"
         onSubmit={async (e) => {
           e.preventDefault();
           if (busy) return;
@@ -104,6 +115,7 @@ export default function StaffPage() {
               employeeId: undefined,
               salary: form.salary === "" ? undefined : Number(form.salary),
             });
+            setCreateOpen(false);
             setForm(blank);
             setNotice(
               "Staff account created. Employee ID: " +
@@ -117,9 +129,6 @@ export default function StaffPage() {
           }
         }}
       >
-        <h2 className="text-lg font-semibold sm:col-span-2 lg:col-span-3">
-          Create staff account
-        </h2>
         {[
           ["name", "Full name", "text", "Enter full name"],
           ["email", "Work email", "email", "employee@school.com"],
@@ -131,6 +140,8 @@ export default function StaffPage() {
             key={k}
             label={l}
             type={t}
+            minLength={k==="password"?8:k==="name"?2:undefined}
+            maxLength={k==="password"?128:k==="email"?254:undefined}
             placeholder={p}
             value={form[k as keyof typeof form]}
             onChange={(v: string) => setForm({ ...form, [k]: v })}
@@ -164,39 +175,10 @@ export default function StaffPage() {
           Teachers directory. Branch administrators are created through
           Organization management.
         </p>
-        <button disabled={busy} className={button}>
-          {busy ? "Saving…" : "Create staff account"}
-        </button>
-      </form>
-      <details className={card}>
-        <summary className="cursor-pointer text-sm font-semibold">
-          Manage departments
-        </summary>
-        <form
-          className="mt-4 flex flex-wrap items-end gap-3"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            try {
-              await apiFetch("/workforce/departments", {
-                method: "POST",
-                body: JSON.stringify({ name: departmentName }),
-              });
-              setDepartmentName("");
-              await load();
-            } catch (e: any) {
-              setError(e.message);
-            }
-          }}
-        >
-          <Text
-            label="New department name"
-            value={departmentName}
-            placeholder="e.g. Student Affairs"
-            onChange={setDepartmentName}
-          />
-          <button className={button}>Add department</button>
-        </form>
-      </details>
+        <footer className="flex justify-end gap-3 border-t pt-4 sm:col-span-2 lg:col-span-3"><button type="button" disabled={busy} className={workspaceSecondary} onClick={()=>{setCreateOpen(false);setForm(blank)}}>Cancel</button><button disabled={busy} className={workspacePrimary}>{busy?"Creating…":"Create staff"}</button></footer>
+      </form></WorkspaceDialog>}
+      <section className={card+" space-y-3"}><h2 className="font-semibold">Departments</h2><p className="text-sm text-zinc-500">Use departments to group employees and filter attendance, leave and payroll.</p><div className="flex flex-wrap gap-2">{departments.map(d=><span key={d._id} className="rounded-md border bg-zinc-50 px-3 py-2 text-sm">{d.name}</span>)}</div></section>
+      {departmentOpen&&<WorkspaceDialog title="Add department" onClose={()=>setDepartmentOpen(false)} busy={busy} description="Create one department name. Existing departments are preserved."><form className="space-y-5" onSubmit={async e=>{e.preventDefault();if(busy)return;const name=departmentName.trim();if(name.length<2||name.length>100){setError("Use a department name between 2 and 100 characters.");return}if(departments.some(d=>d.name.toLocaleLowerCase()===name.toLocaleLowerCase())){setError("This department already exists. Choose it from the department list.");return}setBusy(true);setError("");try{await apiFetch("/workforce/departments",{method:"POST",body:JSON.stringify({name})});setDepartmentOpen(false);setDepartmentName("");setNotice("Department added.");await load()}catch(e:any){setError(e.message)}finally{setBusy(false)}}}>{error&&<p role="alert" className="text-sm text-red-800">{error}</p>}<Text label="Department name" value={departmentName} minLength={2} maxLength={100} placeholder="e.g. Student Affairs" onChange={setDepartmentName}/><footer className="flex justify-end gap-3"><button type="button" disabled={busy} className={workspaceSecondary} onClick={()=>setDepartmentOpen(false)}>Cancel</button><button disabled={busy} className={workspacePrimary}>{busy?"Adding…":"Add department"}</button></footer></form></WorkspaceDialog>}
       <div className={card + " grid gap-4 sm:grid-cols-2 lg:grid-cols-4"}>
         <Text
           label="Search staff"
@@ -236,7 +218,7 @@ export default function StaffPage() {
       {loading ? (
         <p role="status">Loading staff directory…</p>
       ) : (
-        <Table
+        <Table searchable={false}
           headers={[
             "Employee",
             "Contact",

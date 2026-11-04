@@ -35,12 +35,10 @@ export class UserService {
     }
 
     // 2. Map role by userType
-    let role = await Role.findOne({
-      $or: [
-        { schoolId, userType: input.userType },
-        { schoolId: null, userType: input.userType },
-      ],
-    });
+    // Prefer the tenant-specific role so school-granted capabilities (such as
+    // Finance salary payment) reach staff accounts created after configuration.
+    let role = await Role.findOne({ schoolId, userType: input.userType });
+    if (!role) role = await Role.findOne({ schoolId: null, userType: input.userType });
 
     if (!role) {
       role = await Role.create({

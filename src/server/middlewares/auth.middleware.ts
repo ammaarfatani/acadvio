@@ -49,7 +49,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 
     const billingRoute = /^\/api\/subscription-payments(?:\/|$)/.test(req.originalUrl.split("?")[0]) || ["/api/auth/me", "/api/auth/logout", "/api/subscriptions/current"].includes(req.originalUrl.split("?")[0]);
     const pendingAdmin = user.userType === UserType.SCHOOL_ADMIN && user.status === UserStatus.PENDING_APPROVAL;
-    if (user.status !== UserStatus.ACTIVE && user.userType !== UserType.SUPER_ADMIN && !(pendingAdmin && billingRoute)) {
+    if (user.status !== UserStatus.ACTIVE && !(pendingAdmin && billingRoute)) {
       return sendError(
         res,
         `Your account status is '${user.status}'. Access is restricted until approved.`,

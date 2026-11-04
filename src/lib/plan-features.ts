@@ -1,3 +1,4 @@
+import { ENTERPRISE_ADDITIONAL_BRANCHES } from "./plan-capacity";
 export const FEATURES = ["CORE_ADMIN", "NOTICES", "BASIC_REPORTS", "FINANCE", "EXAMINATIONS", "ADVANCED_REPORTS", "STAFF_ROLES", "MULTI_BRANCH", "BRANCH_MANAGEMENT", "ORGANIZATION_REPORTS", "SCHOOL_ADMIN_MANAGEMENT"] as const;
 export type PlanFeature = typeof FEATURES[number];
 const starter: PlanFeature[] = ["CORE_ADMIN", "NOTICES", "BASIC_REPORTS"];
@@ -25,4 +26,4 @@ export function permissionFeature(permission: string): PlanFeature | undefined {
 
 const coreLabels = ["Portal Guides & Onboarding Guidance","Student Records & Enrollment", "Teacher Directory", "Classes & Sections", "Subjects", "Attendance Registers", "Timetable", "School Branding", "Basic Enrollment & Attendance Reports", "Notice Board", "Linked Parent Accounts"];
 const professionalLabels = [...coreLabels, "Fee Structures & Challans", "Payment Receipts", "Expense Tracking", "Examination Schedules", "Marks & Published Results", "Report Cards & Certificates", "Advanced Reports", "Finance, Examination & Reception Roles"];
-export const PLAN_FEATURE_LABELS: Record<string, readonly string[]> = {STARTER: coreLabels, PROFESSIONAL: professionalLabels, FREE_TRIAL: professionalLabels, ENTERPRISE: [...professionalLabels, "Organization Dashboard", "Multiple Branches", "Branch Management & Switching", "Branch School Admin Accounts", "Consolidated & Branch Reports"]};
+export const PLAN_FEATURE_LABELS: Record<string, readonly string[]> = {STARTER: coreLabels, PROFESSIONAL: professionalLabels, FREE_TRIAL: professionalLabels, ENTERPRISE: [...professionalLabels, "Organization Dashboard", `Main branch + ${ENTERPRISE_ADDITIONAL_BRANCHES} additional branches`, "Need more branches? Contact Acadivo", "Branch Management & Switching", "Branch School Admin Accounts", "Consolidated & Branch Reports"]};

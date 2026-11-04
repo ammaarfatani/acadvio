@@ -313,16 +313,17 @@ export default function TeachersPage() {
         </p>
       )}
 
-      <div className="ui-data-toolbar flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs">
-        <div className="relative min-w-64 flex-1">
-          <Search className="absolute left-3 top-2.5 text-zinc-400" size={16} />
+      <div className="ui-data-toolbar ui-teacher-filters rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs">
+        <label className="grid min-w-0 gap-1 text-xs font-semibold">Search teachers<div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            aria-label="Search teachers"
             placeholder="Search name, email, or employee ID"
             className="w-full rounded-xl border border-zinc-200 bg-zinc-50 py-2 pl-9 pr-3 text-xs outline-none focus:border-school-primary"
           />
-        </div>
+        </div></label>
         <label className="grid gap-1 text-xs font-semibold">
           Status
           <select
@@ -359,7 +360,7 @@ export default function TeachersPage() {
             ))}
           </select>
         </label>
-        <span className="text-xs font-bold text-zinc-500">
+        <span className="ui-teacher-count text-xs font-bold text-zinc-500">
           {filtered.length} Teachers Registered
         </span>
       </div>

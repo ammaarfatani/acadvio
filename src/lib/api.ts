@@ -1,5 +1,31 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
+let refreshInFlight: Promise<string> | null = null;
+async function refreshAccessToken(failedToken: string | null): Promise<string> {
+  if (refreshInFlight) return refreshInFlight;
+  const refresh = async () => {
+    const current = typeof window !== "undefined" ? localStorage.getItem("acadivo_access_token") : null;
+    if (current && current !== failedToken) return current;
+    const response = await fetch(`${API_BASE}/auth/refresh-token`, {
+      method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: "{}",
+    });
+    const data = await response.json();
+    if (!response.ok || !data.data?.accessToken) throw Object.assign(new Error("Please sign in again."), {status: 401});
+    const token = data.data.accessToken as string;
+    if (typeof window !== "undefined") localStorage.setItem("acadivo_access_token", token);
+    return token;
+  };
+  // Coordinate refresh across both parallel requests and tabs where Web Locks is supported.
+  const task = (async (): Promise<string> => {
+    if (typeof navigator !== "undefined" && navigator.locks) {
+      return await navigator.locks.request("acadivo:refresh-session", refresh);
+    }
+    return refresh();
+  })();
+  refreshInFlight = task;
+  try { return await task; } finally { if (refreshInFlight === task) refreshInFlight = null; }
+}
+
 let dataRevision = 0;
 export function invalidateApiReads() {
   dataRevision++;
@@ -104,21 +130,8 @@ async function requestJson(
     !endpoint.startsWith("/auth/refresh")
   ) {
     try {
-      const refreshResponse = await fetch(`${API_BASE}/auth/refresh-token`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-      });
-      const refreshData = await refreshResponse.json();
-      const refreshedToken = refreshData.data?.accessToken;
-      if (
-        refreshResponse.ok &&
-        refreshedToken &&
-        typeof window !== "undefined"
-      ) {
-        localStorage.setItem("acadivo_access_token", refreshedToken);
-        return requestJson(endpoint, options, true);
-      }
+      await refreshAccessToken(token);
+      return requestJson(endpoint, options, true);
     } catch {
       /* The normal unauthorized response below clears the session. */
     }
@@ -242,13 +255,10 @@ export async function privateFile(endpoint: string, options: RequestInit = {}) {
       headers,
     });
   };
+  const attemptedToken = localStorage.getItem("acadivo_access_token");
   let response = await make();
   if (response.status === 401) {
-    const refreshed = await apiFetch("/auth/refresh-token", {
-      method: "POST",
-      body: "{}",
-    });
-    localStorage.setItem("acadivo_access_token", refreshed.data.accessToken);
+    await refreshAccessToken(attemptedToken);
     response = await make();
   }
   if (!response.ok) {

@@ -1,0 +1,16 @@
+Connected disposable database; initializing indexes.
+Indexes ready; checking real workforce endpoints.
+AssertionError [ERR_ASSERTION]: certificate issue real API
+
+400 !== 201
+
+    at eq (D:\CRM\school-crm\tests\certificate-management.cjs:11:268)
+    at D:\CRM\school-crm\tests\certificate-management.cjs:60:293
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 400,
+  expected: 201,
+  operator: 'strictEqual',
+  diff: 'simple'
+}

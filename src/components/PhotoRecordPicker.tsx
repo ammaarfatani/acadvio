@@ -1,90 +1,14 @@
 "use client";
-import { useRef, useState } from "react";
-import { StudentAvatar } from "./StudentAvatar";
-export function PhotoRecordPicker({
-  records,
-  value,
-  onChange,
-  kind = "student",
-  label = "Student",
-}: {
-  records: any[];
-  value: string;
-  onChange: (id: string) => void;
-  kind?: "student" | "staff";
-  label?: string;
-}) {
-  const [search, setSearch] = useState("");
-  const ref = useRef<HTMLDetailsElement>(null);
-  const chosen = records.find((r) => String(r._id) === value);
-  return (
-    <div className="min-w-0 text-sm">
-      <span className="block text-xs font-semibold">{label}</span>
-      <details ref={ref} className="relative mt-1 rounded-lg border bg-white">
-        <summary className="flex cursor-pointer items-center gap-2 p-2">
-          {chosen && <StudentAvatar student={chosen} kind={kind} size={28} />}
-          <span className="min-w-0 truncate" title={chosen?.name}>
-            {chosen ? chosen.name : "Choose " + label.toLowerCase()}
-          </span>
-        </summary>
-        <div className="absolute left-0 top-full z-40 mt-1 w-full min-w-56 rounded-lg border bg-white p-2 shadow-lg">
-          <input
-            aria-label={`Search ${label}`}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search name, ID or admission"
-            className="w-full rounded border p-2 text-sm"
-          />
-          <div className="mt-2 max-h-64 overflow-auto">
-            <button
-              type="button"
-              className="block w-full p-2 text-left text-sm"
-              onClick={() => {
-                onChange("");
-                ref.current?.removeAttribute("open");
-              }}
-            >
-              Clear selection
-            </button>
-            {records
-              .filter((r) =>
-                [
-                  r.name,
-                  r.studentId,
-                  r.employeeId,
-                  r.admissionNumber,
-                  r.rollNumber,
-                ]
-                  .join(" ")
-                  .toLowerCase()
-                  .includes(search.toLowerCase()),
-              )
-              .map((r) => (
-                <button
-                  type="button"
-                  key={r._id}
-                  aria-pressed={String(r._id) === value}
-                  className="flex w-full items-center gap-2 border-t p-2 text-left text-sm hover:bg-zinc-50"
-                  onClick={() => {
-                    onChange(String(r._id));
-                    ref.current?.removeAttribute("open");
-                  }}
-                >
-                  <StudentAvatar student={r} kind={kind} size={30} />
-                  <span>
-                    {r.name}
-                    <small className="block text-zinc-500">
-                      {r.admissionNumber ||
-                        r.employeeId ||
-                        r.studentId ||
-                        r.rollNumber}
-                    </small>
-                  </span>
-                </button>
-              ))}
-          </div>
-        </div>
-      </details>
-    </div>
-  );
+import {useEffect,useState} from "react";
+import {StudentAvatar} from "./StudentAvatar";
+import {WorkspaceDialog,workspaceSecondary} from "./WorkspaceDialog";
+import {matchesRecordSearch} from "./RecordFilters";
+import {roleLabel} from "./WorkforceUI";
+export function PhotoRecordPicker({records,value,onChange,kind="student",label="Student"}:{records:any[];value:string;onChange:(id:string)=>void;kind?:"student"|"staff";label?:string}){
+ const [open,setOpen]=useState(false),[search,setSearch]=useState(""),[className,setClass]=useState(""),[section,setSection]=useState(""),[role,setRole]=useState(""),[page,setPage]=useState(1);
+ const chosen=records.find(r=>String(r._id)===value),classes=Array.from(new Set(records.map(r=>r.className).filter(Boolean))),sections=Array.from(new Set(records.filter(r=>!className||r.className===className).map(r=>r.sectionName).filter(Boolean))),roles=Array.from(new Set(records.map(r=>r.userType).filter(Boolean)));
+ const filtered=records.filter(r=>(!className||r.className===className)&&(!section||r.sectionName===section)&&(!role||r.userType===role)&&matchesRecordSearch([r.name,r.studentId,r.employeeId,r.admissionNumber,r.rollNumber,r.className,r.sectionName],search));
+ useEffect(()=>setPage(1),[search,className,section,role]);const active=Math.min(page,Math.max(1,Math.ceil(filtered.length/20))),field="min-h-11 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-normal";
+ return <div className="min-w-0 text-sm"><span className="mb-1.5 block text-xs font-semibold">{label}</span><button type="button" onClick={()=>{setSearch("");setClass("");setSection("");setRole("");setPage(1);setOpen(true)}} className="flex min-h-11 w-full items-center gap-2 rounded-md border border-zinc-300 bg-white px-3 py-2 text-left">{chosen&&<StudentAvatar student={chosen} kind={kind} size={28}/>}<span className="min-w-0 flex-1 truncate">{chosen?.name||"Choose "+label.toLowerCase()}</span><span className="text-xs font-semibold text-school-primary">{chosen?"Change":"Find"}</span></button>
+ {open&&<WorkspaceDialog title={"Choose "+label.toLowerCase()} description="Filter the available records, then choose a person. Results are shown in pages of 20." onClose={()=>setOpen(false)} wide><div className="space-y-4"><div className="grid items-start gap-3 sm:grid-cols-3"><label className="grid gap-2 text-xs font-semibold sm:col-span-3">Search<input autoFocus type="search" placeholder="Name, admission, roll or employee ID" value={search} onChange={e=>setSearch(e.target.value)} className={field}/></label>{kind==="student"&&<><label className="grid gap-2 text-xs font-semibold">Class<select disabled={!classes.length} value={className} onChange={e=>{setClass(e.target.value);setSection("")}} className={field}><option value="">All classes</option>{classes.map(c=><option key={c}>{c}</option>)}</select></label><label className="grid gap-2 text-xs font-semibold">Section<select disabled={!className||!sections.length} value={section} onChange={e=>setSection(e.target.value)} className={field}><option value="">All sections</option>{sections.map(s=><option key={s}>{s}</option>)}</select></label></>}{kind==="staff"&&roles.length>0&&<label className="grid gap-2 text-xs font-semibold">Role<select value={role} onChange={e=>setRole(e.target.value)} className={field}><option value="">All staff roles</option>{roles.map(r=><option key={r} value={r}>{roleLabel(r)}</option>)}</select></label>}</div><p className="text-xs text-zinc-500">{filtered.length} matching records - Page {active}</p><div className="max-h-80 overflow-y-auto rounded-md border divide-y">{filtered.slice((active-1)*20,active*20).map(r=><button type="button" key={r._id} aria-pressed={String(r._id)===value} onClick={()=>{onChange(String(r._id));setOpen(false)}} className="flex w-full items-center gap-3 p-3 text-left text-sm hover:bg-zinc-50"><StudentAvatar student={r} kind={kind} size={32}/><span><b>{r.name}</b><small className="block text-zinc-500">{[r.className,r.sectionName,r.admissionNumber||r.employeeId||r.studentId||r.rollNumber].filter(Boolean).join(" / ")}</small></span><span className="ml-auto text-xs font-semibold text-school-primary">{String(r._id)===value?"Selected":"Select"}</span></button>)}{!filtered.length&&<p className="p-6 text-sm text-zinc-500">No matching records. Try another search or filter.</p>}</div><footer className="flex flex-wrap items-center justify-between gap-3 border-t pt-4"><button type="button" className={workspaceSecondary} onClick={()=>{onChange("");setOpen(false)}}>Clear selection</button><div className="flex gap-2"><button type="button" disabled={active<=1} className={workspaceSecondary} onClick={()=>setPage(active-1)}>Previous</button><button type="button" disabled={active*20>=filtered.length} className={workspaceSecondary} onClick={()=>setPage(active+1)}>Next</button></div></footer></div></WorkspaceDialog>}</div>;
 }

@@ -285,8 +285,8 @@ export const VoidReasonSchema = z.object({ reason: text("Reason", 3) });
 export const ExpenseSchema = z.object({
   title: text("Expense title"),
   category: z.enum([
-    "Salary",
     "Rent",
+    "Water",
     "Electricity",
     "Stationery",
     "Maintenance",
@@ -379,6 +379,8 @@ export const PublishResultsSchema = ProcessResultsSchema.extend({
   publish: z.boolean(),
 });
 export const CertificateSchema = z.object({
+  issuanceKey:z.string().uuid().optional(),
+  examId:id.optional(),
   type: z.enum(["BONAFIDE", "CHARACTER", "LEAVING", "TRANSFER", "RESULT"]),
   studentId: id,
   classId: id.optional(),
@@ -387,7 +389,7 @@ export const CertificateSchema = z.object({
   admissionNumber: z.string().optional(),
   className: z.string().trim().optional(),
   session: z.string().trim().optional(),
-  issueDate: date.optional(),
+  issueDate: z.union([z.string().date(),z.string().datetime({offset:true}).transform(v=>new Date(v).toISOString().slice(0,10))]).optional(),
   reason: z.string().optional(),
   conductRemarks: z.string().optional(),
 });

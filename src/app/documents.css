@@ -1244,3 +1244,38 @@
 .document-library-form select {
   text-overflow: ellipsis;
 }
+.staff-certificate-document{position:relative;width:297mm;max-width:100%;min-height:210mm;margin:0 auto;box-sizing:border-box;padding:13mm;background-color:#fff;background-position:center;background-size:cover;color:#20242b;overflow:hidden;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.staff-cert-frame{position:relative;display:flex;min-height:184mm;box-sizing:border-box;flex-direction:column;padding:11mm 13mm;border:2px solid var(--staff-accent,#b20913);background:#ffffffed}
+.staff-cert-border-double{outline:1px solid var(--staff-accent,#b20913);outline-offset:-4px}
+.staff-cert-border-minimal{border-width:1px}
+.staff-cert-header{display:grid;grid-template-columns:22mm 1fr;align-items:center;gap:8mm;text-align:center}
+.staff-cert-header>img,.staff-cert-logo-placeholder{display:block;width:22mm;height:22mm;object-fit:contain}
+.staff-cert-logo-placeholder{display:grid;place-items:center;border:1px solid #d4d4d8;color:#71717a;font:8pt Arial,sans-serif}
+.staff-cert-header h1{margin:0;color:#20242b;font-size:20pt;font-weight:700}
+.staff-cert-header p{margin:2mm 0 0;color:#606874;font-size:8.5pt}
+.staff-cert-rule{height:1px;margin:7mm 0;background:var(--staff-accent,#b20913);opacity:.7}
+.staff-cert-content{text-align:center}
+.staff-cert-eyebrow{margin:1mm 0 3mm;color:var(--staff-accent,#b20913);font-size:8pt;font-weight:700;letter-spacing:.2em}
+.staff-cert-content h2{margin:0;font-size:22pt;font-weight:700}
+.staff-cert-presented{margin:6mm 0 1.5mm;color:#596273;font-size:10pt}
+.staff-cert-content h3{margin:0;color:#20242b;font-size:27pt;font-weight:700}
+.staff-cert-meta{margin:2mm 0 0;color:#596273;font-size:9.5pt}
+.staff-cert-body{max-width:220mm;margin:7mm auto 5mm;color:#333842;font-size:11pt;line-height:1.7;white-space:pre-wrap}
+.staff-cert-facts{display:flex;flex-wrap:wrap;justify-content:center;gap:4mm 10mm;margin:4mm auto 0}
+.staff-cert-facts>div{display:grid;gap:1mm;min-width:30mm;text-align:center}
+.staff-cert-facts span,.staff-cert-number span{color:#737b88;font-size:7pt;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.staff-cert-facts strong,.staff-cert-number strong{font-size:9pt;font-weight:600}
+.staff-cert-footer{display:flex;align-items:flex-end;justify-content:space-between;gap:12mm;margin-top:auto;padding-top:8mm}
+.staff-cert-signatory{display:grid;justify-items:center;min-width:55mm;color:#242831}
+.staff-cert-signatory>span{width:55mm;margin-top:1mm;border-top:1px solid #767b85}
+.staff-cert-signatory strong{margin-top:2mm;font-size:8.5pt}
+.staff-cert-signatory small,.staff-cert-verify small{color:#687080;font-size:7pt}
+.staff-cert-signature{max-width:42mm;height:11mm;object-fit:contain}
+.staff-cert-stamp{width:20mm;height:20mm;object-fit:contain}
+.staff-cert-verify{display:grid;justify-items:center;gap:1mm}
+.staff-cert-verify img{width:18mm;height:18mm;object-fit:contain}
+.staff-cert-number{display:grid;gap:1.5mm;justify-items:end;max-width:65mm;text-align:right}
+.staff-cert-preview-label{position:absolute;z-index:2;top:6mm;right:15mm;color:#737b88;font:700 7pt Arial,sans-serif;letter-spacing:.1em}
+.staff-cert-revoked{position:absolute;z-index:4;top:47%;left:15%;width:70%;transform:rotate(-14deg);border:3px solid #b00020;padding:3mm;text-align:center;color:#b00020;background:#ffffffd9;font:700 22pt Arial,sans-serif}
+@media (max-width:760px){.staff-certificate-document{width:100%;min-height:0;padding:16px}.staff-cert-frame{min-height:620px;padding:24px}.staff-cert-header{grid-template-columns:56px 1fr;gap:14px}.staff-cert-header>img,.staff-cert-logo-placeholder{width:56px;height:56px}.staff-cert-header h1{font-size:18px}.staff-cert-header p{font-size:10px}.staff-cert-content h2{font-size:22px}.staff-cert-content h3{font-size:26px}.staff-cert-body{font-size:13px}.staff-cert-footer{gap:8px}.staff-cert-facts{gap:12px}.staff-cert-revoked{font-size:15px}}
+@media print{.staff-certificate-document{width:100%!important;max-width:none!important;min-height:210mm!important;margin:0!important;padding:13mm!important;break-inside:avoid!important;page-break-inside:avoid!important}.staff-cert-frame{min-height:184mm!important;break-inside:avoid!important;page-break-inside:avoid!important}}

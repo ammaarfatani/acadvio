@@ -1,0 +1,23 @@
+if(!/^mongodb:\/\/(127\.0\.0\.1|localhost):27018\//.test(process.env.MONGODB_URI||''))throw Error('Use isolated local MongoDB 27018 only.');
+const fs=require('fs'),ts=require('typescript'),assert=require('node:assert/strict'),crypto=require('crypto');
+require.extensions['.ts']=(m,f)=>m._compile(ts.transpileModule(fs.readFileSync(f,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText,f);
+const mongoose=require('mongoose'),{env}=require('../src/server/config/env.ts'),{School}=require('../src/server/models/school.model.ts'),{Branch}=require('../src/server/models/branch.model.ts'),{Student}=require('../src/server/models/student.model.ts'),{User}=require('../src/server/models/user.model.ts'),{saveBranch}=require('../src/server/services/organization.service.ts'),{subscriptionUsage}=require('../src/server/services/subscription.service.ts'),{branchContext}=require('../src/server/utils/branchScope.ts'),{capacityMetric}=require('../src/lib/plan-capacity.ts');
+const dbName='acadivo_capacity_test_'+crypto.randomBytes(6).toString('hex');let connected=false,n=0;const eq=(a,b,label)=>{assert.equal(a,b,label);n++};
+(async()=>{try{
+ await mongoose.connect(env.MONGODB_URI,{dbName});connected=true;await Promise.all([School.init(),Branch.init()]);
+ const school=await School.create({name:'Capacity fixture',email:'capacity@example.invalid',phone:'03001234567',address:'Disposable fixtures',code:'capacity',slug:'capacity',studentCountRange:'1-200',teacherCount:0,plan:'ENTERPRISE',status:'ACTIVE'}),sid=String(school._id);
+ const input=i=>({name:'Campus '+i,code:'campus-'+i,address:'Local test fixture',phone:'03001234567',status:'ACTIVE'});
+ for(let i=0;i<4;i++)await saveBranch(sid,input(i));
+ const race=await Promise.allSettled([saveBranch(sid,input(4)),saveBranch(sid,input(5))]);
+ eq(race.filter(r=>r.status==='fulfilled').length,1,'one remaining branch slot is atomic');eq(race.filter(r=>r.status==='rejected'&&r.reason.statusCode===403).length,1,'concurrent sixth additional branch blocked');
+ eq(await Branch.countDocuments({organizationId:sid}),6,'main plus five additional branches');
+ const branch=await Branch.findOne({organizationId:sid,isMain:false});await saveBranch(sid,{...input(0),code:branch.code,status:'INACTIVE'},String(branch._id));
+ await assert.rejects(()=>saveBranch(sid,input(6)),e=>e.statusCode===403);n++;
+ await Student.collection.insertMany([{schoolId:school._id,status:'ACTIVE',branchId:school._id},{schoolId:school._id,status:'ACTIVE',branchId:branch._id},{schoolId:school._id,status:'INACTIVE'}].map((r,i)=>({...r,studentId:'fixture-'+i,admissionNumber:'ADM-'+i,rollNumber:'ROLL-'+i})));
+ await User.collection.insertMany([{schoolId:school._id,userType:'TEACHER',status:'ACTIVE',branchId:branch._id},{schoolId:school._id,userType:'FINANCE',status:'ACTIVE'},{schoolId:school._id,userType:'PARENT',status:'ACTIVE'},{schoolId:school._id,userType:'TEACHER',status:'INACTIVE'}].map((r,i)=>({...r,email:'fixture-'+i+'@example.invalid'})));
+ const usage=await branchContext.run({organizationId:sid,branchId:sid,mainBranchId:sid,owner:true},()=>subscriptionUsage(sid,school));
+ eq(usage.students.used,2,'organization-wide students despite selected branch');eq(usage.teachers.used,1,'active teachers only');eq(usage.staff.used,1,'parents excluded from staff');eq(usage.staff.limit,null,'no invented staff cap');eq(usage.additionalBranches.used,5,'inactive branches consume slot');eq(usage.additionalBranches.remaining,0,'no negative remaining slots');
+ const starter=await subscriptionUsage(sid,{plan:'STARTER',status:'ACTIVE'});eq(starter.students.limit,300,'Starter existing student cap');eq(starter.students.remaining,298,'correct remaining seats');eq(starter.teachers.limit,15,'Starter teacher cap');
+ eq(capacityMetric(8,5).remaining,0,'existing over-limit records preserved');eq(capacityMetric(8,5).overLimit,true,'over-limit clearly flagged');
+ console.log(`PASS: ${n} branch-capacity concurrency and real organization-wide usage checks.`);
+}finally{if(connected){assert.equal(mongoose.connection.name,dbName);await mongoose.connection.dropDatabase();await mongoose.disconnect()}}})().catch(e=>{console.error(e);process.exitCode=1});

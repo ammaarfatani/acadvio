@@ -275,6 +275,15 @@ export const ProcessedResult =
   mongoose.model<IProcessedResult>("ProcessedResult", ProcessedResultSchema);
 
 export interface ICertificateRecord extends Document {
+  status?: "ISSUED"|"REVOKED";
+  verificationId?:string;
+  previousCertificateId?:mongoose.Types.ObjectId;
+  reissueReason?:string;
+  revokedAt?:Date;
+  revokedBy?:string;
+  revocationReason?:string;
+  history?:any[];
+  numberProtected?:boolean;
   issuanceKey?: string;
   documentSnapshot?: any;
   schoolId: mongoose.Types.ObjectId;
@@ -298,6 +307,15 @@ const CertificateRecordSchema = new Schema<ICertificateRecord>(
   {
     issuanceKey: { type: String },
     documentSnapshot: Schema.Types.Mixed,
+    status: {type:String,enum:["ISSUED","REVOKED"],default:"ISSUED"},
+    verificationId: String,
+    previousCertificateId: {type:Schema.Types.ObjectId,ref:"CertificateRecord"},
+    reissueReason: String,
+    revokedAt: Date,
+    revokedBy: String,
+    revocationReason: String,
+    history: [{action:String,at:Date,by:String,reason:String,relatedCertificateId:Schema.Types.ObjectId}],
+    numberProtected: Boolean,
     schoolId: {
       type: Schema.Types.ObjectId,
       ref: "School",
@@ -324,6 +342,12 @@ const CertificateRecordSchema = new Schema<ICertificateRecord>(
   { timestamps: true },
 );
 
+CertificateRecordSchema.index(
+  {verificationId:1},{unique:true,partialFilterExpression:{verificationId:{$type:"string"}}},
+);
+CertificateRecordSchema.index(
+  {schoolId:1,certificateNumber:1},{unique:true,partialFilterExpression:{numberProtected:true}},
+);
 CertificateRecordSchema.index(
   { schoolId: 1, issuanceKey: 1 },
   {

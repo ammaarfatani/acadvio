@@ -85,7 +85,7 @@ export function DocumentPreviewOverlay({
         <div className="financial-preview-actions">
           <strong>School document preview</strong>
           <button
-            disabled={!data}
+            disabled={!data||data.certificate?.status==="REVOKED"}
             onClick={() =>
               void printSchoolDocument(
                 dialog.current?.querySelector(".school-document"),

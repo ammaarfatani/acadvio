@@ -448,6 +448,10 @@ export function StaffSelfWorkspace({ payrollOnly = false }: any) {
       endDate: "",
       reason: "",
     });
+  const [historyMonthRows,setHistoryMonthRows]=useState<any[]|null>(null),[historyMonthBusy,setHistoryMonthBusy]=useState(false);
+  useEffect(()=>setHistoryMonthRows(null),[user?.id,user?.branchId]);
+  const linkedSalary=useRef("");
+  useEffect(()=>{const id=new URLSearchParams(window.location.search).get("payrollId");if(!id||linkedSalary.current===id||!data?.payroll)return;const match=data.payroll.find((r:any)=>r._id===id);if(match){linkedSalary.current=id;setSlip(match)}},[data]);
   const generation = useRef(0);
   const load = useCallback(async () => {
     const current = ++generation.current;
@@ -661,7 +665,11 @@ export function StaffSelfWorkspace({ payrollOnly = false }: any) {
                     fmt(data.employment.salaryHistory.at(-1).amount)
                   : "Salary has not been configured."}
               </p>
-              <PayrollTable rows={data.payroll} onView={setSlip} />
+              <div className="my-5 grid gap-3 sm:grid-cols-3">{[["Total received",data.salarySummary?.totalReceived||0],["Outstanding",data.salarySummary?.outstanding||0],["Current month payable",(data.payroll||[]).filter((r:any)=>r.month===currentMonth).reduce((sum:number,r:any)=>sum+Math.max(0,r.snapshot.netSalary+Number(r.allowance||0)-Number(r.otherDeduction||0)),0)]].map(([label,value])=><div key={String(label)} className="rounded border bg-zinc-50 p-4"><p className="text-xs text-zinc-500">{label}</p><p className="mt-2 text-lg font-semibold">PKR {fmt(value)}</p></div>)}</div>
+              {data.salarySummary?.lastPayment&&<p className="mb-4 text-sm text-zinc-600">Last payment: {String(data.salarySummary.lastPayment.paidAt).slice(0,10)} · PKR {fmt(data.salarySummary.lastPayment.amount)}</p>}
+              <p className="mb-4 text-sm text-zinc-600">Current month status: <strong>{data.payroll?.find((r:any)=>r.month===currentMonth)?.status?.replaceAll("_"," ")||"Not calculated"}</strong></p>
+              <div className="mb-4 flex flex-wrap items-center gap-3"><button disabled={historyMonthBusy} className={button} onClick={async()=>{setHistoryMonthBusy(true);setError("");try{const r=await apiFetch("/workforce/payroll?"+new URLSearchParams({month,employeeId:String(user?.id)}));setHistoryMonthRows(r.data)}catch(e:any){setError(e.message)}finally{setHistoryMonthBusy(false)}}}>{historyMonthBusy?"Loading month…":"View selected month"}</button><button className="min-h-11 rounded-md border px-4 text-sm" onClick={()=>setHistoryMonthRows(null)}>Show latest history</button><p className="text-xs text-zinc-500">{historyMonthRows===null?"Latest 36 records. Choose any month above to load an older payslip.":"Showing "+month+" only."}</p></div>
+              <PayrollTable rows={historyMonthRows??data.payroll} onView={setSlip} />
             </section>
           )}
         </>

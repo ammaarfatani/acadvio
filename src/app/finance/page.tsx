@@ -1,4 +1,5 @@
 "use client";
+import {FinanceReminderSettings} from "@/components/FinanceReminderSettings";
 import { useRecordRefresh } from "@/lib/use-record-refresh";
 import { PageHeading } from "@/components/ProductUI";
 
@@ -184,6 +185,8 @@ export default function FinanceDashboardPage() {
       </div>
 
       {/* Visual Charts & Category Breakdown */}
+        <section aria-label="Payroll and operating costs" className="grid gap-4 sm:grid-cols-3">{[["Operational expenses",metrics.operationalExpensesPKR||0],["Salary paid this month",metrics.payrollPaidPKR||0],["Payroll outstanding",metrics.payrollPendingPKR||0]].map(([label,value])=><div key={String(label)} className="rounded-lg border bg-white p-5"><p className="text-sm text-zinc-500">{label}</p><p className="mt-2 text-xl font-semibold">PKR {Number(value).toLocaleString()}</p></div>)}</section>
+        <div className="flex justify-end"><FinanceReminderSettings/></div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Fee Collection Status Distribution */}
         <div className="bg-white border border-zinc-200 p-6 rounded-2xl shadow-xs space-y-4">

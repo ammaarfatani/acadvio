@@ -1,4 +1,6 @@
 "use client";
+import {TableScroll} from "@/components/TableScroll";
+
 
 
 
@@ -126,7 +128,7 @@ export default function ExamCandidatesPage() {
         </p>
       ) : filteredStudents.length > 0 ? (
         <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-xs">
-          <table className="w-full min-w-[700px] text-left text-xs">
+          <TableScroll><table className="w-full min-w-[700px] text-left text-xs">
             <thead className="bg-zinc-950 text-white uppercase text-[10px] font-bold">
               <tr>
                 <th className="p-3.5">Roll No</th>
@@ -156,7 +158,7 @@ export default function ExamCandidatesPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></TableScroll>
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-10 text-center space-y-2">

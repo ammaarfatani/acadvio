@@ -13,28 +13,13 @@ export const connectDB = async (
         ? { autoIndex: false, autoCreate: false }
         : {}),
     });
-  } catch (primaryError) {
-    console.warn(
-      "[Database] Primary MongoDB URI failed, attempting fallback local MongoDB...",
-    );
-    try {
-      conn = await mongoose.connect(
-        "mongodb://127.0.0.1:27017/acadivo_school_crm",
-        {
-          serverSelectionTimeoutMS: 5000,
-          ...(options.maintenance === false
-            ? { autoIndex: false, autoCreate: false }
-            : {}),
-        },
-      );
-    } catch (fallbackError) {
-      console.error(
-        "[Database] MongoDB Connection Error (Primary & Fallback):",
-        primaryError,
-      );
-      throw primaryError;
-    }
+  } catch {
+    // Never silently switch databases: an outage must not send school data to
+    // an unrelated local instance. Driver errors can contain connection details.
+    console.error("[Database] Connection unavailable. Check server database configuration.");
+    throw new Error("Configured database connection unavailable.");
   }
+
 
   if (options.maintenance !== false)
     try {
@@ -55,7 +40,7 @@ export const connectDB = async (
         { unique: true, name: "school_session_class_section_roll_unique" },
       );
     } catch (indexErr) {
-      console.warn("[Database] Index setup warning:", indexErr);
+      console.warn("[Database] Index setup could not be completed.");
     }
 
   console.log(

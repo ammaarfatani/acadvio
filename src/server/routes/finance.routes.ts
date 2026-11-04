@@ -1,3 +1,7 @@
+import {SalaryPayment} from "../models/workforce.model";
+import {branchContext} from "../utils/branchScope";
+import {AuditLog} from "../models/auditLog.model";
+import {School} from "../models/school.model";
 import { feeMonthVariants } from "../../lib/fee-math";
 import { Student } from "../models/student.model";
 import { ClassModel, SectionModel } from "../models/classSection.model";
@@ -40,6 +44,8 @@ const allowedRoles = [
   UserType.SUPER_ADMIN,
 ];
 
+router.get("/reminder-settings",requireUserType(UserType.SCHOOL_ADMIN,UserType.FINANCE),requirePermission("fees.view"),async(req,res,next)=>{try{const school:any=await School.findById(req.user!.schoolId).select("financeReminderDays").lean();return sendSuccess(res,{overdueIntervalDays:school?.financeReminderDays||7,timezone:"Asia/Karachi"});}catch(e){next(e)}});
+router.put("/reminder-settings",requireUserType(UserType.SCHOOL_ADMIN),requirePermission("settings.update"),async(req,res,next)=>{try{const scope=branchContext.getStore();if(scope&&!scope.owner&&scope.branchId!==scope.mainBranchId)throw {statusCode:403,message:"The main school administrator manages school-wide reminder settings."};const v=z.object({overdueIntervalDays:z.number().int().min(1).max(90)}).strict().parse(req.body);await School.updateOne({_id:req.user!.schoolId},{$set:{financeReminderDays:v.overdueIntervalDays}});await AuditLog.create({schoolId:req.user!.schoolId,action:"FEE_REMINDER_SETTINGS_UPDATED",performedByName:req.user!.email,details:"Overdue reminder interval: "+v.overdueIntervalDays+" days."});return sendSuccess(res,v);}catch(e){next(e)}});
 const objectId = z.string().regex(/^[a-f0-9]{24}$/i);
 router.get(
   "/payment-requests",
@@ -251,7 +257,7 @@ router.get(
       })
         .limit(10001)
         .lean();
-      const [payments, expenses] = await Promise.all([
+      const [payments, expenses, salaryPayments] = await Promise.all([
         FeePayment.find({
           schoolId,
           ...(session
@@ -274,8 +280,9 @@ router.get(
         })
           .limit(10001)
           .lean(),
+        SalaryPayment.find({schoolId,...(session?.startDate&&session?.endDate?{paidAt:{$gte:session.startDate,$lte:session.endDate}}:{})}).select("amount paidAt method reference payrollId").populate("payrollId","month snapshot.employee.name snapshot.employee.employeeId").limit(10001).lean(),
       ]);
-      if ([challans, payments, expenses].some((a) => a.length > 10000))
+      if ([challans, payments, expenses, salaryPayments].some((a) => a.length > 10000))
         throw {
           statusCode: 413,
           message:
@@ -286,6 +293,8 @@ router.get(
         challans,
         payments,
         expenses,
+        salaryPayments:req.user!.permissions?.includes("payroll.view")?salaryPayments:[],
+        payrollPaidTotal:salaryPayments.reduce((sum:number,p:any)=>sum+p.amount,0),
         expenseScope:
           session?.startDate && session?.endDate
             ? "Academic session dates"

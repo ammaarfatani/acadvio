@@ -181,7 +181,7 @@ export class ExamController {
       const schoolId = req.user?.schoolId;
       if (!schoolId) throw { statusCode: 400, message: "No tenant context." };
 
-      const certs = await ExamService.getCertificates(schoolId);
+      const certs = req.query.paged==="1"?await (await import("../services/certificateManagement.service")).certificateList(schoolId,req.query):await ExamService.getCertificates(schoolId);
       return sendSuccess(res, certs, "Issued certificates retrieved.");
     } catch (error) {
       next(error);

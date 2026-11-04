@@ -1,4 +1,6 @@
 "use client";
+import {TableScroll} from "@/components/TableScroll";
+
 import { exportCsvFile } from "@/lib/export-csv";
 import { printSchoolDocument } from "@/lib/print-school-document";
 import { useRef } from "react";
@@ -309,7 +311,7 @@ export default function AdmissionsPage() {
                 school={user?.school}
                 title="Admission register"
               />
-              <table className="document-table">
+              <TableScroll><table className="document-table">
                 <thead>
                   <tr>
                     {[
@@ -346,7 +348,7 @@ export default function AdmissionsPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></TableScroll>
             </div>
           </div>
         </section>
@@ -622,7 +624,7 @@ export default function AdmissionsPage() {
         </label>
       </section>
       <section className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white">
-        <table className="w-full min-w-[1100px] text-left text-sm">
+        <TableScroll><table className="w-full min-w-[1100px] text-left text-sm">
           <thead className="bg-zinc-50 text-xs uppercase text-zinc-500">
             <tr>
               <th className="p-3">Application</th>
@@ -732,7 +734,7 @@ export default function AdmissionsPage() {
               ))
             )}
           </tbody>
-        </table>
+        </table></TableScroll>
       </section>
       <footer className="flex items-center justify-between text-sm text-zinc-500">
         <span>{total} admission records</span>

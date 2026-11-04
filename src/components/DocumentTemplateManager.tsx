@@ -12,8 +12,10 @@ import {
 import { SchoolDocumentTemplate } from "./SchoolDocumentTemplate";
 import SchoolLogoEditor from "./SchoolLogoEditor";
 import { useAuth } from "@/lib/auth-context";
+import StaffCertificateTemplateManager from "./StaffCertificateTemplateManager";
 export default function DocumentTemplateManager() {
   const { user } = useAuth();
+  const [templateCategory, setTemplateCategory] = useState<"school" | "staff">("school");
   const drafts = useRef<Record<string, any>>({}),
     canvas = useRef<HTMLDivElement>(null);
   const [notice, setNotice] = useState("");
@@ -103,6 +105,7 @@ export default function DocumentTemplateManager() {
     [next[i], next[to]] = [next[to], next[i]];
     setStyle({ ...style, sectionOrder: next });
   }
+  if (templateCategory === "staff") return <StaffCertificateTemplateManager onSchoolCertificates={() => setTemplateCategory("school")} />;
   async function image(key: string, file?: File) {
     if (!file) return;
     if (
@@ -235,6 +238,7 @@ export default function DocumentTemplateManager() {
     return <p role="status">{error || "Loading document templates…"}</p>;
   return (
     <main className="document-studio min-w-0 space-y-6">
+      <div role="tablist" aria-label="Document template categories" className="flex flex-wrap gap-2 border-b pb-3"><button type="button" role="tab" aria-selected="true" className="rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white">School certificates & documents</button><button type="button" role="tab" aria-selected="false" onClick={() => setTemplateCategory("staff")} className="rounded-md border px-4 py-2 text-sm">Staff certificates</button></div>
       <header className="flex flex-wrap items-center justify-between gap-4 border-b pb-5">
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-red-700">

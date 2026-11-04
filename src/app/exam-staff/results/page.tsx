@@ -1,4 +1,6 @@
 "use client";
+import {TableScroll} from "@/components/TableScroll";
+
 
 
 
@@ -13,9 +15,13 @@ import {
   Search,
   Zap,
 } from "lucide-react";
+import {WorkspaceDialog} from "@/components/WorkspaceDialog";
+import {Table} from "@/components/WorkforceUI";
+import {confirmAction} from "@/components/ConfirmationHost";
 import { examStaffApi } from "@/lib/examStaffApi";
 
 export default function ExamResultsRankingPage() {
+  const [search,setSearch]=useState(""),[status,setStatus]=useState(""),[detail,setDetail]=useState<any>(null);
   const [exams, setExams] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
   const [results, setResults] = useState<any[]>([]);
@@ -65,8 +71,7 @@ export default function ExamResultsRankingPage() {
   }, [selectedExamId, selectedClassId]);
 
   const handleProcessResults = async () => {
-    if (!selectedExamId || !selectedClassId) return;
-
+    if(processing||publishing||!selectedExamId||!selectedClassId)return;
     setProcessing(true);
     setError("");
     try {
@@ -88,6 +93,7 @@ export default function ExamResultsRankingPage() {
   const handleTogglePublish = async (shouldPublish: boolean) => {
     if (!selectedExamId || !selectedClassId) return;
 
+    if(publishing||processing||!(await confirmAction((shouldPublish?"Publish":"Unpublish")+" results for the selected examination and class?")))return;
     setPublishing(true);
     setError("");
     try {
@@ -116,7 +122,7 @@ export default function ExamResultsRankingPage() {
         <div>
           <h1 className="text-2xl font-black text-zinc-950 flex items-center gap-2">
             <Trophy className="h-6 w-6 text-school-primary" />
-            Results & Merit Position Ranking Desk
+            Examination Results
           </h1>
           <p className="text-xs text-zinc-500">
             Process student scores across subjects, compute merit position ranks, and publish official class results.
@@ -199,6 +205,9 @@ export default function ExamResultsRankingPage() {
         </div>
       </div>
 
+      <section aria-label="Results overview" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{[["Processed students",results.length],["Published",results.filter(r=>r.isPublished).length],["Unpublished",results.filter(r=>!r.isPublished).length],["Passed",results.filter(r=>["PASSED","PROMOTED"].includes(r.status)).length],["Failed",results.filter(r=>r.status==="FAILED").length],["Pass percentage",results.length?(100*results.filter(r=>["PASSED","PROMOTED"].includes(r.status)).length/results.length).toFixed(1)+"%":"—"]].map(([label,value])=><div key={String(label)} className="rounded-lg border bg-white p-5"><p className="text-xs text-zinc-500">{label}</p><p className="mt-2 text-2xl font-semibold">{value}</p></div>)}</section><p className="text-xs text-zinc-500">Counts reflect actual processed records for this examination and class. Missing/unprocessed students are not counted as failures.</p>
+      <div className="grid gap-4 rounded-lg border bg-white p-4 sm:grid-cols-2"><label className="grid gap-2 text-xs font-semibold">Search student<input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Name, admission or roll number" className="min-h-11 rounded-md border px-3"/></label><label className="grid gap-2 text-xs font-semibold">Result status<select value={status} onChange={e=>setStatus(e.target.value)} className="min-h-11 rounded-md border px-3"><option value="">All statuses</option>{["PASSED","PROMOTED","FAILED","PENDING"].map(v=><option key={v}>{v}</option>)}</select></label></div>
+      {detail&&<WorkspaceDialog title={detail.studentName+" · Result details"} description={detail.examTitle+" · "+detail.className+" · Roll "+detail.rollNumber} onClose={()=>setDetail(null)} wide><div className="space-y-5"><div className="rounded-md border bg-zinc-50 p-4"><b>{detail.totalObtainedMarks} / {detail.totalMaxMarks}</b> · {detail.percentage==null?"Pending":detail.percentage+"%"} · {detail.overallGrade} · {detail.status}</div><Table searchable={false} headers={["Subject","Obtained","Maximum","Grade","Remarks"]} rows={(detail.subjectScores||[]).map((r:any)=>[r.subjectName,r.isAbsent?"Absent":r.obtainedMarks??"Pending",r.maxMarks,r.grade,r.remarks||"—"])}/></div></WorkspaceDialog>}
       {/* Results & Merit Position Leaderboard */}
       {loading ? (
         <p role="status" className="rounded-xl bg-white p-8 text-center text-xs text-zinc-500 border border-zinc-200">
@@ -206,36 +215,9 @@ export default function ExamResultsRankingPage() {
         </p>
       ) : results.length > 0 ? (
         <div className="space-y-4">
-          {/* Top 3 Positions Showcase */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {results.slice(0, 3).map((res, idx) => (
-              <div
-                key={res._id}
-                className={`p-4 rounded-2xl border ${
-                  idx === 0 ? "bg-amber-500/10 border-amber-300 text-amber-950" :
-                  idx === 1 ? "bg-zinc-200/50 border-zinc-300 text-zinc-900" :
-                  "bg-orange-500/10 border-orange-300 text-orange-950"
-                } space-y-1.5`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-wider">
-                    {idx === 0 ? "1st Position — Gold" : idx === 1 ? "2nd Position — Silver" : "3rd Position — Bronze"}
-                  </span>
-                  <Award className={`h-5 w-5 ${idx === 0 ? "text-amber-600" : idx === 1 ? "text-zinc-500" : "text-orange-600"}`} />
-                </div>
-                <h3 className="font-black text-sm truncate">{res.studentName}</h3>
-                <p className="text-xs font-mono">Roll: {res.rollNumber} ({res.className})</p>
-                <div className="flex justify-between items-center text-xs pt-1 border-t border-black/10 font-bold">
-                  <span>Marks: {res.totalObtainedMarks} / {res.totalMaxMarks}</span>
-                  <span className="text-sm font-black">{res.percentage==null?"Pending":res.percentage+"%"} ({res.overallGrade})</span>
-                </div>
-              </div>
-            ))}
-          </div>
-
           {/* Full Merit Leaderboard Table */}
           <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-xs">
-            <table className="w-full min-w-[750px] text-left text-xs">
+            <TableScroll><table className="w-full min-w-[750px] text-left text-xs">
               <thead className="bg-zinc-950 text-white uppercase text-[10px] font-bold">
                 <tr>
                   <th className="p-3.5 text-center">Merit Rank</th>
@@ -246,11 +228,11 @@ export default function ExamResultsRankingPage() {
                   <th className="p-3.5 text-center">Percentage</th>
                   <th className="p-3.5 text-center">Grade</th>
                   <th className="p-3.5 text-center">Status</th>
-                  <th className="p-3.5 text-center">Publication</th>
+                  <th className="p-3.5 text-center">Publication</th><th className="p-3.5">Details</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200">
-                {results.map((r) => (
+                {results.filter(r=>(!status||r.status===status)&&[r.studentName,r.admissionNumber,r.rollNumber].join(" ").toLowerCase().includes(search.toLowerCase())).map((r) => (
                   <tr key={r._id} className="hover:bg-zinc-50">
                     <td className="p-3.5 text-center font-black text-sm">
                       {r.rank === 1 ? (
@@ -279,7 +261,7 @@ export default function ExamResultsRankingPage() {
                       {r.status === "PASSED" ? (
                         <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded">PASSED</span>
                       ) : (
-                        <span className="bg-red-100 text-red-800 text-[10px] font-bold px-2 py-0.5 rounded">FAILED</span>
+                        <span className="bg-red-100 text-red-800 text-[10px] font-bold px-2 py-0.5 rounded">{r.status}</span>
                       )}
                     </td>
                     <td className="p-3.5 text-center">
@@ -293,10 +275,11 @@ export default function ExamResultsRankingPage() {
                         </span>
                       )}
                     </td>
+                    <td className="p-3.5"><button type="button" className="font-semibold text-school-primary" onClick={()=>setDetail(r)}>View result</button></td>
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></TableScroll>
           </div>
         </div>
       ) : (

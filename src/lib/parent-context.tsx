@@ -49,7 +49,8 @@ export function ParentProvider({ children }: { children: React.ReactNode }) {
         .then((r) => {
           if (!live) return;
           setRows(r.data);
-          const remembered = sessionStorage.getItem("acadivo:child:" + user.id);
+          const requested=new URLSearchParams(window.location.search).get("studentId");
+          const remembered = requested||sessionStorage.getItem("acadivo:child:" + user.id);
           setSelected((current) =>
             r.data.some((s: any) => s._id === current)
               ? current

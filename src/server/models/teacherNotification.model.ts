@@ -7,6 +7,7 @@ export interface ITeacherNotification extends Document {
   title: string;
   message: string;
   href?: string;
+  dedupeKey?:string; studentId?:mongoose.Types.ObjectId;
   isRead: boolean;
   readAt?: Date;
   createdAt: Date;
@@ -22,6 +23,8 @@ const TeacherNotificationSchema = new Schema<ITeacherNotification>({
   readAt: { type: Date },
 }, { timestamps: { createdAt: true, updatedAt: false } });
 
+TeacherNotificationSchema.add({dedupeKey:String,studentId:{type:Schema.Types.ObjectId,ref:"Student"}});
+TeacherNotificationSchema.index({schoolId:1,teacherUserId:1,dedupeKey:1},{unique:true,partialFilterExpression:{dedupeKey:{$type:"string"}}});
 TeacherNotificationSchema.index({ schoolId: 1, teacherUserId: 1, createdAt: -1 });
 TeacherNotificationSchema.plugin(branchScoped);
 export const TeacherNotification = mongoose.models.TeacherNotification || mongoose.model<ITeacherNotification>("TeacherNotification", TeacherNotificationSchema);

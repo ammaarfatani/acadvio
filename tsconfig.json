@@ -29,16 +29,22 @@
     }
   },
   "include": [
-    "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next-verification/types/**/*.ts",
+    ".next-biometric-practice/types/**/*.ts",
+    ".next-certificate-management/types/**/*.ts",
     ".next-design-preview/types/**/*.ts",
-    ".next-biometric-practice/types/**/*.ts"
+    ".next-examination-verify/types/**/*.ts",
+    ".next-finance-workflow/types/**/*.ts",
+    ".next-launch-demo/types/**/*.ts",
+    ".next-ui-responsive/types/**/*.ts",
+    ".next-usability-build/types/**/*.ts",
+    ".next-verification/types/**/*.ts",
+    ".next/types/**/*.ts",
+    "next-env.d.ts",
+    ".next-enterprise-demo/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"
   ]
 }
-

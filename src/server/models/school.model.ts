@@ -10,9 +10,11 @@ export interface ISchool extends Document {
   accountStatusChangedBy?: mongoose.Types.ObjectId;
   workforceRevision?: number;
   academicRevision?: number;
+  branchCapacityRevision?: number;
   attendanceMode?: "MANUAL" | "BIOMETRIC";
   attendanceSetupCompletedAt?: Date;
   attendancePolicy?: any;
+  financeReminderDays?:number;
   name: string;
   code: string;
   slug?: string;
@@ -55,9 +57,11 @@ const SchoolSchema = new Schema<ISchool>(
     documentSettingsRevision:{type:Number,default:0},
     documentSetupCompletedAt:Date,
     academicRevision: {type:Number,default:0},
+    branchCapacityRevision: {type:Number,default:0},
     attendanceMode: {type:String,enum:["MANUAL","BIOMETRIC"]},
     attendanceSetupCompletedAt: Date,
     attendancePolicy: Schema.Types.Mixed,
+    financeReminderDays:{type:Number,min:1,max:90,default:7},
     name: { type: String, required: true, trim: true },
     code: { type: String, required: true, unique: true, lowercase: true, trim: true },
     slug: { type: String, lowercase: true, trim: true, sparse: true, unique: true, match: /^[a-z0-9]+(?:-[a-z0-9]+)*$/ },

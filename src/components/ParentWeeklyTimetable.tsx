@@ -1,4 +1,6 @@
 "use client";
+import {TableScroll} from "@/components/TableScroll";
+
 const days = [
   "Monday",
   "Tuesday",
@@ -42,7 +44,7 @@ export default function ParentWeeklyTimetable({ rows = [] }: { rows: any[] }) {
           aria-label="Weekly timetable"
           tabIndex={0}
         >
-          <table className="family-week-grid">
+          <TableScroll><table className="family-week-grid">
             <caption className="sr-only">
               Days across columns; each row is a lesson period.
             </caption>
@@ -95,7 +97,7 @@ export default function ParentWeeklyTimetable({ rows = [] }: { rows: any[] }) {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></TableScroll>
         </div>
       )}
     </section>

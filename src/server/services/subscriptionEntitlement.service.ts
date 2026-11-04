@@ -6,6 +6,7 @@ import { School } from "../models/school.model";
 import { Student } from "../models/student.model";
 import { User } from "../models/user.model";
 import { UserType } from "../constants/roles.constant";
+import { PLAN_CAPACITY } from "../../lib/plan-capacity";
 
 export interface PlanLimits {
   name: string;
@@ -62,6 +63,11 @@ export const PLAN_CONFIGS: Record<string, PlanLimits> = {
     },
   },
 };
+
+for (const [code, capacity] of Object.entries(PLAN_CAPACITY)) {
+  PLAN_CONFIGS[code].maxStudents = capacity.students;
+  PLAN_CONFIGS[code].maxTeachers = capacity.teachers;
+}
 
 export class SubscriptionEntitlementService {
   // Check trial expiration and update status if trial period ended

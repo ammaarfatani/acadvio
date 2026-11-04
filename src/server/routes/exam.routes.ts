@@ -1,4 +1,7 @@
 import { ExamService } from "../services/exam.service";
+import {CertificateRecord} from "../models/exam.model";
+import {certificateList,certificateDetail,certificateId,revokeCertificate,reissueCertificate} from "../services/certificateManagement.service";
+import rateLimit from "express-rate-limit";
 import { date } from "../validators/workforce.validator";
 import { User } from "../models/user.model";
 import { annualMarksheet } from "../services/marksheet.service";
@@ -40,6 +43,7 @@ import {
 } from "../validators/domain.validator";
 
 const router = Router();
+router.get("/certificates/verify/:token",rateLimit({windowMs:60000,limit:30,standardHeaders:true,legacyHeaders:false}),async(req,res,next)=>{try{const token=z.string().regex(/^[a-f0-9]{64}$/).parse(req.params.token);const r:any=await CertificateRecord.findOne({verificationId:token}).select("certificateNumber type status issueDate").lean();res.set("Cache-Control","no-store");if(!r)return res.status(404).json({success:false,message:"Certificate verification not found."});return sendSuccess(res,{certificateNumber:r.certificateNumber,type:r.type,status:r.status||"ISSUED",issueDate:r.issueDate});}catch(e){next(e)}});
 
 // Protect all exam routes with authentication and strict tenant enforcement
 router.use(authenticate, enforceSchoolTenant);
@@ -211,6 +215,11 @@ router.get(
 );
 
 // Certificates
+router.get("/certificates/print-class",requireUserType(...allowedRoles),requirePermission("results.view"),async(req,res,next)=>{try{const q=z.object({classId:certificateId,type:z.enum(["BONAFIDE","CHARACTER","LEAVING","TRANSFER","RESULT"]),sectionId:certificateId.optional()}).strict().parse(req.query);const students=await Student.find({schoolId:req.user!.schoolId,classId:q.classId,status:{$ne:"ARCHIVED"},...(q.sectionId?{sectionId:q.sectionId}:{})}).select("_id").limit(501).lean();if(students.length>500)throw {statusCode:400,message:"Choose a section with up to 500 students."};const records=await CertificateRecord.find({schoolId:req.user!.schoolId,studentId:{$in:students.map(s=>s._id)},type:q.type,status:{$ne:"REVOKED"}}).select("studentId certificateNumber").sort({issueDate:-1,_id:-1}).lean();const latest=new Map();for(const r of records)if(!latest.has(String(r.studentId)))latest.set(String(r.studentId),r);return sendSuccess(res,{records:[...latest.values()],students:students.length,missing:students.length-latest.size});}catch(e){next(e)}});
+router.get("/certificates/:id/pdf",requireUserType(...allowedRoles),requirePermission("results.view"),async(req,res,next)=>{try{const c:any=await certificateDetail(req.user!.schoolId!,certificateId.parse(req.params.id));if(c.status==="REVOKED")throw {statusCode:409,message:"Revoked certificates cannot be downloaded as valid documents. View the marked original snapshot instead."};const {documentData,hydrateDocumentPhoto}=await import("../services/schoolDocument.service");const category=({BONAFIDE:"bonafide",CHARACTER:"character",LEAVING:"leaving",TRANSFER:"transfer",RESULT:"report-card"} as any)[c.type];const data=await hydrateDocumentPhoto(await documentData(req.user!,{type:category,certificateId:String(c._id),studentId:String(c.studentId)}));const bytes=await (await import("../services/certificatePdf.service")).certificatePdf(data);res.set("Cache-Control","private, no-store");return sendSuccess(res,{file:bytes.toString("base64"),filename:c.certificateNumber+".pdf",mime:"application/pdf"});}catch(e){next(e)}});
+router.get("/certificates/:id/details",requireUserType(...allowedRoles),requirePermission("results.view"),async(req,res,next)=>{try{return sendSuccess(res,await certificateDetail(req.user!.schoolId!,certificateId.parse(req.params.id)));}catch(e){next(e)}});
+router.post("/certificates/:id/revoke",requireUserType(...allowedRoles),requirePermission("results.publish"),async(req,res,next)=>{try{const body=z.object({reason:z.string().trim().min(3).max(1000)}).strict().parse(req.body);return sendSuccess(res,await revokeCertificate(req.user,certificateId.parse(req.params.id),body.reason),"Certificate revoked. Original record preserved.");}catch(e){next(e)}});
+router.post("/certificates/:id/reissue",requireUserType(...allowedRoles),requirePermission("results.publish"),async(req,res,next)=>{try{const body=z.object({reason:z.string().trim().min(3).max(1000),requestId:z.string().uuid(),issueDate:z.string().date().optional(),examId:certificateId.optional(),conductRemarks:z.string().max(1000).optional()}).strict().parse(req.body);return sendSuccess(res,await reissueCertificate(req.user,certificateId.parse(req.params.id),body),"Replacement issued; original record preserved.",201);}catch(e){next(e)}});
 router.get(
   "/certificates",
   requireUserType(...allowedRoles),
@@ -255,6 +264,8 @@ router.post(
           conductRemarks: z.string().trim().max(1000).optional(),
           requestId: z.string().uuid(),
           onlyIfMissing: z.boolean().optional(),
+          issueDate:z.string().date().optional(),
+          examId:certificateId.optional(),
         })
         .strict()
         .parse(req.body);

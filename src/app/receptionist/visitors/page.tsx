@@ -1,4 +1,6 @@
 "use client";
+import {TableScroll} from "@/components/TableScroll";
+
 
 
 
@@ -339,7 +341,7 @@ export default function ReceptionistVisitorsPage() {
       {/* VISITORS TABLE */}
       <div className="bg-white border border-zinc-200 rounded-2xl shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs min-w-[900px]">
+          <TableScroll><table className="w-full text-left text-xs min-w-[900px]">
             <thead className="bg-zinc-50 border-b border-zinc-200 text-zinc-500 font-bold uppercase tracking-wider text-[11px]">
               <tr>
                 <th className="py-3 px-4">Visitor</th>
@@ -460,7 +462,7 @@ export default function ReceptionistVisitorsPage() {
                 ))
               )}
             </tbody>
-          </table>
+          </table></TableScroll>
         </div>
 
         {/* Pagination */}

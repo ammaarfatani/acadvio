@@ -13,9 +13,10 @@ export async function workspaceNotifications(actor: AuthenticatedUser, studentId
     return {unreadCount,items:payments.map((payment:any) => ({id:String(payment._id),title:"Payment awaiting verification",content:(payment.schoolId?.name || "School")+" · "+payment.plan+" · PKR "+payment.amount.toLocaleString(),createdAt:payment.submittedAt,canMarkRead:false}))};
   }
   if(!actor.schoolId) throw {statusCode:403,message:"School context required."};
+  const parentStudentIds=actor.userType==="PARENT"?(studentId?[(await linkedChild(actor,studentId))._id]:(await children(actor)).map((s:any)=>s._id)):[];
   const [announcements,personal]:[any[],any[]] = await Promise.all([
     listNotices(actor,false,undefined,studentId),
-    ["TEACHER","FINANCE","EXAM_STAFF","RECEPTIONIST"].includes(actor.userType) ? TeacherNotification.find({schoolId:actor.schoolId,teacherUserId:actor.userId}).sort({createdAt:-1}).limit(20).lean() : Promise.resolve([]),
+    ["TEACHER","FINANCE","EXAM_STAFF","RECEPTIONIST","PARENT","SCHOOL_ADMIN"].includes(actor.userType) ? TeacherNotification.find({schoolId:actor.schoolId,teacherUserId:actor.userId,...(actor.userType==="PARENT"?{studentId:{$in:parentStudentIds}}:{})}).sort({createdAt:-1}).limit(20).lean() : Promise.resolve([]),
   ]);
   if(actor.userType==="PARENT"&&hasFeature(actor.plan,"FINANCE")){
     const linked=studentId?[await linkedChild(actor,studentId)]:await children(actor),ids=linked.map((s:any)=>s._id);
@@ -27,13 +28,14 @@ export async function workspaceNotifications(actor: AuthenticatedUser, studentId
     const pending=await FeeSubmission.find({schoolId:actor.schoolId,status:"PENDING"}).populate("studentId","name").sort({submittedAt:-1}).limit(20).lean();pendingFees=await FeeSubmission.countDocuments({schoolId:actor.schoolId,status:"PENDING"});
     personal.push(...pending.map((r:any)=>({_id:"fee-review:"+r._id,title:"Parent fee payment awaiting verification",message:(r.studentId?.name||"Student")+" · PKR "+r.amountPKR.toLocaleString(),createdAt:r.submittedAt,isRead:false,canMarkRead:false})));
   }
-  const unreadCount = ["TEACHER","FINANCE","EXAM_STAFF","RECEPTIONIST"].includes(actor.userType) ? await TeacherNotification.countDocuments({schoolId:actor.schoolId,teacherUserId:actor.userId,isRead:false}) : 0;
-  return {unreadCount:pendingFees+unreadCount+announcements.filter((row:any)=>!row.isRead).length,items:[...announcements.map((row:any) => ({id:"announcement:"+row._id,title:row.title,content:row.content,createdAt:row.createdAt,isRead:row.isRead,canMarkRead:true})),...personal.map((row:any) => ({id:String(row._id),title:row.title,content:row.message || row.content,createdAt:row.createdAt,isRead:row.isRead,canMarkRead:row.canMarkRead!==false}))].sort((a,b) => +new Date(b.createdAt)-+new Date(a.createdAt)).slice(0,30)};
+  const unreadCount = ["TEACHER","FINANCE","EXAM_STAFF","RECEPTIONIST","PARENT","SCHOOL_ADMIN"].includes(actor.userType) ? await TeacherNotification.countDocuments({schoolId:actor.schoolId,teacherUserId:actor.userId,isRead:false}) : 0;
+  return {unreadCount:pendingFees+unreadCount+announcements.filter((row:any)=>!row.isRead).length,items:[...announcements.map((row:any) => ({id:"announcement:"+row._id,title:row.title,content:row.content,createdAt:row.createdAt,isRead:row.isRead,canMarkRead:true})),...personal.map((row:any) => ({id:String(row._id),title:row.title,content:row.message || row.content,href:row.href,createdAt:row.createdAt,isRead:row.isRead,canMarkRead:row.canMarkRead!==false}))].sort((a,b) => +new Date(b.createdAt)-+new Date(a.createdAt)).slice(0,30)};
 }
 
 export async function markWorkspaceNotificationRead(actor:AuthenticatedUser,id:string) {
   if(id.startsWith("announcement:")) return readNotice(actor,id.slice(13));
-  if(!["TEACHER","FINANCE","EXAM_STAFF","RECEPTIONIST"].includes(actor.userType) || !actor.schoolId) throw {statusCode:403,message:"This notification cannot be marked read by your account."};
+  if(!["TEACHER","FINANCE","EXAM_STAFF","RECEPTIONIST","PARENT","SCHOOL_ADMIN"].includes(actor.userType) || !actor.schoolId) throw {statusCode:403,message:"This notification cannot be marked read by your account."};
+  if(actor.userType==="PARENT"){const notice:any=await TeacherNotification.findOne({_id:id,schoolId:actor.schoolId,teacherUserId:actor.userId}).lean();if(!notice?.studentId)throw {statusCode:404,message:"Notification not found."};await linkedChild(actor,String(notice.studentId));}
   const row=await TeacherNotification.findOneAndUpdate({_id:id,schoolId:actor.schoolId,teacherUserId:actor.userId},{$set:{isRead:true,readAt:new Date()}},{new:true});
   if(!row) throw {statusCode:404,message:"Notification not found."};
   return {isRead:true};

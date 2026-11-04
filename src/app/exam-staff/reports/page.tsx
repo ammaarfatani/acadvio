@@ -1,4 +1,6 @@
 "use client";
+import {TableScroll} from "@/components/TableScroll";
+
 import { printSchoolDocument } from "@/lib/print-school-document";
 
 import { AcademicDocument } from "@/components/SchoolDocuments";
@@ -258,7 +260,7 @@ export default function ExamReportsDeskPage() {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse border border-zinc-900 text-[11px]">
+              <TableScroll><table className="w-full text-left border-collapse border border-zinc-900 text-[11px]">
                 <thead className="bg-zinc-950 text-white uppercase text-[9px] font-bold">
                   <tr>
                     <th className="border border-zinc-900 p-2">Roll</th>
@@ -320,7 +322,7 @@ export default function ExamReportsDeskPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></TableScroll>
             </div>
           </div>
         ) : (

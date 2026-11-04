@@ -1,4 +1,6 @@
 "use client";
+import {TableScroll} from "@/components/TableScroll";
+
 import {StudentAvatar} from "@/components/StudentAvatar";
 
 
@@ -161,7 +163,7 @@ export default function MyAssignedStudentsPage() {
         </p>
       ) : students.length ? (
         <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-xs">
-          <table className="w-full min-w-[760px] text-left text-sm">
+          <TableScroll><table className="w-full min-w-[760px] text-left text-sm">
             <thead className="bg-zinc-50 text-xs uppercase text-zinc-500 font-bold">
               <tr>
                 <th className="p-3.5">Roll number</th>
@@ -212,7 +214,7 @@ export default function MyAssignedStudentsPage() {
                 );
               })}
             </tbody>
-          </table>
+          </table></TableScroll>
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-10 text-center">

@@ -1,3 +1,4 @@
+import {notifyFeeEvent} from "./financeReminder.service";
 import {defaultDocumentStyle} from "../../lib/document-templates";
 import {Student} from "../models/student.model";
 import mongoose from "mongoose";
@@ -38,7 +39,7 @@ export async function reviewFee(actor:AuthenticatedUser,id:string,status:"APPROV
  const profile=await SchoolService.getSchoolProfile(actor.schoolId!);
  const studentProfile:any=await Student.findOne({_id:challan.studentId,schoolId:actor.schoolId}).select("parentInfo sectionName admissionNumber").session(session).lean();
  const documentSnapshot={documentStyle:profile.documentSettings?.templates?.["fee-receipt"]||defaultDocumentStyle("fee-receipt"),school:{name:profile.name,address:profile.address,phone:profile.phone,email:profile.email,logoUrl:profile.logoUrl,...profile.documentSettings?.branding},feeBreakdown:challan.feeBreakdown,month:challan.month,student:{name:challan.studentName,admissionNumber:challan.admissionNumber||studentProfile?.admissionNumber,rollNumber:challan.rollNumber,className:challan.className,sectionName:studentProfile?.sectionName,parentInfo:studentProfile?.parentInfo}};
- const [payment]=await FeePayment.create([{schoolId:actor.schoolId,challanId:challan._id,studentId:challan.studentId,studentName:challan.studentName,rollNumber:challan.rollNumber,className:challan.className,amountPKR:request.amountPKR,paymentMethod:"Bank Transfer",paidAt:new Date(),receiptNumber,collectedByUserName:actor.email,documentSnapshot,balanceAfterPKR:challan.remainingAmountPKR,transactionReference:request.reference}],{session});request.paymentId=payment._id;request.receiptNumber=receiptNumber;
+ const [payment]=await FeePayment.create([{schoolId:actor.schoolId,challanId:challan._id,studentId:challan.studentId,studentName:challan.studentName,rollNumber:challan.rollNumber,className:challan.className,amountPKR:request.amountPKR,paymentMethod:"Bank Transfer",paidAt:new Date(),receiptNumber,collectedByUserName:actor.email,documentSnapshot,balanceAfterPKR:challan.remainingAmountPKR,transactionReference:request.reference}],{session});request.paymentId=payment._id;request.receiptNumber=receiptNumber;await notifyFeeEvent(challan,"payment",payment,session);
  }
  request.status=status;request.rejectionReason=status==="REJECTED"?reason?.trim():undefined;request.reviewedBy=actor.userId;request.reviewedAt=new Date();await request.save({session});
  await AuditLog.create([{schoolId:actor.schoolId,action:"PARENT_FEE_"+status,performedByName:actor.email,details:"Payment request "+request._id+" reviewed."}],{session});result=request;

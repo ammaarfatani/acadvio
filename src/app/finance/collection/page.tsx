@@ -1,4 +1,7 @@
 "use client";
+import {TableScroll} from "@/components/TableScroll";
+
+import {RecordFilters,matchesRecordSearch} from "@/components/RecordFilters";
 import { useRecordRefresh } from "@/lib/use-record-refresh";
 import { invoiceTotals } from "@/lib/fee-math";
 import { StudentAvatar } from "@/components/StudentAvatar";
@@ -33,6 +36,7 @@ interface ChallanRecord {
 export default function FeeCollectionPage() {
   const requestId = useRef("");
   const [search, setSearch] = useState("");
+  const [filterClass,setFilterClass]=useState(""),[filterMonth,setFilterMonth]=useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [notice, setNotice] = useState<string | null>(null);
   const [challans, setChallans] = useState<ChallanRecord[]>([]);
@@ -155,12 +159,9 @@ export default function FeeCollectionPage() {
   };
 
   const filtered = challans.filter((c) => {
-    const matchesSearch =
-      c.studentName.toLowerCase().includes(search.toLowerCase()) ||
-      c.rollNo.includes(search) ||
-      c.challanNo.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = matchesRecordSearch([c.studentName,c.rollNo,c.admissionNo,c.challanNo,c.className,c.month,c.status],search);
     const matchesStatus = statusFilter === "ALL" || c.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && (!filterClass||c.className===filterClass) && (!filterMonth||c.month===filterMonth);
   });
 
   const totals = invoiceTotals(
@@ -243,22 +244,14 @@ export default function FeeCollectionPage() {
           )}
         </div>
 
-        <div className="relative w-full sm:w-72">
-          <Search className="h-3.5 w-3.5 absolute left-3 top-3 text-zinc-400" />
-          <input
-            type="text"
-            placeholder="Search student, roll no or challan..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full text-xs border border-zinc-300 rounded-lg pl-9 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500/20"
-          />
-        </div>
+
       </div>
 
+      <RecordFilters search={search} onSearch={setSearch} placeholder="Search name, admission, roll, class or challan" count={filtered.length} total={challans.length} filters={[{label:"Class",value:filterClass,onChange:setFilterClass,options:Array.from(new Set(challans.map(c=>c.className).filter(Boolean)))},{label:"Month",value:filterMonth,onChange:setFilterMonth,options:Array.from(new Set(challans.map(c=>c.month).filter(Boolean))).sort().reverse()}]} onReset={()=>{setSearch("");setStatusFilter("ALL");setFilterClass("");setFilterMonth("")}}/>
       {/* Ledger Table */}
       <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <TableScroll><table className="w-full text-left text-xs">
             <thead className="bg-zinc-950 text-white uppercase text-[10px] font-bold">
               <tr>
                 <th className="p-3.5">Challan No</th>
@@ -375,7 +368,7 @@ export default function FeeCollectionPage() {
                 ))
               )}
             </tbody>
-          </table>
+          </table></TableScroll>
         </div>
       </div>
 

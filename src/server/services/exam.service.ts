@@ -382,6 +382,7 @@ export class ExamService {
     userName: string,
     dbSession?: mongoose.ClientSession,
   ) {
+
     if (!dbSession) {
       const tx = await mongoose.startSession();
       let result: any;
@@ -861,6 +862,8 @@ export class ExamService {
   static async issueClassCertificates(
     schoolId: string,
     input: {
+      issueDate?:string;
+      examId?:string;
       classId: string;
       studentIds?: string[];
       type: "BONAFIDE" | "CHARACTER" | "LEAVING" | "TRANSFER" | "RESULT";
@@ -938,6 +941,8 @@ export class ExamService {
               schoolId,
               {
                 type: input.type,
+                issueDate:input.issueDate,
+                examId:input.examId,
                 classId: input.classId,
                 studentId: String(student._id),
                 reason: input.reason,
@@ -967,6 +972,8 @@ export class ExamService {
   static async issueCertificate(
     schoolId: string,
     data: {
+      issueDate?: string;
+      examId?: string;
       issuanceKey?: string;
       type: "BONAFIDE" | "CHARACTER" | "LEAVING" | "TRANSFER" | "RESULT";
       studentId: string;
@@ -981,6 +988,7 @@ export class ExamService {
     userName: string,
     dbSession?: mongoose.ClientSession,
   ) {
+    if(!dbSession){const tx=await mongoose.startSession();try{let issued:any;await tx.withTransaction(async()=>{issued=await this.issueCertificate(schoolId,data,userName,tx)});return issued;}finally{await tx.endSession()}}
     if (data.issuanceKey) {
       const existing = await CertificateRecord.findOne({
         schoolId,
@@ -992,6 +1000,8 @@ export class ExamService {
           String(existing.studentId) !== data.studentId ||
           (existing.reason || "") !== (data.reason || "") ||
           (existing.conductRemarks || "") !== (data.conductRemarks || "")
+          || (data.issueDate&&new Date(existing.issueDate).toISOString().slice(0,10)!==data.issueDate)
+          || (data.examId&&String(existing.documentSnapshot?.exam?._id||"")!==data.examId)
         )
           throw {
             statusCode: 409,
@@ -1023,14 +1033,24 @@ export class ExamService {
         statusCode: 400,
         message: `${student.name} needs a class and roll number before a certificate can be issued.`,
       };
+    if(data.type==="CHARACTER"&&(!data.conductRemarks||data.conductRemarks.trim().length<3))throw {statusCode:400,message:"Enter the school's authorized conduct remarks for a character certificate."};
 
-    const certNo = `CERT-${data.type.slice(0, 3)}-${new Date().getFullYear()}-${randomUUID().replace(/-/g, "").slice(0, 20).toUpperCase()}`;
+    const issuedAt=data.issueDate?new Date(data.issueDate+"T12:00:00Z"):new Date();
+    if(data.issueDate&&(!/^\d{4}-\d{2}-\d{2}$/.test(data.issueDate)||Number.isNaN(issuedAt.getTime())||issuedAt.toISOString().slice(0,10)!==data.issueDate))throw {statusCode:400,message:"Enter a valid certificate issue date."};
+    const certNo = `CERT-${data.type.slice(0, 3)}-${issuedAt.getUTCFullYear()}-${randomUUID().replace(/-/g, "").slice(0, 20).toUpperCase()}`;
     const currentSession = await AcademicSession.findOne({
       schoolId,
       isCurrent: true,
     }).select("name");
 
     const schoolProfile: any = await SchoolService.getSchoolProfile(schoolId);
+    let result:any,exam:any;
+    if(data.type==="RESULT"){
+      if(!data.examId)throw {statusCode:400,message:"Select an examination with a published student result."};
+      result=await ProcessedResult.findOne({schoolId,examId:data.examId,studentId:student._id,isPublished:true,needsProcessing:{$ne:true},status:{$ne:"PENDING"}}).session(dbSession||null).lean();
+      exam=await ExamSchedule.findOne({_id:data.examId,schoolId}).session(dbSession||null).lean();
+      if(!result||!exam||String(result.classId)!==String(student.classId)||!result.subjectScores?.length||result.subjectScores.some((r:any)=>r.obtainedMarks==null)||result.percentage==null)throw {statusCode:400,message:"A complete, current published result for the student's class is required. Process and publish the student result first."};
+    }
     const category: DocumentType = (
       {
         BONAFIDE: "bonafide",
@@ -1041,6 +1061,7 @@ export class ExamService {
       } as const
     )[data.type];
     const snapshotStudent: any = student.toObject();
+    snapshotStudent.academicSessionName ||= currentSession?.name;
     const photoStorageId = snapshotStudent.photoStorageId;
     delete snapshotStudent.photoStorageId;
     delete snapshotStudent.documents;
@@ -1062,11 +1083,16 @@ export class ExamService {
       photoStudentId: student._id,
       photoSchoolId: schoolId,
       generatedAt: new Date(),
+      ...(result?{result,exam}:{}),
     };
     const [cert] = await CertificateRecord.create(
       [
         {
           issuanceKey: data.issuanceKey,
+          verificationId: randomUUID().replace(/-/g,"")+randomUUID().replace(/-/g,""),
+          numberProtected:true,
+          status:"ISSUED",
+          history:[{action:"ISSUED",at:new Date(),by:userName}],
           schoolId,
           documentSnapshot,
           certificateNumber: certNo,
@@ -1080,7 +1106,7 @@ export class ExamService {
             student.academicSessionName ||
             currentSession?.name ||
             "Not recorded",
-          issueDate: new Date(),
+          issueDate: issuedAt,
           reason: data.reason,
           conductRemarks: data.conductRemarks,
           issuedByUserName: userName,

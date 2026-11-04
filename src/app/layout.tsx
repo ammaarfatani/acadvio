@@ -10,6 +10,7 @@ import "./login.css";
 import "./motion.css";
 import "./documents.css";
 import "./portal-refinements.css";
+import "./record-tables.css";
 import { AppChrome } from "@/components/AppChrome";
 import ConfirmationHost from "@/components/ConfirmationHost";
 import { AuthProvider } from "@/lib/auth-context";

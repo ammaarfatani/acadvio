@@ -52,6 +52,7 @@ export const FeeStructure =
 
 export interface IFeeChallan extends Document {
   documentSnapshot?:any;
+  lateFeePolicyAmount?:number; lateFeeAppliedAt?:Date;
   schoolId: mongoose.Types.ObjectId;
   challanNumber: string;
   studentId: mongoose.Types.ObjectId;
@@ -144,7 +145,7 @@ const FeeChallanSchema = new Schema<IFeeChallan>(
   { timestamps: true }
 );
 
-FeeChallanSchema.add({documentSnapshot:Schema.Types.Mixed});
+FeeChallanSchema.add({documentSnapshot:Schema.Types.Mixed,lateFeePolicyAmount:Number,lateFeeAppliedAt:Date});
 FeeChallanSchema.index({ schoolId: 1, challanNumber: 1 }, { unique: true });
 
 FeeChallanSchema.plugin(branchScoped);
@@ -189,7 +190,7 @@ export const FeePayment = mongoose.models.FeePayment || mongoose.model<IFeePayme
 export interface IExpense extends Document {
   schoolId: mongoose.Types.ObjectId;
   title: string;
-  category: "Salary" | "Rent" | "Electricity" | "Stationery" | "Maintenance" | "Transport" | "Other";
+  category: "Salary" | "Water" | "Rent" | "Electricity" | "Stationery" | "Maintenance" | "Transport" | "Other";
   amountPKR: number;
   expenseDate: Date;
   description?: string;
@@ -208,7 +209,7 @@ const ExpenseSchema = new Schema<IExpense>(
     title: { type: String, required: true },
     category: {
       type: String,
-      enum: ["Salary", "Rent", "Electricity", "Stationery", "Maintenance", "Transport", "Other"],
+      enum: ["Salary", "Water", "Rent", "Electricity", "Stationery", "Maintenance", "Transport", "Other"],
       required: true,
     },
     amountPKR: { type: Number, required: true },

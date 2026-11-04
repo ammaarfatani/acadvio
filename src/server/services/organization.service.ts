@@ -1,3 +1,4 @@
+import { ENTERPRISE_ADDITIONAL_BRANCHES } from "../../lib/plan-capacity";
 import { analyticsPeriodStart } from "./platformAnalytics.service";
 import mongoose from "mongoose";
 import { Branch } from "../models/branch.model";
@@ -14,12 +15,38 @@ import { hashPassword } from "../utils/password.util";
 import { mainBranch } from "./branchContext.service";
 import { listNotices } from "./notice.service";
 import { AuthenticatedUser } from "../middlewares/auth.middleware";
+import { LoginActivity } from "../models/loginActivity.model";
+export async function branchHistory(actor: AuthenticatedUser, branchId: string, input: {from?:string;to?:string;page?:number} = {}) {
+  const branch = await Branch.findOne({_id:branchId,organizationId:actor.schoolId}).select("name createdAt updatedAt status").lean();
+  if (!branch) throw {statusCode:404,message:"Branch not found."};
+  const filter:any={schoolId:actor.schoolId,branchId,userType:"SCHOOL_ADMIN"};
+  if(input.from||input.to){filter.timestamp={};if(input.from)filter.timestamp.$gte=new Date(input.from+"T00:00:00+05:00");if(input.to)filter.timestamp.$lte=new Date(input.to+"T23:59:59.999+05:00");}
+  const page=input.page||1,pageSize=20;
+  const [logins,total]=await withoutBranchScope(()=>Promise.all([LoginActivity.find(filter).select("action emailAttempt timestamp userId").populate("userId","name").sort({timestamp:-1,_id:-1}).skip((page-1)*pageSize).limit(pageSize).lean().exec(),LoginActivity.countDocuments(filter)]));
+  return {branch,logins,total,page,pageSize};
+}
 export async function organizationBranches(schoolId: string) {
   const school = await School.findById(schoolId); if (!school) throw {statusCode:404,message:"Organization not found."};
   await mainBranch(school); return Branch.find({ organizationId: schoolId }).sort({ isMain: -1, name: 1 }).lean();
 }
 export async function saveBranch(schoolId: string, input: any, id?: string) {
-  if (!id) return Branch.create({ ...input, organizationId: schoolId, isMain: false });
+  if (!id) {
+    const school = await School.findById(schoolId);
+    if (!school || school.plan !== "ENTERPRISE") throw {statusCode:403,message:"Additional branches require Enterprise."};
+    await mainBranch(school);
+    const session = await mongoose.startSession();
+    try {
+      let created: any;
+      await session.withTransaction(async () => {
+        const locked = await School.findOneAndUpdate({_id:schoolId,plan:"ENTERPRISE"},{$inc:{branchCapacityRevision:1}},{session});
+        if (!locked) throw {statusCode:403,message:"Additional branches require Enterprise."};
+        const count = await Branch.countDocuments({organizationId:schoolId,isMain:{$ne:true}}).session(session);
+        if (count >= ENTERPRISE_ADDITIONAL_BRANCHES) throw {statusCode:403,message:"Enterprise includes your main branch plus 5 additional branches. Contact Acadivo for more branches."};
+        [created] = await Branch.create([{...input,organizationId:schoolId,isMain:false}],{session});
+      });
+      return created;
+    } finally { await session.endSession(); }
+  }
   const branch = await Branch.findOne({ _id:id, organizationId:schoolId }); if (!branch) throw {statusCode:404,message:"Branch not found."};
   if (branch.isMain && input.status === "INACTIVE") throw {statusCode:400,message:"The main branch cannot be deactivated."};
   Object.assign(branch,input); await branch.save(); return branch;
@@ -41,10 +68,11 @@ export async function assignAdministrator(actor: AuthenticatedUser, branchId: st
   if(card&&String(card.branchId)!==branchId){await IdentityCard.updateOne({_id:card._id},{$set:{branchId,status:"NEEDS_CORRECTION",reason:"Branch assignment changed. Review and reissue at the new branch."},$inc:{revision:1}});const {AuditLog}=await import("../models/auditLog.model");await AuditLog.create({schoolId:actor.schoolId,organizationId:actor.schoolId,branchId,actorUserId:actor.userId,actorRole:actor.userType,action:"ID_CARD_BRANCH_CHANGED",resource:"IdentityCard",entityId:String(card._id),newValue:{status:"NEEDS_CORRECTION",branchId}});}
   return{id:user._id,branchId}; });
 }
-export async function branchDirectory(actor: AuthenticatedUser, branchId: string) {
+export async function branchDirectory(actor: AuthenticatedUser, branchId: string, summaryOnly=false) {
   if (!await Branch.exists({_id:branchId,organizationId:actor.schoolId}))throw{statusCode:404,message:"Branch not found."};
   return branchContext.run({...branchContext.getStore()!,branchId},async()=>{
-    const [users,students]=await Promise.all([User.find({schoolId:actor.schoolId}).select("name email userType status branchId").sort({name:1}).limit(200).lean(),Student.find({schoolId:actor.schoolId}).select("name className sectionName rollNumber status").sort({name:1}).limit(200).lean()]);return{users,students};
+    if(summaryOnly){const [students,teachers,accounts]=await Promise.all([Student.countDocuments({schoolId:actor.schoolId}),User.countDocuments({schoolId:actor.schoolId,userType:"TEACHER"}),User.countDocuments({schoolId:actor.schoolId})]);return {totals:{students,teachers,accounts}};}
+    const [users,students,studentCount,teacherCount,userCount]=await Promise.all([User.find({schoolId:actor.schoolId}).select("name email userType status branchId").sort({name:1}).limit(200).lean(),Student.find({schoolId:actor.schoolId}).select("name className sectionName rollNumber status").sort({name:1}).limit(200).lean(),Student.countDocuments({schoolId:actor.schoolId}),User.countDocuments({schoolId:actor.schoolId,userType:"TEACHER"}),User.countDocuments({schoolId:actor.schoolId})]);return{users,students,totals:{students:studentCount,teachers:teacherCount,accounts:userCount}};
   });
 }
 export async function organizationReport(actor: AuthenticatedUser, input: any) {

@@ -1,3 +1,4 @@
+import {startFinanceReminders} from "./services/financeReminder.service";
 import { sendExpiryReminders } from "./services/subscriptionReminder.service";
 import { migrateBranchScopes } from "./services/branchMigration.service";
 import { createApp } from "./app";
@@ -49,6 +50,7 @@ const startServer = async () => {
           console.error("[Subscriptions] Reminder processing unavailable."),
         );
       }, 3600000).unref();
+      startFinanceReminders();
       await BulkImportService.resume();
       setInterval(() => {
         void BulkImportService.resume().catch(() =>
@@ -74,7 +76,7 @@ const startServer = async () => {
       console.log(`=======================================================`);
     });
   } catch (error) {
-    console.error("Failed to start server:", error);
+    console.error("Server startup failed. Check the configured database and server settings.");
     process.exit(1);
   }
 };

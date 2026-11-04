@@ -1,0 +1,17 @@
+D:\CRM\school-crm\src\server\services\exam.service.ts:777
+        let result, exam;
+            ^
+
+SyntaxError: Identifier 'result' has already been declared
+    at wrapSafe (node:internal/modules/cjs/loader:1713:18)
+    at Module._compile (node:internal/modules/cjs/loader:1755:20)
+    at require.extensions..ts (D:\CRM\school-crm\tests\certificate-management.cjs:6:156)
+    at Module.load (node:internal/modules/cjs/loader:1505:32)
+    at Function._load (node:internal/modules/cjs/loader:1309:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+    at Module.require (node:internal/modules/cjs/loader:1527:12)
+    at require (node:internal/modules/helpers:147:16)
+    at Object.<anonymous> (D:\CRM\school-crm\src\server\routes\exam.routes.ts:39:24)
+    at Module._compile (node:internal/modules/cjs/loader:1781:14)
+
+Node.js v22.23.2

@@ -1,3 +1,4 @@
+import { literalSearch } from "../utils/search.util";
 import {validateStudentPhoto,storeStudentPhoto,deleteStudentPhoto} from "./studentPhoto.service";
 import { FinanceService } from "./finance.service";
 import {persistMarks} from "./marksPersistence.service";
@@ -139,6 +140,7 @@ export class SchoolAdminService {
     if (filterClassId) query.classId = filterClassId;
     if (statusFilter && statusFilter !== "ALL") query.status = statusFilter;
     if (search) {
+      search = literalSearch(search);
       query.$or = [
         { name: { $regex: search, $options: "i" } },
         { rollNumber: { $regex: search, $options: "i" } },
@@ -452,13 +454,17 @@ export class SchoolAdminService {
     const [studentAttendance, teacherAttendance] = await Promise.all([
       StudentAttendance.find(query).sort({ date: -1 }), TeacherAttendance.find({ schoolId, ...(query.date ? { date: query.date } : {}) }).sort({ date: -1 }),
     ]);
+    const ids=studentAttendance.flatMap((d:any)=>d.records.map((r:any)=>r.studentId));
+    const identities=await Student.find({schoolId,_id:{$in:ids}}).select("name studentId admissionNumber rollNumber").lean();
+    const identity=new Map(identities.map((r:any)=>[String(r._id),r]));
+    const detailed=studentAttendance.map((d:any)=>{const row=d.toObject();row.records=row.records.map((r:any)=>{const student:any=identity.get(String(r.studentId));return {...r,studentName:student?.name||r.studentName||"Student record unavailable",studentCode:student?.studentId||"",admissionNumber:student?.admissionNumber||"",rollNumber:r.rollNumber||student?.rollNumber||""}});return row;});
     const counts = { present: 0, absent: 0, late: 0, leave: 0, total: 0 };
     for (const record of studentAttendance.flatMap((doc: any) => doc.records)) {
       counts.total += 1;
       const status = String(record.status).toLowerCase() as "present" | "absent" | "late" | "leave";
       if (status === "present" || status === "absent" || status === "late" || status === "leave") counts[status] += 1;
     }
-    return { studentAttendance, teacherAttendance:mergeTeacherBatches(teacherAttendance,await teacherBatches(schoolId,from,to)), summary: { ...counts, attendancePercent: counts.total ? Math.round(((counts.present + counts.late) / counts.total) * 1000) / 10 : 0 } };
+    return { studentAttendance:detailed, teacherAttendance:mergeTeacherBatches(teacherAttendance,await teacherBatches(schoolId,from,to)), summary: { ...counts, attendancePercent: counts.total ? Math.round(((counts.present + counts.late) / counts.total) * 1000) / 10 : 0 } };
   }
 
   static async getTimetable(schoolId: string, classId: string) {

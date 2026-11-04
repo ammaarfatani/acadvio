@@ -1,5 +1,6 @@
 "use client";
 
+import { PLAN_CAPACITY, ENTERPRISE_ADDITIONAL_BRANCHES } from "@/lib/plan-capacity";
 import {money} from "@/lib/market-pricing";
 import {usePricingMarket} from "./MarketSelector";
 import { PLAN_FEATURE_LABELS } from "@/lib/plan-features";
@@ -312,8 +313,9 @@ export function PricingTable({ compact = false }: { compact?: boolean }) {
               billingCycle === "monthly"
                 ? configuredPlan.monthly
                 : configuredPlan.annualTotal;
-            const compactKeys=plan.name==="STARTER"?["Portal Guides & Onboarding Guidance","Student Records & Enrollment","Attendance Registers","Timetable","Linked Parent Accounts","Teacher Directory"]:plan.name==="PROFESSIONAL"?["Portal Guides & Onboarding Guidance","Student Records & Enrollment","Fee Structures & Challans","Examination Schedules","Marks & Published Results","Linked Parent Accounts"]:["Portal Guides & Onboarding Guidance","Organization Dashboard","Multiple Branches","Consolidated & Branch Reports","Student Records & Enrollment","Fee Structures & Challans"];
-            const selectedFeatures=compactKeys.filter(key=>plan.features.includes(key));
+            const compactKeys=plan.name==="STARTER"?["Portal Guides & Onboarding Guidance","Student Records & Enrollment","Attendance Registers","Timetable","Linked Parent Accounts","Teacher Directory"]:plan.name==="PROFESSIONAL"?["Portal Guides & Onboarding Guidance","Student Records & Enrollment","Fee Structures & Challans","Examination Schedules","Marks & Published Results","Linked Parent Accounts"]:["Portal Guides & Onboarding Guidance","Organization Dashboard",`Main branch + ${ENTERPRISE_ADDITIONAL_BRANCHES} additional branches`,"Need more branches? Contact Acadivo","Consolidated & Branch Reports","Student Records & Enrollment","Fee Structures & Challans"];
+            const capacity=PLAN_CAPACITY[plan.name];
+            const selectedFeatures=[`${capacity.students.toLocaleString()} active students · ${capacity.teachers.toLocaleString()} teachers`,...compactKeys.filter(key=>plan.features.includes(key))];
             return (
               <div
                 key={plan.name}

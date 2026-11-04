@@ -1,4 +1,6 @@
 "use client";
+import {TableScroll} from "@/components/TableScroll";
+
 
 import {StudentAvatar} from "./StudentAvatar";
 import { useEffect, useState } from "react";
@@ -208,7 +210,7 @@ export function StudentHistoryModal({ studentId, isOpen, onClose, portalType = "
                           </div>
                         </div>
 
-                        <table className="w-full text-left text-xs border-collapse">
+                        <TableScroll><table className="w-full text-left text-xs border-collapse">
                           <thead>
                             <tr className="bg-zinc-100 text-zinc-700 font-bold text-[10px] uppercase">
                               <th className="p-2 border">Subject</th>
@@ -227,7 +229,7 @@ export function StudentHistoryModal({ studentId, isOpen, onClose, portalType = "
                               </tr>
                             ))}
                           </tbody>
-                        </table>
+                        </table></TableScroll>
                       </div>
                     ))
                   ) : (

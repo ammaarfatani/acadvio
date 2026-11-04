@@ -1,0 +1,33 @@
+MongooseServerSelectionError: connect ECONNREFUSED 127.0.0.1:27018
+    at _handleConnectionErrors (D:\CRM\school-crm\node_modules\.pnpm\mongoose@8.24.4\node_modules\mongoose\lib\connection.js:1169:11)
+    at NativeConnection.openUri (D:\CRM\school-crm\node_modules\.pnpm\mongoose@8.24.4\node_modules\mongoose\lib\connection.js:1100:11)
+    at async D:\CRM\school-crm\tests\workforce-security.cjs:12:16 {
+  errorLabelSet: Set(0) {},
+  reason: TopologyDescription {
+    type: 'ReplicaSetNoPrimary',
+    servers: Map(1) { '127.0.0.1:27018' => [ServerDescription] },
+    stale: false,
+    compatible: true,
+    heartbeatFrequencyMS: 10000,
+    localThresholdMS: 15,
+    setName: 'acadivoDemo',
+    maxElectionId: null,
+    maxSetVersion: null,
+    commonWireVersion: 0,
+    logicalSessionTimeoutMinutes: null
+  },
+  code: undefined,
+  cause: TopologyDescription {
+    type: 'ReplicaSetNoPrimary',
+    servers: Map(1) { '127.0.0.1:27018' => [ServerDescription] },
+    stale: false,
+    compatible: true,
+    heartbeatFrequencyMS: 10000,
+    localThresholdMS: 15,
+    setName: 'acadivoDemo',
+    maxElectionId: null,
+    maxSetVersion: null,
+    commonWireVersion: 0,
+    logicalSessionTimeoutMinutes: null
+  }
+}

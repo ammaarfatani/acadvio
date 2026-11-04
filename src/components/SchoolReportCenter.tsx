@@ -1,4 +1,6 @@
 "use client";
+import {TableScroll} from "@/components/TableScroll";
+
 import { useRecordRefresh } from "@/lib/use-record-refresh";
 import { useEffect, useState, useRef } from "react";
 import { apiFetch, privateFile } from "@/lib/api";
@@ -819,7 +821,7 @@ export default function SchoolReportCenter({
                 <p className="mt-2 text-xs text-zinc-500">{report.note}</p>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
+                <TableScroll><table className="w-full text-left text-xs">
                   <thead className="bg-zinc-100">
                     <tr>
                       {report.columns.map((c: string) => (
@@ -843,7 +845,7 @@ export default function SchoolReportCenter({
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></TableScroll>
               </div>
               {!report.rows.length && (
                 <p className="p-5 text-sm text-zinc-500">

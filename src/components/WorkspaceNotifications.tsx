@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Bell, CheckCheck, RefreshCw, Search, Inbox } from "lucide-react";
 import { apiFetch } from "@/lib/api";
@@ -159,6 +160,7 @@ export default function WorkspaceNotifications() {
                         })
                       : "Date not recorded"}
                   </time>
+                  {typeof item.href==="string"&&/^\/(teacher|finance|exam-staff|receptionist|school-admin|parent)\//.test(item.href)&&<Link className="font-semibold text-school-primary" href={(user?.school?.slug||user?.school?.code?"/"+(user.school.slug||user.school.code):"")+item.href}>View record</Link>}
                   {item.canMarkRead && !item.isRead && (
                     <button
                       disabled={!!reading}

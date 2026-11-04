@@ -1,4 +1,6 @@
 "use client";
+import {TableScroll} from "@/components/TableScroll";
+
 import { StaffAvatar } from "./StudentAvatar";
 import { useState } from "react";
 import { roleLabel } from "./WorkforceUI";
@@ -36,7 +38,7 @@ export default function StaffMonthlyMatrix({ rows, month }: any) {
         Off / no record
       </p>
       <div className="max-h-[600px] overflow-auto">
-        <table className="w-full text-left text-xs">
+        <TableScroll><table className="w-full text-left text-xs">
           <thead className="sticky top-0 z-20 bg-zinc-50">
             <tr>
               <th className="sticky left-0 z-30 min-w-48 bg-zinc-50 p-3">
@@ -94,7 +96,7 @@ export default function StaffMonthlyMatrix({ rows, month }: any) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></TableScroll>
       </div>
       {!employees.length && (
         <p className="p-8 text-center text-sm text-zinc-500">

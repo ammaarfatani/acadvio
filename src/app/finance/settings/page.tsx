@@ -1,4 +1,5 @@
 "use client";
+import {FinanceReminderSettings} from "@/components/FinanceReminderSettings";
 
 
 
@@ -78,6 +79,7 @@ export default function FinanceSettingsPage() {
         </p>
       </div>
 
+      <div className="mb-5"><FinanceReminderSettings/></div>
       {error && (
         <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs font-semibold text-red-800">
           {error}

@@ -1,4 +1,9 @@
 "use client";
+import {useState} from "react";
+import {ParentChallanPreview} from "./ParentChallanPreview";
+import {feeMonth} from "@/lib/fee-math";
+import {TableScroll} from "@/components/TableScroll";
+
 import {
   FileText,
   Landmark,
@@ -35,7 +40,10 @@ export default function ParentFinanceRecords({
   onReceipt: (v: any) => void;
   onRefresh: () => void;
 }) {
-  const fees = data.fees || [],
+  const [challanPreview,setChallanPreview]=useState<any>(null);
+  const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Karachi",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+  const overdue=(value:any)=>new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Karachi",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(value))<today;
+  const fees = (data.fees || []).filter((f:any)=>!f.isVoided&&!["VOIDED","WAIVED"].includes(f.status)),
     submissions = data.submissions || [],
     payments = data.payments || [];
   const total = fees.reduce(
@@ -45,7 +53,7 @@ export default function ParentFinanceRecords({
       remaining: a.remaining + Number(f.remainingAmountPKR || 0),
       overdue:
         a.overdue +
-        (new Date(f.dueDate) < new Date()
+        (overdue(f.dueDate)
           ? Number(f.remainingAmountPKR || 0)
           : 0),
     }),
@@ -53,12 +61,15 @@ export default function ParentFinanceRecords({
   );
   return (
     <div className="family-finance space-y-5">
+      {challanPreview&&<ParentChallanPreview studentId={String(data.student._id)} challan={challanPreview} onClose={()=>setChallanPreview(null)}/>}
       <div className="family-finance-summary">
         {[
           ["Total invoiced", total.issued],
           ["Paid against invoices", total.paid],
           ["Outstanding balance", total.remaining],
           ["Past due", total.overdue],
+          ["Current month fee",fees.filter((f:any)=>{try{return feeMonth(f.month)===today.slice(0,7)}catch{return false}}).reduce((sum:number,f:any)=>sum+Number(f.totalAmountPKR||0),0)],
+          ["Late charges",fees.reduce((sum:number,f:any)=>sum+Number(f.feeBreakdown?.lateFeeFine||0),0)],
         ].map(([k, v]) => (
           <article key={k} data-overdue={k === "Past due" && Number(v) > 0}>
             <span>{k}</span>
@@ -66,6 +77,7 @@ export default function ParentFinanceRecords({
           </article>
         ))}
       </div>
+      <p className="text-sm text-zinc-500">Next due date: {fees.filter((f:any)=>f.remainingAmountPKR>0&&!overdue(f.dueDate)).sort((a:any,b:any)=>+new Date(a.dueDate)-+new Date(b.dueDate))[0]?.dueDate?date(fees.filter((f:any)=>f.remainingAmountPKR>0&&!overdue(f.dueDate)).sort((a:any,b:any)=>+new Date(a.dueDate)-+new Date(b.dueDate))[0].dueDate):"No upcoming unpaid invoice"}</p>
       <section className="family-panel">
         <header>
           <div>
@@ -90,7 +102,7 @@ export default function ParentFinanceRecords({
                   s.status === "PENDING",
               );
               const status =
-                f.remainingAmountPKR > 0 && new Date(f.dueDate) < new Date()
+                f.remainingAmountPKR > 0 && overdue(f.dueDate)
                   ? "OVERDUE"
                   : f.status === "PAID"
                     ? "PAID"
@@ -143,6 +155,7 @@ export default function ParentFinanceRecords({
                       </p>
                     )}
                   </div>
+                  <div className="flex flex-wrap gap-3 px-5 pb-4"><button className="family-secondary-action" onClick={()=>setChallanPreview(f)}>View / download challan</button></div>
                   {f.remainingAmountPKR > 0 && (
                     <footer>
                       {pending ? (
@@ -198,7 +211,7 @@ export default function ParentFinanceRecords({
         </header>
         {submissions.length ? (
           <div className="family-table-scroll">
-            <table className="family-data-table">
+            <TableScroll><table className="family-data-table">
               <thead>
                 <tr>
                   <th>Submitted</th>
@@ -235,7 +248,7 @@ export default function ParentFinanceRecords({
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></TableScroll>
           </div>
         ) : (
           <p className="family-empty">
@@ -258,7 +271,7 @@ export default function ParentFinanceRecords({
         </header>
         {payments.length ? (
           <div className="family-table-scroll">
-            <table className="family-data-table">
+            <TableScroll><table className="family-data-table">
               <thead>
                 <tr>
                   <th>Receipt / date</th>
@@ -294,7 +307,7 @@ export default function ParentFinanceRecords({
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></TableScroll>
           </div>
         ) : (
           <p className="family-empty">
@@ -316,7 +329,7 @@ export default function ParentFinanceRecords({
         </header>
         {data.structures?.length ? (
           <div className="family-table-scroll">
-            <table className="family-data-table">
+            <TableScroll><table className="family-data-table">
               <thead>
                 <tr>
                   <th>Fee structure</th>
@@ -341,7 +354,7 @@ export default function ParentFinanceRecords({
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></TableScroll>
           </div>
         ) : (
           <p className="family-empty">

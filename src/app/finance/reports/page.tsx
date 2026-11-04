@@ -1,4 +1,6 @@
 "use client";
+import {TableScroll} from "@/components/TableScroll";
+
 import { apiFetch } from "@/lib/api";
 import { exportCsvFile } from "@/lib/export-csv";
 import { useRecordRefresh } from "@/lib/use-record-refresh";
@@ -14,6 +16,7 @@ export default function NetFinancialReportsPage() {
 
   const [challans, setChallans] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
+  const [salaryPayments,setSalaryPayments]=useState<any[]>([]),[payrollPaid,setPayrollPaid]=useState(0);
 
   const [sessions, setSessions] = useState<any[]>([]),
     [payments, setPayments] = useState<any[]>([]),
@@ -33,13 +36,13 @@ export default function NetFinancialReportsPage() {
       );
       setChallans(r.data.challans);
       setPayments(r.data.payments);
-      setExpenses(r.data.expenses);
+      setExpenses(r.data.expenses);setSalaryPayments(r.data.salaryPayments||[]);setPayrollPaid(r.data.payrollPaidTotal||0);
       setExpenseScope(r.data.expenseScope);
     } catch (e: any) {
       setError(e.message);
       setChallans([]);
       setPayments([]);
-      setExpenses([]);
+      setExpenses([]);setSalaryPayments([]);setPayrollPaid(0);
     } finally {
       setLoading(false);
     }
@@ -105,6 +108,7 @@ export default function NetFinancialReportsPage() {
               "",
               "",
             ]),
+            ...salaryPayments.map((p)=>["Payroll payment",p.reference,p.payrollId?.snapshot?.employee?.name||"Salary disbursement",p.payrollId?.month||"Payroll",p.paidAt,p.amount,"",""]),
             ...expenses.map((e) => [
               "Expense",
               e.receiptRef,
@@ -149,7 +153,7 @@ export default function NetFinancialReportsPage() {
     0,
   );
 
-  const totalPayrollExpenses = expenses
+  const totalPayrollExpenses = payrollPaid + expenses
     .filter((e) => e.category === "Salary" && !e.isVoided)
     .reduce((sum, e) => sum + Number(e.amountPKR || 0), 0);
   const totalUtilityExpenses = expenses
@@ -167,7 +171,7 @@ export default function NetFinancialReportsPage() {
         !e.isVoided,
     )
     .reduce((sum, e) => sum + Number(e.amountPKR || 0), 0);
-  const totalExpensesSum = expenses
+  const totalExpensesSum = payrollPaid + expenses
     .filter((e) => !e.isVoided)
     .reduce((sum, e) => sum + Number(e.amountPKR || 0), 0);
 
@@ -388,7 +392,7 @@ export default function NetFinancialReportsPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <TableScroll><table className="w-full text-left text-xs">
             <thead className="bg-zinc-950 text-white uppercase text-[10px] font-bold">
               <tr>
                 <th className="p-3.5">Class Name</th>
@@ -437,7 +441,7 @@ export default function NetFinancialReportsPage() {
                 ))
               )}
             </tbody>
-          </table>
+          </table></TableScroll>
         </div>
       </div>
     </div>

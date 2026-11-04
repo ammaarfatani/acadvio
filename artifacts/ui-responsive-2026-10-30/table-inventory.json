@@ -1,0 +1,218 @@
+[
+  {
+    "file": "src/app/exam-staff/candidates/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/exam-staff/certificates/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/exam-staff/marks/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/exam-staff/reports/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/exam-staff/results/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/finance/collection/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/finance/expenses/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/finance/reports/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/receptionist/admissions/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/receptionist/appointments/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/receptionist/parents/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/receptionist/requests/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/receptionist/students/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/receptionist/visitors/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/school-admin/academics/subjects/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/school-admin/academics/timetable/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/school-admin/examinations/marks/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/school-admin/examinations/results/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/school-admin/finance/collection/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/school-admin/finance/expenses/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/school-admin/finance/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/school-admin/finance/receipts/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/school-admin/students/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/super-admin/audit-logs/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/super-admin/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/super-admin/schools/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/super-admin/schools/[id]/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/super-admin/subscriptions/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/super-admin/users/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/teacher/attendance/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/teacher/attendance/reports/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/teacher/leave/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/teacher/marks/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/teacher/profile/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/teacher/students/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/app/teacher/timetable/page.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/components/AnnualMarksheet.tsx",
+    "status": "document/marketing or protected screen: unchanged"
+  },
+  {
+    "file": "src/components/BulkImportModal.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/components/DataChart.tsx",
+    "status": "document/marketing or protected screen: unchanged"
+  },
+  {
+    "file": "src/components/IdentityCards.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/components/OrganizationWorkspace.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/components/ParentFinanceRecords.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/components/ParentRecords.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/components/ParentWeeklyTimetable.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/components/PricingTable.tsx",
+    "status": "document/marketing or protected screen: unchanged"
+  },
+  {
+    "file": "src/components/SchoolDocumentGallery.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/components/SchoolDocuments.tsx",
+    "status": "document/marketing or protected screen: unchanged"
+  },
+  {
+    "file": "src/components/SchoolDocumentTemplate.tsx",
+    "status": "document/marketing or protected screen: unchanged"
+  },
+  {
+    "file": "src/components/SchoolReportCenter.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/components/StaffMonthlyMatrix.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/components/StudentHistoryModal.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/components/SubscriptionOverview.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/components/SubscriptionPayments.tsx",
+    "status": "shared TableScroll applied"
+  },
+  {
+    "file": "src/components/WorkforceUI.tsx",
+    "status": "shared TableScroll applied"
+  }
+]

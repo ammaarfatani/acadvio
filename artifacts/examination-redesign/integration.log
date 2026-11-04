@@ -1,0 +1,14 @@
+Connected isolated local database; initializing indexes.
+[Report export failed] {
+  reports: [ 'students' ],
+  format: [ 'csv' ],
+  code: 413,
+  errorType: 'ReportError'
+}
+[Report export failed] {
+  reports: [ 'students' ],
+  format: [ 'csv' ],
+  code: 404,
+  errorType: 'ReportError'
+}
+PASS: 125 real HTTP/MongoDB report, accuracy, isolation, export and intelligence checks.

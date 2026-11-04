@@ -130,11 +130,13 @@ export async function documentData(
           "Issued certificate not found for this school, student and category.",
       };
     if (issued.documentSnapshot) {
+      if(issued.type==="RESULT"&&!issued.documentSnapshot.result?.subjectScores?.length)throw {statusCode:409,message:"This historical result certificate has no saved examination result. Reissue it with a complete published examination result."};
       const { documentSnapshot, ...certificate } = issued;
       return {
         ...documentSnapshot,
         type: input.type,
         certificate,
+        ...(issued.verificationId?{verificationUrl:(process.env.FRONTEND_URL||"http://localhost:3000").replace(/\/$/,"")+"/verify/certificate/"+issued.verificationId,verificationQr:await require("qrcode").toDataURL((process.env.FRONTEND_URL||"http://localhost:3000").replace(/\/$/,"")+"/verify/certificate/"+issued.verificationId)}:{}),
         generatedAt: issued.issueDate,
       };
     }

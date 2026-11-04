@@ -176,11 +176,13 @@ export function SchoolDocumentTemplate({
     <article
       className={`school-document sd-document sd-${style.family} sd-${type} sd-purpose-${data.certificatePurpose || "general"} sd-font-${style.font} sd-spacing-${style.spacing} ${card ? "sd-card" : ""} ${style.orientation === "landscape" && !card ? "sd-landscape" : ""}`}
       data-page-size={card ? "85.6mm 54mm" : style.pageSize || "A4"}
+      data-document-revoked={certificate?.status==="REVOKED"?"true":undefined}
       data-page-orientation={style.orientation}
       data-page-margin={card ? 0 : style.margin}
       data-photo-align={style.photoAlign}
       style={theme}
     >
+      {certificate?.status==="REVOKED"&&<div className="border-4 border-red-700 p-4 text-center text-xl font-bold text-red-700">REVOKED — NOT A VALID CERTIFICATE</div>}
       {(preview || card) && (
         <div className="sd-preview-label">
           {preview
@@ -615,6 +617,8 @@ export function SchoolDocumentTemplate({
               )}
             </section>
           )}
+          {certificate?.status==="REVOKED"&&<div className="border-4 border-red-700 p-4 text-center text-xl font-bold text-red-700">REVOKED — NOT A VALID CERTIFICATE</div>}
+          {data.verificationQr&&<div className="my-4 flex items-center gap-3"><img src={data.verificationQr} alt="Verify certificate authenticity" width={80} height={80}/><span className="text-xs">Scan to check the current certificate status.</span></div>}
           <DocumentSignatures school={school} style={style} />
         </>
       )}

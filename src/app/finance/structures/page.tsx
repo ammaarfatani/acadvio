@@ -1,4 +1,5 @@
 "use client";
+import {RecordFilters, matchesRecordSearch} from "@/components/RecordFilters";
 
 import { Presence } from "@/components/Motion";
 import { useEffect, useState } from "react";
@@ -26,6 +27,7 @@ interface FeeStructureItem {
 }
 
 export default function FeeStructuresPage() {
+  const [search,setSearch]=useState(""),[filterClass,setFilterClass]=useState(""),[filterSession,setFilterSession]=useState("");
   const [structures, setStructures] = useState<FeeStructureItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -131,6 +133,7 @@ export default function FeeStructuresPage() {
     }
   };
 
+  const filteredStructures=structures.filter(s=>matchesRecordSearch([s.title,s.className,s.sectionName,s.academicSession],search)&&(!filterClass||s.className===filterClass)&&(!filterSession||s.academicSession===filterSession));
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
@@ -163,11 +166,12 @@ export default function FeeStructuresPage() {
       )}
 
       {/* Fee Structures Grid */}
+      <RecordFilters search={search} onSearch={setSearch} placeholder="Search structure, class or session" count={filteredStructures.length} total={structures.length} filters={[{label:"Class",value:filterClass,onChange:setFilterClass,options:Array.from(new Set(structures.map(s=>s.className).filter(Boolean)))},{label:"Session",value:filterSession,onChange:setFilterSession,options:Array.from(new Set(structures.map(s=>s.academicSession).filter(Boolean)))}]} onReset={()=>{setSearch("");setFilterClass("");setFilterSession("")}}/>
       {loading ? (
         <div className="p-8 text-center text-xs text-zinc-500 bg-white border border-zinc-200 rounded-2xl">
           Loading fee structures...
         </div>
-      ) : structures.length === 0 ? (
+      ) : filteredStructures.length === 0 ? (
         <div className="p-12 text-center bg-white border border-dashed border-zinc-300 rounded-2xl space-y-2">
           <CreditCard className="h-8 w-8 text-zinc-400 mx-auto" />
           <h3 className="font-bold text-zinc-950 text-sm">
@@ -180,7 +184,7 @@ export default function FeeStructuresPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {structures.map((s) => (
+          {filteredStructures.map((s) => (
             <div
               key={s._id}
               className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-xs space-y-4"
@@ -262,7 +266,7 @@ export default function FeeStructuresPage() {
 
               <div className="flex justify-between items-center text-[11px] text-zinc-500 font-mono border-t border-zinc-100 pt-2">
                 <span>Due Date: {s.dueDateDay || 10}th of month</span>
-                <span>Late Fine: PKR {s.lateFeeFineRate || 500}/month</span>
+                <span>Late Fine: PKR {s.lateFeeFineRate ?? 500}/month</span>
               </div>
             </div>
           ))}

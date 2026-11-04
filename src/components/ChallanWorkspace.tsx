@@ -1,4 +1,5 @@
 "use client";
+import {RecordFilters,matchesRecordSearch} from "./RecordFilters";
 import { challanPrintGroups } from "@/lib/fee-math";
 import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "@/lib/api";
@@ -12,6 +13,7 @@ import { ClassFeeLedger } from "./ClassFeeLedger";
 import { printSchoolDocument } from "@/lib/print-school-document";
 export default function ChallanWorkspace() {
   const { user } = useAuth();
+  const [search,setSearch]=useState("");
   const [options, setOptions] = useState<any>({
       classes: [],
       sessions: [],
@@ -39,6 +41,7 @@ export default function ChallanWorkspace() {
     [error, setError] = useState(""),
     [notice, setNotice] = useState("");
   const root = useRef<HTMLDivElement>(null);
+  const visibleRows=rows.filter(s=>matchesRecordSearch([s.name,s.admissionNumber,s.studentId,s.rollNumber,s.className,s.sectionName],search));
   const canGenerate = user?.permissions?.includes("fees.update");
   useEffect(() => {
     let live = true;
@@ -300,10 +303,10 @@ export default function ChallanWorkspace() {
               </button>
               <button
                 disabled={busy}
-                onClick={() => setChecked(rows.map((s) => s._id))}
+                onClick={() => setChecked(v=>Array.from(new Set([...v,...visibleRows.map(s=>s._id)])))}
                 className="text-sm underline"
               >
-                Select all
+                Select visible
               </button>
               <button
                 disabled={busy}
@@ -313,8 +316,9 @@ export default function ChallanWorkspace() {
                 Clear selection
               </button>
             </div>
+            <RecordFilters search={search} onSearch={setSearch} placeholder="Search student, admission or roll number" count={visibleRows.length} total={rows.length} onReset={()=>setSearch("")}/>
             <div className="max-h-80 overflow-auto rounded-lg border">
-              {rows.map((s) => (
+              {visibleRows.map((s) => (
                 <label
                   key={s._id}
                   className="flex items-center gap-3 border-b p-3 text-sm"

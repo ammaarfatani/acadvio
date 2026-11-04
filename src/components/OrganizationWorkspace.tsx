@@ -1,18 +1,13 @@
 "use client";
+import {TableScroll} from "@/components/TableScroll";
+
+import BranchManagement from "./BranchManagement";
 import { useRecordRefresh } from "@/lib/use-record-refresh";
 import { PageHeading } from "@/components/ProductUI";
 import DataChart from "./DataChart";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-const blank = {
-  name: "",
-  code: "",
-  address: "",
-  phone: "",
-  email: "",
-  status: "ACTIVE",
-};
 export default function OrganizationWorkspace({
   mode = "overview",
 }: {
@@ -20,19 +15,10 @@ export default function OrganizationWorkspace({
 }) {
   const request = useRef(0);
   const { user } = useAuth();
-  const [adminAccounts, setAdminAccounts] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]),
     [report, setReport] = useState<any>(null),
     [loading, setLoading] = useState(true),
-    [saving, setSaving] = useState(false),
     [error, setError] = useState(""),
-    [editing, setEditing] = useState(""),
-    [form, setForm] = useState(blank),
-    [open, setOpen] = useState(false),
-    [selected, setSelected] = useState(""),
-    [directory, setDirectory] = useState<any>(null),
-    [admin, setAdmin] = useState({ name: "", email: "", password: "" }),
-    [assignId, setAssignId] = useState(""),
     [filters, setFilters] = useState({
       branchId: "",
       from: "",
@@ -48,7 +34,7 @@ export default function OrganizationWorkspace({
       sessions: [],
     });
   const load = useCallback(async () => {
-    if (!user?.isOrganizationOwner) {
+    if (mode === "branches" || !user?.isOrganizationOwner) {
       setLoading(false);
       return;
     }
@@ -59,13 +45,11 @@ export default function OrganizationWorkspace({
       const query = new URLSearchParams(
         Object.fromEntries(Object.entries(filters).filter(([, v]) => v)),
       );
-      const [b, r, a] = await Promise.all([
+      const [b, r] = await Promise.all([
         apiFetch("/organization/branches"),
         apiFetch("/organization/reports?" + query),
-        apiFetch("/organization/admins"),
       ]);
       if (ticket !== request.current) return;
-      setAdminAccounts(a.data);
       setBranches(b.data);
       setReport(r.data);
       setError("");
@@ -74,7 +58,7 @@ export default function OrganizationWorkspace({
     } finally {
       if (ticket === request.current) setLoading(false);
     }
-  }, [user?.isOrganizationOwner, filters]);
+  }, [user?.isOrganizationOwner, filters, mode]);
   useRecordRefresh(load, [
     "finance",
     "school-admin",
@@ -101,42 +85,13 @@ export default function OrganizationWorkspace({
       )
       .catch((e) => setError(e.message));
   }, [mode, user?.isOrganizationOwner]);
-  async function save(e: React.FormEvent) {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      await apiFetch(
-        "/organization/branches" + (editing ? "/" + editing : ""),
-        { method: editing ? "PUT" : "POST", body: JSON.stringify(form) },
-      );
-      setOpen(false);
-      setForm(blank);
-      setEditing("");
-      await load();
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setSaving(false);
-    }
-  }
-  async function view(id: string) {
-    setSelected(id);
-    setDirectory(null);
-    setAssignId("");
-    try {
-      setDirectory(
-        (await apiFetch("/organization/branches/" + id + "/directory")).data,
-      );
-    } catch (e: any) {
-      setError(e.message);
-    }
-  }
   if (!user?.isOrganizationOwner)
     return (
       <p role="alert" className="rounded-xl border bg-white p-6">
         Enterprise organization owner access is required.
       </p>
     );
+  if (mode === "branches") return <BranchManagement/>;
   const totals = report?.totals || {};
   const chartDefinitions = [
     ["Fee collections", "feeTrend", "line", "PKR"],
@@ -155,9 +110,7 @@ export default function OrganizationWorkspace({
       <PageHeading
         eyebrow={user.school?.name}
         title={
-          mode === "branches"
-            ? "Branch management"
-            : mode === "reports"
+          mode === "reports"
               ? "Organization reports"
               : "Organization overview"
         }
@@ -284,8 +237,7 @@ export default function OrganizationWorkspace({
           </p>
         </div>
       )}
-      {mode !== "branches" &&
-        (loading && !report ? (
+      {(loading && !report ? (
           <p role="status">Loading organization records…</p>
         ) : (
           <>
@@ -332,7 +284,7 @@ export default function OrganizationWorkspace({
               ))}
             </div>
             <div className="overflow-auto rounded-xl border bg-white">
-              <table className="w-full text-left text-sm">
+              <TableScroll><table className="w-full text-left text-sm">
                 <thead className="bg-zinc-50">
                   <tr>
                     {[
@@ -373,7 +325,7 @@ export default function OrganizationWorkspace({
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></TableScroll>
             </div>
             <div className="grid gap-4 lg:grid-cols-2">
               {chartDefinitions.map(([title, key, kind, unit]) => (
@@ -421,288 +373,7 @@ export default function OrganizationWorkspace({
             </div>
           </>
         ))}
-      {mode === "branches" && (
-        <>
-          <button
-            onClick={() => {
-              setEditing("");
-              setForm(blank);
-              setOpen(!open);
-            }}
-            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white"
-          >
-            Add branch
-          </button>
-          {open && (
-            <form
-              onSubmit={save}
-              className="grid gap-3 rounded-xl border bg-white p-5 sm:grid-cols-2"
-            >
-              {["name", "code", "address", "phone", "email"].map((k) => (
-                <label key={k} className="text-xs">
-                  Branch {k}
-                  <input
-                    required={k !== "email"}
-                    type={k === "email" ? "email" : "text"}
-                    value={form[k as keyof typeof blank]}
-                    onChange={(e) => setForm({ ...form, [k]: e.target.value })}
-                    className="mt-1 block w-full rounded border p-2"
-                  />
-                </label>
-              ))}
-              <label className="text-xs">
-                Status
-                <select
-                  value={form.status}
-                  onChange={(e) => setForm({ ...form, status: e.target.value })}
-                  className="mt-1 block w-full rounded border p-2"
-                >
-                  <option>ACTIVE</option>
-                  <option>INACTIVE</option>
-                </select>
-              </label>
-              <div className="flex gap-3">
-                <button
-                  disabled={saving}
-                  className="rounded bg-red-600 px-4 py-2 text-sm text-white"
-                >
-                  {saving ? "Saving…" : "Save branch"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="rounded border px-4 py-2 text-sm"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          )}
-          <div className="grid gap-3 md:grid-cols-2">
-            {branches.map((b) => (
-              <article key={b._id} className="rounded-xl border bg-white p-5">
-                <h2 className="font-bold">
-                  {b.name}{" "}
-                  {b.isMain && (
-                    <span className="text-xs text-zinc-500">(Main)</span>
-                  )}
-                </h2>
-                <p className="mt-2 text-sm text-zinc-500">
-                  {b.code} · {b.status}
-                </p>
-                <p className="mt-1 text-sm">{b.address}</p>
-                <p className="mt-1 text-xs text-zinc-500">
-                  {b.phone} {b.email}
-                </p>
-                <div className="mt-4 flex flex-wrap gap-3 text-xs font-semibold">
-                  <button
-                    onClick={() => {
-                      setForm({
-                        name: b.name,
-                        code: b.code,
-                        address: b.address,
-                        phone: b.phone,
-                        email: b.email || "",
-                        status: b.status,
-                      });
-                      setEditing(b._id);
-                      setOpen(true);
-                    }}
-                    className="text-red-600"
-                  >
-                    Edit
-                  </button>
-                  <button onClick={() => void view(b._id)}>
-                    View branch & assign admin
-                  </button>
-                  {!b.isMain && (
-                    <button
-                      disabled={saving}
-                      onClick={async () => {
-                        setSaving(true);
-                        try {
-                          await apiFetch("/organization/branches/" + b._id, {
-                            method: "PUT",
-                            body: JSON.stringify({
-                              name: b.name,
-                              code: b.code,
-                              address: b.address,
-                              phone: b.phone,
-                              email: b.email || "",
-                              status:
-                                b.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
-                            }),
-                          });
-                          await load();
-                        } catch (e: any) {
-                          setError(e.message);
-                        } finally {
-                          setSaving(false);
-                        }
-                      }}
-                    >
-                      {b.status === "ACTIVE" ? "Deactivate" : "Activate"}
-                    </button>
-                  )}
-                </div>
-              </article>
-            ))}
-          </div>
-          {selected && (
-            <section className="space-y-4 rounded-xl border bg-white p-5">
-              <h2 className="font-bold">
-                {branches.find((b) => b._id === selected)?.name}
-              </h2>
-              {directory ? (
-                <>
-                  <p className="text-sm">
-                    Students:{" "}
-                    {report?.branches.find(
-                      (r: any) => r.branch._id === selected,
-                    )?.total || 0}{" "}
-                    · Teachers:{" "}
-                    {report?.branches.find(
-                      (r: any) => r.branch._id === selected,
-                    )?.teachers || 0}
-                  </p>
-                  <p className="text-sm text-zinc-500">
-                    Directory shows up to 200 records; organization reports show
-                    complete totals.
-                  </p>
-                  <div className="grid gap-4 lg:grid-cols-2">
-                    <div>
-                      <h3 className="text-sm font-semibold">
-                        Users & teachers
-                      </h3>
-                      {directory.users.length ? (
-                        directory.users.map((u: any) => (
-                          <p key={u._id} className="border-b py-2 text-xs">
-                            {u.name} · {u.userType} · {u.email} · {u.status}
-                          </p>
-                        ))
-                      ) : (
-                        <p className="py-4 text-sm text-zinc-500">
-                          No data available
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-semibold">Students</h3>
-                      {directory.students.length ? (
-                        directory.students.map((s: any) => (
-                          <p key={s._id} className="border-b py-2 text-xs">
-                            {s.name} · {s.className} · {s.rollNumber}
-                          </p>
-                        ))
-                      ) : (
-                        <p className="py-4 text-sm text-zinc-500">
-                          No data available
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <p role="status">Loading branch directory…</p>
-              )}
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  setSaving(true);
-                  try {
-                    await apiFetch(
-                      "/organization/branches/" + selected + "/admins",
-                      { method: "POST", body: JSON.stringify(admin) },
-                    );
-                    setAdmin({ name: "", email: "", password: "" });
-                    await view(selected);
-                  } catch (e: any) {
-                    setError(e.message);
-                  } finally {
-                    setSaving(false);
-                  }
-                }}
-                className="space-y-3 border-t pt-4"
-              >
-                <h3 className="font-semibold">Create branch School Admin</h3>
-                <div className="flex flex-wrap gap-3">
-                  {["name", "email", "password"].map((k) => (
-                    <input
-                      key={k}
-                      aria-label={"Admin " + k}
-                      required
-                      minLength={k === "password" ? 8 : 2}
-                      type={
-                        k === "password"
-                          ? "password"
-                          : k === "email"
-                            ? "email"
-                            : "text"
-                      }
-                      placeholder={k}
-                      value={admin[k as keyof typeof admin]}
-                      onChange={(e) =>
-                        setAdmin({ ...admin, [k]: e.target.value })
-                      }
-                      className="rounded border p-2 text-sm"
-                    />
-                  ))}
-                  <button
-                    disabled={saving}
-                    className="rounded bg-red-600 px-4 py-2 text-sm text-white"
-                  >
-                    Create admin
-                  </button>
-                </div>
-              </form>
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  setSaving(true);
-                  try {
-                    await apiFetch(
-                      "/organization/branches/" +
-                        selected +
-                        "/admins/" +
-                        assignId,
-                      { method: "PATCH" },
-                    );
-                    await view(selected);
-                  } catch (e: any) {
-                    setError(e.message);
-                  } finally {
-                    setSaving(false);
-                  }
-                }}
-                className="space-y-2 border-t pt-4"
-              >
-                <label className="block text-sm">
-                  Assign existing branch administrator
-                  <select
-                    required
-                    value={assignId}
-                    onChange={(e) => setAssignId(e.target.value)}
-                    className="mt-1 block rounded border p-2"
-                  >
-                    <option value="">Select administrator</option>
-                    {adminAccounts.map((a) => (
-                      <option key={a._id} value={a._id}>
-                        {a.name} · {a.email}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button
-                  disabled={saving}
-                  className="rounded border px-4 py-2 text-sm"
-                >
-                  Assign to branch
-                </button>
-              </form>
-            </section>
-          )}
-        </>
-      )}
+
     </div>
   );
 }

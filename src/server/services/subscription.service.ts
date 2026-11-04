@@ -3,6 +3,23 @@ import { School } from "../models/school.model";
 import { SubscriptionPayment } from "../models/subscriptionPayment.model";
 import { expireTrials } from "./trialLifecycle.service";
 import { SuperAdminService } from "./superadmin.service";
+import { PLAN_CAPACITY, capacityMetric } from "../../lib/plan-capacity";
+import { withoutBranchScope } from "../utils/branchScope";
+import { Student } from "../models/student.model";
+import { User } from "../models/user.model";
+import { Branch } from "../models/branch.model";
+import { PLAN_FEATURE_LABELS } from "../../lib/plan-features";
+export async function subscriptionUsage(schoolId:string, school:any) {
+  const code = ["TRIAL","TRIAL_EXPIRED"].includes(school.status) ? "FREE_TRIAL" : school.plan;
+  const limits = PLAN_CAPACITY[code] || PLAN_CAPACITY.STARTER;
+  const [students,teachers,staff,branches] = await withoutBranchScope(()=>Promise.all([
+    Student.countDocuments({schoolId,status:"ACTIVE"}).exec(),
+    User.countDocuments({schoolId,userType:"TEACHER",status:"ACTIVE"}).exec(),
+    User.countDocuments({schoolId,userType:{$in:["FINANCE","EXAM_STAFF","RECEPTIONIST"]},status:"ACTIVE"}).exec(),
+    Branch.countDocuments({organizationId:schoolId,isMain:{$ne:true}}).exec(),
+  ]));
+  return {scope:"All branches in your organization",students:capacityMetric(students,limits.students),teachers:capacityMetric(teachers,limits.teachers),staff:capacityMetric(staff,code==="STARTER"?0:null),additionalBranches:capacityMetric(branches,limits.additionalBranches),includedFeatures:PLAN_FEATURE_LABELS[code]||[]};
+}
 export function subscriptionOverview(school:any,sub:any,now=new Date()){
   const trial=["TRIAL","TRIAL_EXPIRED"].includes(sub?.status||school.status);
   const end=trial?(sub?.trialEndsAt||school.trialEndsAt):sub?.currentPeriodEnd;
@@ -22,6 +39,6 @@ export class SubscriptionService {
    const [school,sub,plans]=await Promise.all([School.findById(schoolId).lean(),Subscription.findOne({schoolId}).lean(),SuperAdminService.getPlans()]);
    if(!school)throw {statusCode:404,message:"School account not found."};
    const payments=includePayments?await SubscriptionPayment.find({schoolId}).sort({submittedAt:-1}).limit(100).lean():[];
-   return {...(sub||{}),overview:subscriptionOverview(school,sub),plans:plans.filter((p:any)=>p.isActive),payments,latestSuccessfulPayment:payments.find((p:any)=>p.status==="APPROVED"&&p.activationComplete!==false)||null};
+   return {...(sub||{}),overview:subscriptionOverview(school,sub),usage:await subscriptionUsage(schoolId,school),plans:plans.filter((p:any)=>p.isActive),payments,latestSuccessfulPayment:payments.find((p:any)=>p.status==="APPROVED"&&p.activationComplete!==false)||null};
  }
 }

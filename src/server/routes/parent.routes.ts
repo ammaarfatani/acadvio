@@ -1,3 +1,5 @@
+import {parentChallanPdf} from "../services/parentChallanPdf.service";
+import {studentLookup} from "../services/studentLookup.service";
 import { User } from "../models/user.model";
 import { Student } from "../models/student.model";
 import { ParentProfile } from "../models/parentProfile.model";
@@ -179,7 +181,7 @@ router.get(
         schoolId: req.user!.schoolId,
         _id: { $in: profiles.flatMap((p: any) => p.studentIds) },
       })
-        .select("name className rollNumber")
+        .select("name classId className sectionId sectionName rollNumber studentId admissionNumber")
         .lean();
       const records = new Map(studentRows.map((r: any) => [String(r._id), r]));
       return sendSuccess(
@@ -203,6 +205,7 @@ router.get(
   requirePermission("users.manage"),
   async (req, res, next) => {
     try {
+      if(req.query.paged==="1")return sendSuccess(res,await studentLookup(req.user!.schoolId!,req.query,true));
       const term = z
         .string()
         .max(100)
@@ -301,4 +304,5 @@ router.post(
     }
   },
 );
+router.get("/children/:id/challans/:challanId/pdf",requireExactUserType(UserType.PARENT),requirePermission("children.view"),async(req,res,next)=>{try{return sendSuccess(res,await parentChallanPdf(req.user!,id.parse(req.params.id),id.parse(req.params.challanId)));}catch(e){next(e)}});
 export default router;

@@ -1,4 +1,5 @@
 "use client";
+import {WorkspaceTabs} from "./WorkspaceDialog";
 import { BulkMarksheetPrint } from "./BulkMarksheetPrint";
 import { PhotoRecordPicker } from "./PhotoRecordPicker";
 import { useEffect, useState, useMemo } from "react";
@@ -9,6 +10,7 @@ const input =
   "mt-2 min-h-11 w-full min-w-0 rounded-md border border-zinc-300 bg-white p-3 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100";
 export default function MarksheetWorkspace() {
   const { user } = useAuth();
+  const [workflow,setWorkflow]=useState("generate");
   const [sessions, setSessions] = useState<any[]>([]),
     [classes, setClasses] = useState<any[]>([]),
     [exams, setExams] = useState<any[]>([]),
@@ -185,7 +187,7 @@ export default function MarksheetWorkspace() {
         <p className="text-xs font-semibold uppercase tracking-widest text-red-700">
           Examinations & results
         </p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">Marksheets</h1>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight">Marksheet & Papers</h1>
         <p className="mt-2 text-sm text-zinc-500">
           View one examination or an annual result using the class&apos;s saved
           assessment policy.
@@ -199,7 +201,9 @@ export default function MarksheetWorkspace() {
           {error}
         </p>
       )}
-      <fieldset
+      <WorkspaceTabs value={workflow} onChange={setWorkflow} tabs={[{value:"generate",label:"Generate Marksheet"},{value:"policy",label:"Assessment Policy"},{value:"print",label:"Print Class"}]}/>
+      {workflow!=="generate"&&<section className="grid gap-4 rounded-lg border bg-white p-5 sm:grid-cols-2"><label className="text-sm">Academic session<select className={input} value={session} onChange={e=>{setSession(e.target.value);setSheet(null)}}>{sessions.map(s=><option key={s._id} value={s._id}>{s.name}</option>)}</select></label><label className="text-sm">Class<select className={input} value={classId} onChange={e=>{setClass(e.target.value);setSheet(null)}}>{classes.map(c=><option key={c._id} value={c._id}>{c.name}</option>)}</select></label>{workflow==="print"&&<><label className="text-sm">Section<select className={input} value={section} onChange={e=>setSection(e.target.value)}><option value="">All sections</option>{sections.map(s=><option key={s._id} value={s._id}>{s.name}</option>)}</select></label><label className="text-sm">Result view<select className={input} value={view} onChange={e=>setView(e.target.value)}><option value="EXAM">One examination</option><option value="ANNUAL">Annual result</option></select></label><label className="text-sm">Examination<select className={input} value={exam} onChange={e=>setExam(e.target.value)}><option value="">Choose examination</option>{scopedExams.map(e=><option key={e._id} value={e._id}>{e.title}</option>)}</select></label></>}</section>}
+      {workflow==="generate"&&<fieldset
         disabled={busy}
         className="min-w-0 rounded-lg border bg-white p-4 sm:p-6"
       >
@@ -325,15 +329,16 @@ export default function MarksheetWorkspace() {
         >
           {busy ? "Loading…" : "Preview marksheet"}
         </button>
-      </fieldset>
-      {canManage && (
-        <details className="rounded-lg border bg-white p-4 sm:p-6">
-          <summary className="cursor-pointer font-semibold">
+      </fieldset>}
+      {workflow==="policy"&&!canManage&&<p className="rounded border p-5 text-sm">Your account can view marksheets. Assessment policy changes require examination management permission.</p>}
+      {workflow==="policy"&&canManage && (
+        <section className="rounded-lg border bg-white p-4 sm:p-6">
+          <h2 className="font-semibold">
             Annual assessment policy{" "}
             {policy
               ? `· ${policy.method}`
               : "· Not configured (legacy summary retained)"}
-          </summary>
+          </h2>
           <fieldset disabled={busy} className="mt-4 min-w-0 space-y-4">
             <p className="text-sm text-zinc-600">
               Saved per class/session. This changes annual calculations only;
@@ -428,15 +433,15 @@ export default function MarksheetWorkspace() {
               Save assessment policy
             </button>
           </fieldset>
-        </details>
+        </section>
       )}
-      <BulkMarksheetPrint
+      {workflow==="print"&&<BulkMarksheetPrint
         session={session}
         classId={classId}
         section={section}
         exam={exam}
         view={view}
-      />
+      />}
       {sheet && (
         <AnnualMarksheet data={sheet} inline onClose={() => setSheet(null)} />
       )}

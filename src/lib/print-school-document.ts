@@ -6,6 +6,7 @@ export async function printSchoolDocument(root?: Element | null) {
       ".financial-preview-dialog .school-document, #annual-marksheet, .school-document",
     );
   if (!source) throw new Error("Open a document preview before printing.");
+  if(source.getAttribute("data-document-revoked")==="true"||source.querySelector('[data-document-revoked="true"]'))throw new Error("Revoked certificates cannot be printed as valid documents. Review the marked snapshot instead.");
   if (
     source.getAttribute("data-document-ready") === "false" ||
     source.querySelector('[data-document-ready="false"]')

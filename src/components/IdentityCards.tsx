@@ -1,4 +1,6 @@
 "use client";
+import {TableScroll} from "@/components/TableScroll";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiFetch, privateFile, downloadPrivate } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -639,7 +641,7 @@ export function IdentityCardManager() {
         <p role="status">Loading identity records…</p>
       ) : (
         <div className="overflow-x-auto rounded-xl border bg-white">
-          <table className="w-full text-left text-sm">
+          <TableScroll><table className="w-full text-left text-sm">
             <thead className="bg-zinc-50 text-xs uppercase text-zinc-500">
               <tr>
                 {[
@@ -699,7 +701,7 @@ export function IdentityCardManager() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></TableScroll>
           {!rows.length && (
             <p className="p-6 text-sm text-zinc-500">
               No matching identity records.

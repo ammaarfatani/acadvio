@@ -60,6 +60,9 @@ next-env.d.ts
 
 # Synthetic demo login credentials and record ownership manifest
 /artifacts/school-audit/*.private.json
+/artifacts/enterprise-demo/
+/artifacts/enterprise-demo/**/*.private.json
+/DEMO-CREDENTIALS.md
 
 # Local biometric testing database files
 /artifacts/biometric-simulator/local-db/
@@ -68,3 +71,5 @@ next-env.d.ts
 /.next-student-media-verification/
 /artifacts/report-repair/font-build-tools/
 /artifacts/report-real-account/
+
+/artifacts/product-launch/private/

@@ -1,0 +1,2 @@
+Follow-up (2026-11-02): pnpm exec tsc --noEmit PASS after payroll access changes.
+Final follow-up (2026-11-02): pnpm exec tsc --noEmit PASS after tenant role inheritance change.

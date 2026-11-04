@@ -1,177 +1,20 @@
 "use client";
-import { useRecordRefresh } from "@/lib/use-record-refresh";
-
-import { useCallback, useEffect, useState } from "react";
-import { schoolAdminApi } from "@/lib/schoolAdminApi";
-
-export default function StudentAttendancePage() {
-  const [classes, setClasses] = useState<any[]>([]);
-  const [classId, setClassId] = useState("");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [report, setReport] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  useEffect(() => {
-    schoolAdminApi
-      .getClasses()
-      .then((res: any) => setClasses(res?.data || []))
-      .catch((e: any) => setError(e?.message || "Could not load classes."));
-  }, []);
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await schoolAdminApi.getAttendanceReports({
-        from: from || undefined,
-        to: to || undefined,
-        classId: classId || undefined,
-      });
-      setReport(res?.data || null);
-    } catch (e: any) {
-      setError(e?.message || "Unable to load attendance reports.");
-    } finally {
-      setLoading(false);
-    }
-  }, [from, to, classId]);
-  useEffect(() => {
-    void load();
-  }, [load]);
-  useRecordRefresh(load, ["teacher", "school-admin"]);
-  const summary = report?.summary || {
-    present: 0,
-    absent: 0,
-    late: 0,
-    leave: 0,
-    total: 0,
-    attendancePercent: 0,
-  };
-  return (
-    <div className="mx-auto max-w-6xl space-y-6 pb-12">
-      <header>
-        <h1 className="text-2xl font-black">Student Attendance</h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          Read-only attendance monitoring from submitted class registers.
-        </p>
-      </header>
-      {error && (
-        <p
-          role="alert"
-          className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"
-        >
-          {error}
-        </p>
-      )}
-      <div className="flex flex-wrap items-end gap-3 rounded-2xl border border-zinc-200 bg-white p-4">
-        <label className="grid gap-1 text-xs font-semibold">
-          From
-          <input
-            type="date"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            className="rounded-lg border border-zinc-300 px-3 py-2"
-          />
-        </label>
-        <label className="grid gap-1 text-xs font-semibold">
-          To
-          <input
-            type="date"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            className="rounded-lg border border-zinc-300 px-3 py-2"
-          />
-        </label>
-        <label className="grid gap-1 text-xs font-semibold">
-          Class
-          <select
-            value={classId}
-            onChange={(e) => setClassId(e.target.value)}
-            className="min-w-44 rounded-lg border border-zinc-300 px-3 py-2"
-          >
-            <option value="">All classes</option>
-            {classes.map((item) => (
-              <option key={item._id} value={item._id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      {loading ? (
-        <p
-          role="status"
-          className="rounded-xl bg-white p-6 text-sm text-zinc-500"
-        >
-          Loading attendance reports…
-        </p>
-      ) : (
-        <>
-          <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            {[
-              ["Attendance", `${summary.attendancePercent}%`],
-              ["Present", summary.present],
-              ["Absent", summary.absent],
-              ["Late", summary.late],
-              ["Records", summary.total],
-            ].map(([label, value]) => (
-              <div
-                key={String(label)}
-                className="rounded-2xl border border-zinc-200 bg-white p-4"
-              >
-                <p className="text-xs text-zinc-500">{label}</p>
-                <p className="mt-1 text-2xl font-bold">{String(value)}</p>
-              </div>
-            ))}
-          </section>
-          {report?.studentAttendance?.length ? (
-            <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white">
-              <table className="w-full min-w-[650px] text-left text-sm">
-                <thead className="bg-zinc-50 text-xs uppercase text-zinc-500">
-                  <tr>
-                    <th className="p-3">Date</th>
-                    <th className="p-3">Class</th>
-                    <th className="p-3">Section</th>
-                    <th className="p-3">Marked by</th>
-                    <th className="p-3">Present</th>
-                    <th className="p-3">Absent</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {report.studentAttendance.map((doc: any) => {
-                    const present = doc.records.filter(
-                      (r: any) => r.status === "PRESENT" || r.status === "LATE",
-                    ).length;
-                    const absent = doc.records.filter(
-                      (r: any) => r.status === "ABSENT",
-                    ).length;
-                    return (
-                      <tr key={doc._id} className="border-t border-zinc-100">
-                        <td className="p-3">
-                          {new Date(doc.date).toLocaleDateString()}
-                        </td>
-                        <td className="p-3">{doc.className}</td>
-                        <td className="p-3">{doc.sectionName || "—"}</td>
-                        <td className="p-3">{doc.markedByName}</td>
-                        <td className="p-3">{present}</td>
-                        <td className="p-3">{absent}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-10 text-center">
-              <h2 className="font-bold">
-                No attendance records for these filters
-              </h2>
-              <p className="mt-1 text-sm text-zinc-500">
-                Records will appear here after a teacher submits attendance.
-              </p>
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
+import {useCallback,useEffect,useRef,useState} from "react";
+import {schoolAdminApi} from "@/lib/schoolAdminApi";
+import {useRecordRefresh} from "@/lib/use-record-refresh";
+import {Table} from "@/components/WorkforceUI";
+import {RecordFilters,matchesRecordSearch} from "@/components/RecordFilters";
+export default function StudentAttendancePage(){
+ const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Karachi"}).format(new Date());
+ const [classes,setClasses]=useState<any[]>([]),[sections,setSections]=useState<any[]>([]),[classId,setClass]=useState(""),[sectionId,setSection]=useState(""),[from,setFrom]=useState(today.slice(0,7)+"-01"),[to,setTo]=useState(today),[report,setReport]=useState<any>(null),[loading,setLoading]=useState(true),[error,setError]=useState(""),[search,setSearch]=useState(""),[status,setStatus]=useState("");const sequence=useRef(0);
+ useEffect(()=>{Promise.all([schoolAdminApi.getClasses(),schoolAdminApi.getSections()]).then(([c,s]:any)=>{setClasses(c.data||[]);setSections(s.data||[])}).catch(e=>setError(e.message))},[]);
+ const load=useCallback(async()=>{const ticket=++sequence.current;if(from&&to&&from>to){setError("End date must be on or after start date.");setLoading(false);return}setLoading(true);setError("");try{const r=await schoolAdminApi.getAttendanceReports({from:from||undefined,to:to||undefined,classId:classId||undefined,sectionId:sectionId||undefined});if(ticket===sequence.current)setReport(r.data)}catch(e:any){if(ticket===sequence.current)setError(e.message)}finally{if(ticket===sequence.current)setLoading(false)}},[from,to,classId,sectionId]);useEffect(()=>{void load()},[load]);useRecordRefresh(load,["teacher","school-admin"]);
+ const rows=(report?.studentAttendance||[]).flatMap((d:any)=>(d.records||[]).map((r:any)=>({...r,key:d._id+"-"+r.studentId,date:String(d.date).slice(0,10),className:d.className,sectionName:d.sectionName,markedBy:d.markedByName})));
+ const visible=rows.filter((r:any)=>(!status||r.status===status)&&matchesRecordSearch([r.studentName,r.studentCode,r.admissionNumber,r.rollNumber,r.className,r.sectionName],search));const count=(s:string)=>visible.filter((r:any)=>r.status===s).length;
+ const field="min-h-11 w-full rounded-md border border-zinc-300 bg-white px-3 text-sm font-normal";
+ return <main className="min-w-0 space-y-6 pb-12"><header className="border-b pb-5"><p className="text-xs font-semibold uppercase tracking-wider text-school-primary">Student wellbeing</p><h1 className="mt-1 text-3xl font-bold">Student attendance</h1><p className="mt-2 text-sm text-zinc-500">See each student&apos;s name, identifiers and attendance status from submitted class registers. Start with a class or date range, then search a student.</p></header>{error&&<p role="alert" className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+ <section aria-label="Attendance period and class" className="grid items-start gap-4 rounded-lg border bg-white p-4 sm:grid-cols-2 lg:grid-cols-4"><label className="grid gap-2 text-xs font-semibold">From date<input type="date" value={from} max={to||undefined} onChange={e=>setFrom(e.target.value)} className={field}/></label><label className="grid gap-2 text-xs font-semibold">Through date<input type="date" value={to} min={from||undefined} onChange={e=>setTo(e.target.value)} className={field}/></label><label className="grid gap-2 text-xs font-semibold">Class<select value={classId} onChange={e=>{setClass(e.target.value);setSection("")}} className={field}><option value="">All classes</option>{classes.map(c=><option key={c._id} value={c._id}>{c.name}</option>)}</select></label><label className="grid gap-2 text-xs font-semibold">Section<select disabled={!classId} value={sectionId} onChange={e=>setSection(e.target.value)} className={field}><option value="">{classId?"All sections":"Select a class first"}</option>{sections.filter(s=>String(s.classId)===classId).map(s=><option key={s._id} value={s._id}>{s.name}</option>)}</select></label></section>
+ <RecordFilters search={search} onSearch={setSearch} placeholder="Student name, student ID, admission or roll number" count={visible.length} total={rows.length} filters={[{label:"Status",value:status,onChange:setStatus,options:["PRESENT","ABSENT","LATE","LEAVE"]}]} onReset={()=>{setSearch("");setStatus("")}}/>
+ <section className="grid grid-cols-2 gap-3 lg:grid-cols-5">{[["Attendance",visible.length?Math.round((count("PRESENT")+count("LATE"))/visible.length*100)+"%":"0%"],["Present",count("PRESENT")],["Absent",count("ABSENT")],["Late",count("LATE")],["On leave",count("LEAVE")]].map(([label,value])=><div key={String(label)} className="rounded-lg border bg-white p-4"><p className="text-xs text-zinc-500">{label}</p><p className="mt-2 text-2xl font-bold">{value}</p></div>)}</section>
+ {loading?<p role="status" className="rounded-lg border bg-white p-6 text-sm text-zinc-500">Loading student attendance...</p>:<Table searchable={false} headers={["Student","Student / admission ID","Class / section","Roll number","Date","Status","Marked by"]} rows={visible.map((r:any)=>[<b key={r.key}>{r.studentName}</b>,<div key={r.key}>{r.studentCode||"Not provided"}<p className="text-xs text-zinc-500">{r.admissionNumber}</p></div>,`${r.className} / ${r.sectionName||"No section"}`,r.rollNumber||"Not provided",r.date,<span key={r.key} className={`rounded border px-2 py-1 text-xs font-semibold ${r.status==="ABSENT"?"border-red-200 bg-red-50 text-red-800":r.status==="LATE"?"border-amber-200 bg-amber-50 text-amber-800":"bg-zinc-50 text-zinc-700"}`}>{r.status}</span>,r.markedBy])}/>}</main>;
 }

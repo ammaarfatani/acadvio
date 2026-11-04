@@ -1,0 +1,21 @@
+Status: preparation and API verification only; filming remains pending.
+
+[API verified / not filmed] Super Admin: authenticated platform analytics.
+[API verified / not filmed] School Admin: authenticated school dashboard.
+[API verified / not filmed] Teacher: authenticated assigned teaching dashboard.
+[API verified / not filmed] Finance: authenticated financial dashboard.
+[API verified / not filmed] Examination staff: authenticated examination dashboard.
+[API verified / not filmed] Receptionist: authenticated front-desk dashboard.
+[API verified / not filmed] Parent: authenticated linked children.
+
+Planned visual walkthrough, subject to actual UI verification:
+Marketing introduction and portal login.
+School dashboard, admissions and student lookup/profile.
+Classes, sections, timetable and staff administration.
+Student and staff attendance.
+Exams, marks, results, marksheets and certificates.
+Fee structures, challans, collections, receipts and reports.
+Document templates, ID cards and print previews.
+Each available role's actual navigation and primary workflow.
+
+Do not label any feature above as filmed until its real footage is reviewed.

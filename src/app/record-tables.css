@@ -1,0 +1,23 @@
+/* Operational tables share a bounded scroll viewport. Printed school documents
+   and the approved Classes/Sections screens are not opted into this system. */
+.ui-record-frame{min-width:0;max-width:100%;width:100%}
+.ui-record-scroll{min-width:0;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:auto;scrollbar-color:#a7adb6 #f1f3f5;border-radius:inherit}
+.ui-record-scroll:focus-visible{outline:2px solid #df0011;outline-offset:-2px}
+.ui-record-scroll::-webkit-scrollbar{height:12px}
+.ui-record-scroll::-webkit-scrollbar-track{background:#f1f3f5}
+.ui-record-scroll::-webkit-scrollbar-thumb{background:#a7adb6;border:3px solid #f1f3f5;border-radius:8px}
+.ui-record-scroll>table{width:100%;min-width:max-content;table-layout:auto;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ui-record-scroll>table:is(.table-fixed,.family-week-grid){table-layout:fixed}
+.ui-record-scroll>table :is(th,td){white-space:nowrap;word-break:normal;overflow-wrap:normal;min-width:96px}
+.ui-record-scroll>table :is(th,td):first-child{min-width:148px}
+.ui-record-scroll>table td :is(.flex,.inline-flex){flex-wrap:nowrap}
+.ui-record-scroll>table td button{white-space:nowrap;flex-shrink:0}
+.ui-record-scroll .ui-table-actions{display:flex;align-items:center;gap:8px;flex-wrap:nowrap}
+.ui-record-hint{margin:0;border-top:1px solid #e4e7eb;padding:9px 16px;font-size:11px;line-height:1.5;color:#626b78;background:#f8f9fb}
+.ui-record-scroll .ui-cell-prose{white-space:normal;min-width:240px;max-width:440px;overflow-wrap:break-word}
+.ui-teacher-filters{display:grid;grid-template-columns:minmax(220px,1fr) minmax(140px,180px) minmax(160px,210px) auto;align-items:end;gap:16px}
+.ui-teacher-filters :is(input,select){min-height:44px;width:100%}
+.ui-teacher-filters .ui-teacher-count{min-height:44px;display:flex;align-items:center;white-space:nowrap}
+@media(max-width:1100px){.ui-teacher-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:540px){.ui-teacher-filters{grid-template-columns:minmax(0,1fr)}}
+@media print{.ui-record-frame,.ui-record-scroll{max-width:none;overflow:visible}.ui-record-scroll>table{min-width:0;width:100%;table-layout:auto;white-space:normal}.ui-record-scroll>table :is(th,td){min-width:0;white-space:normal;overflow-wrap:break-word}.ui-record-hint{display:none}}

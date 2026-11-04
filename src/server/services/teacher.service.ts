@@ -1,3 +1,4 @@
+import { literalSearch } from "../utils/search.util";
 import {persistMarks} from "./marksPersistence.service";
 import {teacherBatches,mergeTeacherBatches} from "./workforce.service";
 import { branchContext } from "../utils/branchScope";
@@ -302,6 +303,7 @@ export class TeacherService {
     }];
 
     if (search) {
+      search = literalSearch(search);
       scope.push({ $or: [
         { name: { $regex: search, $options: "i" } },
         { rollNumber: { $regex: search, $options: "i" } },
@@ -528,7 +530,11 @@ export class TeacherService {
   static async getSchoolLeavesForAdmin(schoolId: string, statusFilter?: string) {
     const query: any = { schoolId };
     if (statusFilter && statusFilter !== "ALL") query.status = statusFilter;
-    return LeaveRequest.find(query).sort({ createdAt: -1 });
+    const rows=await LeaveRequest.find(query).sort({createdAt:-1}).lean();
+    const {StaffEmployment}=await import("../models/workforce.model");
+    const ids=rows.map((r:any)=>r.teacherId);
+    const [people,jobs]=await Promise.all([User.find({schoolId,_id:{$in:ids}}).select("name userType").lean(),StaffEmployment.find({schoolId,userId:{$in:ids}}).select("userId department employeeId").lean()]);
+    return rows.map((r:any)=>{const person:any=people.find((p:any)=>String(p._id)===String(r.teacherId)),job:any=jobs.find((j:any)=>String(j.userId)===String(r.teacherId));return {...r,teacherName:person?.name||r.teacherName,department:job?.department||"",employeeId:job?.employeeId||"",userType:person?.userType||""}});
   }
 
   static async reviewLeaveRequest(schoolId: string, leaveId: string, status: "APPROVED" | "REJECTED", reviewerName: string, comment?: string) {

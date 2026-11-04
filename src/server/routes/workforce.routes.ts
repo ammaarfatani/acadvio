@@ -1,3 +1,4 @@
+import {paySalary,salaryPayments,salaryPdf} from "../services/salaryPayment.service";
 import { Router } from "express";
 import { z } from "zod";
 import { authenticate } from "../middlewares/auth.middleware";
@@ -8,6 +9,7 @@ import * as b from "../services/biometric.service";
 import * as v from "../validators/workforce.validator";
 import { User } from "../models/user.model";
 import {
+  SalaryPayment,
   StaffDepartment,
   StaffEmployment,
   SchoolCalendar,
@@ -19,9 +21,10 @@ import { LeaveRequest } from "../models/leaveRequest.model";
 import { hasFeature } from "../../lib/plan-features";
 import { dateKey } from "../services/workforceMath";
 const router = Router(),
-  handle = (fn: any) => async (req: any, res: any, next: any) => {
+  handle = (fn: any, message?: (data:any,req:any)=>string) => async (req: any, res: any, next: any) => {
     try {
-      sendSuccess(res, await fn(req));
+      const data=await fn(req);
+      sendSuccess(res, data, message?.(data,req));
     } catch (e) {
       next(e);
     }
@@ -237,12 +240,16 @@ router.post(
       "Reception",
       "Administration",
       ...existing.filter(Boolean),
-    ]))
-      await StaffDepartment.updateOne(
+    ])) {
+      try { await StaffDepartment.updateOne(
         { schoolId: r.user.schoolId, name },
         { $setOnInsert: { schoolId: r.user.schoolId, name } },
         { upsert: true },
-      );
+      ); } catch(error:any) {
+        // Another initialization request can insert the same department first.
+        if(error.code!==11000 || !(await StaffDepartment.exists({schoolId:r.user.schoolId,name})))throw error;
+      }
+    }
     return StaffDepartment.find({ schoolId: r.user.schoolId })
       .sort({ name: 1 })
       .lean();
@@ -323,7 +330,7 @@ router.post(
         await PayrollRecord.exists({
           schoolId: r.user.schoolId,
           month: input.date.slice(0, 7),
-          status: { $in: ["APPROVED", "PAID"] },
+          status: { $in: ["APPROVED", "PARTIALLY_PAID", "PAID"] },
         }).session(session)
       )
         throw {
@@ -370,7 +377,7 @@ router.delete(
         await PayrollRecord.exists({
           schoolId: r.user.schoolId,
           month: row.date.slice(0, 7),
-          status: { $in: ["APPROVED", "PAID"] },
+          status: { $in: ["APPROVED", "PARTIALLY_PAID", "PAID"] },
         }).session(session)
       )
         throw {
@@ -399,11 +406,12 @@ router.get(
     AuditLog.find({
       schoolId: r.user.schoolId,
       resource: {
-        $in: hasFeature(r.user.plan, "FINANCE")
+        $in: hasFeature(r.user.plan, "FINANCE")&&r.user.permissions?.includes("payroll.view")
           ? [
               "StaffAttendance",
               "StaffEmployment",
               "PayrollRecord",
+              "SalaryPayment",
               "SchoolCalendar",
               "BiometricDevice",
               "LeaveRequest",
@@ -564,7 +572,7 @@ router.get(
         month: v.month.optional(),
         employeeId: v.id.optional(),
         status: z
-          .enum(["CALCULATED", "PENDING", "APPROVED", "PAID"])
+          .enum(["CALCULATED", "PENDING", "APPROVED", "PARTIALLY_PAID", "PAID"])
           .optional(),
         role: z.string().max(50).optional(),
         department: z.string().max(100).optional(),
@@ -603,6 +611,7 @@ router.post(
       r.user,
       z.object({ month: v.month }).strict().parse(r.body).month,
     ),
+    (data:any,r:any)=>`${r.body.month}: ${data.calculated} payroll records calculated/refreshed. Open the employee register to review results. Approved and paid records remain protected.`,
   ),
 );
 router.post(
@@ -615,6 +624,7 @@ router.post(
           .object({
             action: z.literal("ADJUST"),
             amount: z.number().min(0).max(1e9),
+            allowance:z.number().min(0).max(1e9).optional(),
             reason: z.string().trim().min(3).max(1000),
           })
           .strict(),
@@ -639,4 +649,8 @@ router.post(
     return w.payrollAction(r.user, v.id.parse(r.params.id), input);
   }),
 );
+router.get("/payroll/:id/payments",payroll,handle((r:any)=>salaryPayments(r.user,v.id.parse(r.params.id))));
+router.post("/payroll/:id/payments",payroll,handle((r:any)=>paySalary(r.user,v.id.parse(r.params.id),r.body)));
+router.get("/payroll/:id/payments/:paymentId/proof",payroll,async(r:any,res,next)=>{try{const rows:any[]=await salaryPayments(r.user,v.id.parse(r.params.id));const pid=v.id.parse(r.params.paymentId);if(!rows.some(p=>String(p._id)===pid))throw {statusCode:404,message:"Payment proof not found."};const payment:any=await SalaryPayment.findOne({_id:pid,schoolId:r.user.schoolId}).select("+proof");if(!payment?.proof)throw {statusCode:404,message:"No proof attached."};res.set("Cache-Control","private, no-store");res.set("X-Content-Type-Options","nosniff");sendSuccess(res,{file:payment.proof.toString("base64"),mime:payment.proofMime});}catch(e){next(e)}});
+router.get("/payroll/:id/pdf",payroll,handle((r:any)=>salaryPdf(r.user,v.id.parse(r.params.id))));
 export default router;

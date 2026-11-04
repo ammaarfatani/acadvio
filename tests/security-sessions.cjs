@@ -1,0 +1,32 @@
+// Real session tests; explicitly refuse the configured online database.
+if (!/^mongodb:\/\/(127\.0\.0\.1|localhost):27018\//.test(process.env.MONGODB_URI || '')) throw Error('Use the isolated local MongoDB on port 27018.');
+const fs=require('node:fs'),ts=require('typescript'),assert=require('node:assert/strict'),crypto=require('node:crypto');
+require.extensions['.ts']=(m,f)=>m._compile(ts.transpileModule(fs.readFileSync(f,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText,f);
+const mongoose=require('mongoose'),{env}=require('../src/server/config/env.ts'),{createApp}=require('../src/server/app.ts'),{User}=require('../src/server/models/user.model.ts'),{AuthService}=require('../src/server/services/auth.service.ts'),{hashPassword}=require('../src/server/utils/password.util.ts');
+const dbName='acadivo_session_security_'+crypto.randomBytes(6).toString('hex');let server,connected=false,checks=0;
+const eq=(a,b,label)=>{assert.equal(a,b,label);checks++};
+(async()=>{try{
+ await mongoose.connect(env.MONGODB_URI,{dbName,serverSelectionTimeoutMS:10000});connected=true;await User.init();
+ const password=crypto.randomBytes(16).toString('hex');const user=await User.create({name:'Disposable security fixture',email:'security@example.invalid',userType:'SUPER_ADMIN',status:'ACTIVE',passwordHash:await hashPassword(password)});
+ server=createApp().listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));const base='http://127.0.0.1:'+server.address().port+'/api';
+ const call=async(path,token)=>fetch(base+path,{headers:token?{Authorization:'Bearer '+token}:{}});
+ let session=await AuthService.login({email:user.email,password});
+ eq((await call('/auth/me',session.accessToken)).status,200,'active platform admin allowed');
+ await User.updateOne({_id:user._id},{$set:{status:'DEACTIVATED'}});
+ eq((await call('/auth/me',session.accessToken)).status,403,'disabled platform admin cannot use stale access token');
+ await assert.rejects(()=>AuthService.refreshToken(session.refreshToken),e=>e.statusCode===403);checks++;
+ await assert.rejects(()=>AuthService.login({email:user.email,password}),e=>e.statusCode===403);checks++;
+ await User.updateOne({_id:user._id},{$set:{status:'ACTIVE'}});
+ session=await AuthService.login({email:user.email,password});
+ const races=await Promise.allSettled([AuthService.refreshToken(session.refreshToken),AuthService.refreshToken(session.refreshToken)]);
+ eq(races.filter(r=>r.status==='fulfilled').length,1,'exactly one concurrent refresh succeeds');
+ eq(races.filter(r=>r.status==='rejected'&&r.reason.statusCode===401).length,1,'concurrent replay rejected');
+ await assert.rejects(()=>AuthService.refreshToken(session.refreshToken),e=>e.statusCode===401);checks++;
+ const rotated=races.find(r=>r.status==='fulfilled').value;
+ eq((await call('/auth/me',rotated.accessToken)).status,200,'successful rotation remains usable');
+ await AuthService.logout(String(user._id));
+ eq((await call('/auth/me',rotated.accessToken)).status,401,'logout revokes existing access token too');
+ await assert.rejects(()=>AuthService.refreshToken(rotated.refreshToken),e=>e.statusCode===401);checks++;
+ eq((await call('/auth/me?userId[$ne]=x',rotated.accessToken)).status,400,'operator-shaped query rejected before database access');
+ console.log(`PASS: ${checks} real HTTP/MongoDB disabled-admin and atomic session-rotation checks. Disposable local database only.`);
+}finally{if(server)await new Promise(r=>server.close(r));if(connected){assert.equal(mongoose.connection.name,dbName);assert(dbName.startsWith('acadivo_session_security_'));await mongoose.connection.dropDatabase();await mongoose.disconnect();}}})().catch(e=>{console.error(e);process.exitCode=1});

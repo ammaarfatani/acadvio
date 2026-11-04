@@ -1,0 +1,32 @@
+[gdigrab @ 00000212a651fac0] Found window localhost - Google Chrome, capturing 1920x1030x32 at (0,0)
+[gdigrab @ 00000212a651fac0] Stream #0: not enough frames to estimate rate; consider increasing probesize
+Input #0, gdigrab, from 'title=localhost - Google Chrome':
+  Duration: N/A, start: 1793288929.785752, bitrate: 949254 kb/s
+  Stream #0:0: Video: bmp, bgr0, 1920x1030, 949254 kb/s, 15 fps, 1000k tbr, 1000k tbn
+Stream mapping:
+  Stream #0:0 -> #0:0 (bmp (native) -> h264 (libx264))
+Press [q] to stop, [?] for help
+[libx264 @ 00000212a6526500] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2
+[libx264 @ 00000212a6526500] profile Constrained Baseline, level 4.0, 4:2:0, 8-bit
+[libx264 @ 00000212a6526500] 264 - core 164 r3192 c24e06c - H.264/MPEG-4 AVC codec - Copyleft 2003-2024 - http://www.videolan.org/x264.html - options: cabac=0 ref=1 deblock=0:0:0 analyse=0:0 me=dia subme=0 psy=1 psy_rd=1.00:0.00 mixed_ref=0 me_range=16 chroma_me=1 trellis=0 8x8dct=0 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=0 threads=6 lookahead_threads=1 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=0 weightp=0 keyint=250 keyint_min=15 scenecut=0 intra_refresh=0 rc=crf mbtree=0 crf=23.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 ip_ratio=1.40 aq=0
+Output #0, mp4, to 'artifacts/product-launch/raw/capture-test.mp4':
+  Metadata:
+    encoder         : Lavf61.7.100
+  Stream #0:0: Video: h264 (avc1 / 0x31637661), yuv420p(tv, progressive), 1920x1030, q=2-31, 15 fps, 15360 tbn
+      Metadata:
+        encoder         : Lavc61.19.100 libx264
+      Side data:
+        cpb: bitrate max/min/avg: 0/0/0 buffer size: 0 vbv_delay: N/A
+frame=    2 fps=0.0 q=11.0 size=       0KiB time=00:00:00.06 bitrate=   5.8kbits/s speed=0.122x    
+frame=   10 fps=9.4 q=11.0 size=       0KiB time=00:00:00.60 bitrate=   0.6kbits/s speed=0.562x    
+frame=   17 fps= 11 q=10.0 size=       0KiB time=00:00:01.06 bitrate=   0.4kbits/s speed=0.666x    
+[out#0/mp4 @ 00000212a6521000] video:216KiB audio:0KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 0.435488%
+frame=   28 fps= 13 q=-1.0 Lsize=     217KiB time=00:00:01.86 bitrate= 952.8kbits/s speed=0.881x    
+[libx264 @ 00000212a6526500] frame I:1     Avg QP:20.00  size:  5926
+[libx264 @ 00000212a6526500] frame P:27    Avg QP:10.93  size:  7957
+[libx264 @ 00000212a6526500] mb I  I16..4: 100.0%  0.0%  0.0%
+[libx264 @ 00000212a6526500] mb P  I16..4: 87.5%  0.0%  0.0%  P16..4:  1.4%  0.0%  0.0%  0.0%  0.0%    skip:11.1%
+[libx264 @ 00000212a6526500] coded y,uvDC,uvAC intra: 0.0% 0.0% 0.0% inter: 0.0% 11.0% 0.0%
+[libx264 @ 00000212a6526500] i16 v,h,dc,p: 100%  0%  0%  0%
+[libx264 @ 00000212a6526500] i8c dc,h,v,p: 98%  2%  0%  0%
+[libx264 @ 00000212a6526500] kb/s:913.50

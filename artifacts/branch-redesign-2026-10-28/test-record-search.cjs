@@ -1,0 +1,10 @@
+const fs=require('node:fs'),ts=require('typescript'),assert=require('node:assert/strict'),Module=require('node:module');
+const file=require('node:path').resolve('src/components/RecordFilters.tsx');const m=new Module(file,module);m.filename=file;m.paths=module.paths;m._compile(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2020}}).outputText,file);
+const {matchesRecordSearch:find}=m.exports;
+assert.equal(find(['Aisha Khan','ADM-004','Class 5'],' AISHA 004 '),true);
+assert.equal(find(['Aisha Khan','ADM-004'],'missing'),false);
+assert.equal(find([undefined,null,2000],'2000'),true);
+assert.equal(find(['Aisha Khan'],'   '),true);
+assert.equal(find(['Aisha Khan','ADM-004'],'Khan 999'),false);
+assert.equal(find(['a.* literal'],'a.*'),true);
+console.log('PASS: 6 record-search checks (multi-field, multiple words, case, empty query, missing values, literal text).');

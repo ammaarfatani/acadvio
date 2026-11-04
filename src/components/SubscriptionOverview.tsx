@@ -1,4 +1,7 @@
 "use client";
+import {TableScroll} from "@/components/TableScroll";
+
+import SubscriptionUsage from "./SubscriptionUsage";
 import { canManageSchoolBilling } from "@/lib/billing-access";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -35,6 +38,12 @@ export default function SubscriptionOverview() {
   }, [user?.userType, user?.isOrganizationOwner, user?.branchId, user?.school?.plan]);
   useEffect(() => {
     void load();
+  }, [load]);
+  useEffect(() => {
+    const update = () => { void load(); };
+    window.addEventListener("focus", update);
+    window.addEventListener("acadivo:data-changed", update);
+    return () => { window.removeEventListener("focus", update); window.removeEventListener("acadivo:data-changed", update); };
   }, [load]);
   const admin = user?.userType === "SCHOOL_ADMIN",
     o = data?.overview;
@@ -118,6 +127,7 @@ export default function SubscriptionOverview() {
                 </p>
               )}
             </section>
+            <SubscriptionUsage usage={data.usage}/>
             <section className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h2 className="text-lg font-bold">Available plans</h2>
@@ -207,7 +217,7 @@ export default function SubscriptionOverview() {
                   </p>
                 )}
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[600px] text-left text-sm">
+                  <TableScroll><table className="w-full min-w-[600px] text-left text-sm">
                     <thead className="bg-zinc-50 text-xs text-zinc-500">
                       <tr>
                         {[
@@ -249,7 +259,7 @@ export default function SubscriptionOverview() {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </table></TableScroll>
                 </div>
                 {!data.payments.length && (
                   <p className="p-7 text-sm text-zinc-500">

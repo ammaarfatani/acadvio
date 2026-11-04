@@ -1,3 +1,7 @@
+import {notifyFeeEvent} from "./financeReminder.service";
+import {SalaryPayment,PayrollRecord} from "../models/workforce.model";
+import {dateKey} from "./workforceMath";
+import {salaryBalance} from "./salaryPayment.service";
 import { feeMonth, feeMonthVariants } from "../../lib/fee-math";
 import { defaultDocumentStyle } from "../../lib/document-templates";
 import { SchoolService } from "./school.service";
@@ -130,6 +134,9 @@ export class FinanceService {
         { $group: { _id: "$category", amount: { $sum: "$amountPKR" } } },
       ]),
     ]);
+    const [salaryRows,payrollRows]=await Promise.all([SalaryPayment.find({schoolId,paidAt:{$gte:monthStart,$lte:new Date(dateKey(now,"Asia/Karachi")+"T23:59:59.999+05:00")}}).select("amount").lean(),PayrollRecord.find({schoolId,month:{$lte:now.toLocaleDateString("en-CA",{timeZone:"Asia/Karachi"}).slice(0,7)}}).lean()]);
+    const salaryPaid=salaryRows.reduce((sum:number,p:any)=>sum+p.amount,0),salaryPending=payrollRows.reduce((sum:number,p:any)=>sum+salaryBalance(p).remaining,0);
+    const legacySalary=categories.find((r:any)=>r._id==="Salary")?.amount||0;
     const c = collections[0] || {},
       b = challans[0] || {},
       expenseAmount = expenses[0]?.amount || 0;
@@ -139,8 +146,12 @@ export class FinanceService {
         monthlyCollectionPKR: c.monthly || 0,
         pendingFeesPKR: b.pendingAmount || 0,
         overdueFeesPKR: b.overdueAmount || 0,
-        totalExpensesPKR: expenseAmount,
-        netCollectionPKR: (c.monthly || 0) - expenseAmount,
+        operationalExpensesPKR:expenseAmount-legacySalary,
+        legacySalaryExpensesPKR:legacySalary,
+        payrollPaidPKR:salaryPaid,
+        payrollPendingPKR:salaryPending,
+        totalExpensesPKR: expenseAmount+salaryPaid,
+        netCollectionPKR: (c.monthly || 0) - expenseAmount-salaryPaid,
         totalChallansCount: b.count || 0,
       },
       statusCounts: {
@@ -470,7 +481,7 @@ export class FinanceService {
         challan.receiptNumber = receiptNumber;
         challan.collectedByUserName = collectorName;
         await challan.save({ session });
-        await FeePayment.create(
+        const [savedPayment]=await FeePayment.create(
           [
             {
               schoolId,
@@ -492,6 +503,7 @@ export class FinanceService {
           ],
           { session },
         );
+        await notifyFeeEvent(challan,"payment",savedPayment,session);
         await AuditLog.create(
           [
             {
@@ -781,6 +793,8 @@ export class FinanceService {
               previousBalance,
               dueDate,
               documentSnapshot,
+              lateFeePolicyAmount: Math.max(0,Number(feeStructure.lateFeeFineRate)||0),
+              ...(lateFeeFine>0?{lateFeeAppliedAt:new Date()}:{}),
               feeBreakdown: {
                 discount,
                 tuitionFee,
@@ -812,6 +826,7 @@ export class FinanceService {
         });
         if (!challan) throw e;
       }
+      await notifyFeeEvent(challan,"generated",null,null).catch(()=>console.error("[Fees] Portal notification pending; reminder worker will retry."));
       generated.push(challan);
     }
 
@@ -824,13 +839,15 @@ export class FinanceService {
 
   // 7. EXPENSES MANAGEMENT
   static async getExpenses(schoolId: string, categoryFilter?: string) {
-    const query: any = { schoolId, isVoided: { $ne: true } };
+    const query: any = { schoolId, isVoided: { $ne: true },category:{$ne:"Salary"} };
+    if(categoryFilter==="Salary")return [];
     if (categoryFilter && categoryFilter !== "ALL")
       query.category = categoryFilter;
     return Expense.find(query).sort({ expenseDate: -1 });
   }
 
   static async createExpense(schoolId: string, data: any, userName: string) {
+    if(data.category==="Salary")throw {statusCode:400,message:"Record salary payments through approved payroll, not operational expenses."};
     const expense = await Expense.create({
       ...data,
       schoolId,

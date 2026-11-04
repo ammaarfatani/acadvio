@@ -187,6 +187,9 @@ export class AuthService {
       throw { statusCode: 401, message: "Expired or invalid refresh token." };
     }
 
+    if (user.userType === UserType.SUPER_ADMIN && user.status !== UserStatus.ACTIVE) {
+      throw { statusCode: 403, message: "Your account is inactive. Contact the platform administrator." };
+    }
     if (user.userType !== UserType.SUPER_ADMIN) {
       const school = user.schoolId ? await School.findById(user.schoolId).select("status registrationType accountStatus") : null;
       if(school?.accountStatus==="DEACTIVATED"&&user.userType!==UserType.SCHOOL_ADMIN)throw {statusCode:403,message:"Organization deactivated."};
@@ -209,8 +212,12 @@ export class AuthService {
     });
 
     const newRefreshToken = generateRefreshToken({ userId: user._id.toString(), tokenVersion: user.tokenVersion || 0 });
-    user.refreshTokenHash = crypto.createHash("sha256").update(newRefreshToken).digest("hex");
-    await user.save();
+    // Concurrent refresh, password changes and logout must not restore a revoked session.
+    const rotated = await User.findOneAndUpdate(
+      { _id: user._id, refreshTokenHash: user.refreshTokenHash, tokenVersion: user.tokenVersion || 0, status: user.status },
+      { $set: { refreshTokenHash: crypto.createHash("sha256").update(newRefreshToken).digest("hex") } },
+    );
+    if (!rotated) throw { statusCode: 401, message: "This session has changed. Please sign in again." };
 
     return {
       accessToken: newAccessToken,
@@ -230,7 +237,7 @@ export class AuthService {
   }
 
   static async logout(userId: string) {
-    await withoutBranchScope(() => User.findByIdAndUpdate(userId, { $unset: { refreshTokenHash: 1 } }).exec());
+    await withoutBranchScope(() => User.findByIdAndUpdate(userId, { $unset: { refreshTokenHash: 1 }, $inc: { tokenVersion: 1 } }).exec());
     return { message: "Logged out successfully." };
   }
 

@@ -1,0 +1,24 @@
+src/server/models/exam.model.ts(301,5): error TS2353: Object literal may only specify known properties, and 'status' does not exist in type '{ type?: SchemaDefinitionProperty<"BONAFIDE" | "CHARACTER" | "LEAVING" | "TRANSFER" | "RESULT", ICertificateRecord, Document<unknown, {}, FlatRecord<ICertificateRecord>, {}, DefaultSchemaOptions> & FlatRecord<...> & Required<...> & { ...; }> | undefined; ... 17 more ...; issuedByUserName?: SchemaDefinitionProperty<....'.
+src/server/models/exam.model.ts(310,5): error TS1117: An object literal cannot have multiple properties with the same name.
+src/server/models/exam.model.ts(311,5): error TS1117: An object literal cannot have multiple properties with the same name.
+src/server/models/exam.model.ts(312,5): error TS1117: An object literal cannot have multiple properties with the same name.
+src/server/models/exam.model.ts(313,5): error TS1117: An object literal cannot have multiple properties with the same name.
+src/server/models/exam.model.ts(314,5): error TS1117: An object literal cannot have multiple properties with the same name.
+src/server/models/exam.model.ts(315,5): error TS1117: An object literal cannot have multiple properties with the same name.
+src/server/models/exam.model.ts(316,5): error TS1117: An object literal cannot have multiple properties with the same name.
+src/server/models/exam.model.ts(317,5): error TS1117: An object literal cannot have multiple properties with the same name.
+src/server/models/exam.model.ts(318,5): error TS1117: An object literal cannot have multiple properties with the same name.
+src/server/routes/exam.routes.ts(219,185): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+src/server/routes/exam.routes.ts(220,200): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+src/server/services/exam.service.ts(975,7): error TS2300: Duplicate identifier 'examId'.
+src/server/services/exam.service.ts(976,7): error TS2300: Duplicate identifier 'examId'.
+src/server/services/exam.service.ts(1043,9): error TS2451: Cannot redeclare block-scoped variable 'result'.
+src/server/services/exam.service.ts(1043,20): error TS2451: Cannot redeclare block-scoped variable 'exam'.
+src/server/services/exam.service.ts(1050,9): error TS2451: Cannot redeclare block-scoped variable 'result'.
+src/server/services/exam.service.ts(1050,20): error TS2451: Cannot redeclare block-scoped variable 'exam'.
+src/server/services/exam.service.ts(1099,11): error TS1117: An object literal cannot have multiple properties with the same name.
+src/server/services/exam.service.ts(1100,11): error TS1117: An object literal cannot have multiple properties with the same name.
+src/server/services/exam.service.ts(1101,11): error TS1117: An object literal cannot have multiple properties with the same name.
+src/server/services/exam.service.ts(1102,11): error TS1117: An object literal cannot have multiple properties with the same name.

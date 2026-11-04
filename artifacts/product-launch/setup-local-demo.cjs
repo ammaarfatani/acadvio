@@ -1,0 +1,27 @@
+// Authorized filming fixtures: strictly isolated loopback MongoDB only.
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),ts=require('typescript'),Module=require('node:module');
+const root=path.resolve(__dirname,'../..'),privateDir=path.join(__dirname,'private');
+Object.assign(process.env,{NODE_ENV:'test',MONGODB_URI:'mongodb://127.0.0.1:27018/acadivo_launch_demo?replicaSet=acadivoDemo',JWT_ACCESS_SECRET:crypto.randomBytes(48).toString('hex'),JWT_REFRESH_SECRET:crypto.randomBytes(48).toString('hex'),SMTP_HOST:'127.0.0.1',SMTP_PORT:'1',SMTP_USER:'',SMTP_PASS:'',FROM_EMAIL:'demo@example.invalid'});
+require.extensions['.ts']=(m,f)=>m._compile(ts.transpileModule(fs.readFileSync(f,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText,f);
+const load=p=>require(path.join(root,p)),mongoose=require('mongoose'),bcrypt=require('bcryptjs');
+load('src/server/utils/email.util.ts').sendEmailNotification=async()=>false;
+const {School}=load('src/server/models/school.model.ts'),{User}=load('src/server/models/user.model.ts'),{Role}=load('src/server/models/role.model.ts'),{Branch}=load('src/server/models/branch.model.ts'),{AcademicSession}=load('src/server/models/academicSession.model.ts'),{ROLE_PERMISSION_MAP}=load('src/server/constants/permissions.constant.ts');
+(async()=>{try{
+ await mongoose.connect(process.env.MONGODB_URI,{serverSelectionTimeoutMS:15000});
+ if(mongoose.connection.host!=='127.0.0.1'||mongoose.connection.name!=='acadivo_launch_demo')throw Error('Unexpected database; stopped.');
+ fs.mkdirSync(privateDir,{recursive:true});const file=path.join(privateDir,'portal-accounts.private.json');const accounts=fs.existsSync(file)?JSON.parse(fs.readFileSync(file,'utf8')):{};
+ const school=await School.findOneAndUpdate({code:'acadivo-launch-demo'},{$setOnInsert:{name:'Acadivo Demo School',code:'acadivo-launch-demo',slug:'acadivo-launch-demo',email:'office@acadivo-demo.example.invalid',phone:'00000000000',address:'Synthetic demonstration environment',studentCountRange:'1-200',teacherCount:0,plan:'ENTERPRISE',status:'ACTIVE',isDemo:true,attendanceMode:'MANUAL'}},{upsert:true,new:true,runValidators:true});
+ await Branch.findOneAndUpdate({_id:school._id},{$setOnInsert:{organizationId:school._id,name:'Main Campus',code:'main',address:'Demo campus',phone:'00000000000',isMain:true,status:'ACTIVE'}},{upsert:true,runValidators:true});
+ await AcademicSession.findOneAndUpdate({schoolId:school._id,name:'2026-2027'},{$setOnInsert:{schoolId:school._id,organizationId:school._id,branchId:school._id,name:'2026-2027',startDate:new Date('2026-04-01'),endDate:new Date('2027-03-31'),isCurrent:true}},{upsert:true,runValidators:true});
+ for(const type of Object.keys(ROLE_PERMISSION_MAP)){
+  const role=await Role.findOneAndUpdate({code:'ROLE_'+type,schoolId:null},{$setOnInsert:{name:type,code:'ROLE_'+type,userType:type,isSystemRole:true,permissions:ROLE_PERMISSION_MAP[type],schoolId:null}},{upsert:true,new:true});
+  if(!['SUPER_ADMIN','SCHOOL_ADMIN','FINANCE','EXAM_STAFF','RECEPTIONIST'].includes(type))continue;
+  if(!accounts[type])accounts[type]={email:type.toLowerCase()+'@acadivo-demo.example.invalid',password:crypto.randomBytes(18).toString('base64url')};
+  const a=accounts[type];await User.findOneAndUpdate({email:a.email},{$setOnInsert:{...(type==='SUPER_ADMIN'?{}:{schoolId:school._id,organizationId:school._id,branchId:school._id}),name:({SUPER_ADMIN:'Demo Platform Owner',SCHOOL_ADMIN:'Demo School Administrator',FINANCE:'Demo Finance Officer',EXAM_STAFF:'Demo Examination Officer',RECEPTIONIST:'Demo Receptionist'})[type],email:a.email,passwordHash:await bcrypt.hash(a.password,12),userType:type,roleId:role._id,status:'ACTIVE',isEmailVerified:true,isOrganizationOwner:type==='SCHOOL_ADMIN'}},{upsert:true,runValidators:true});
+ }
+ fs.writeFileSync(file,JSON.stringify(accounts,null,2));console.log('Local launch school and five portal accounts ready; credentials kept in ignored local file.');
+ await mongoose.disconnect();
+ // Reuse existing real-service fixture workflow, with only local identity/output paths changed.
+ const original=path.join(root,'scripts/seed-school-demo.cjs');let source=fs.readFileSync(original,'utf8').replaceAll('fataniammar188@gmail.com',accounts.SCHOOL_ADMIN.email).replaceAll('Aptech International Institute','Acadivo Demo School').replaceAll('../artifacts/school-audit','../artifacts/product-launch/private');
+ process.argv.push('--apply');const m=new Module(original,module);m.filename=original;m.paths=Module._nodeModulePaths(path.dirname(original));m._compile(source,original);
+ }catch(e){console.error('Local demo setup stopped: '+e.message);await mongoose.disconnect();process.exitCode=1;}})();

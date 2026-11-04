@@ -1,4 +1,6 @@
 "use client";
+import {WorkspaceDialog,workspacePrimary} from "@/components/WorkspaceDialog";
+import {RecordFilters,matchesRecordSearch} from "@/components/RecordFilters";
 
 
 
@@ -7,6 +9,7 @@ import { Layers, Plus, ShieldCheck, DoorOpen, Users, AlertCircle } from "lucide-
 import { schoolAdminApi } from "@/lib/schoolAdminApi";
 
 export default function SectionsPage() {
+  const [showCreate,setShowCreate]=useState(false),[query,setQuery]=useState(""),[filterClass,setFilterClass]=useState(""),[filterStatus,setFilterStatus]=useState("");
   const [sections, setSections] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
   const [teachers, setTeachers] = useState<any[]>([]);
@@ -59,6 +62,7 @@ export default function SectionsPage() {
       });
       formElement.reset();
       setNotice(`Section '${form.get("name")}' created successfully.`);
+      setShowCreate(false);
       await load();
     } catch (e: any) {
       setError(e?.message || "Unable to create section.");
@@ -86,6 +90,7 @@ export default function SectionsPage() {
     }
   }
 
+  const filteredSections=sections.filter(c=>(!filterClass||classes.find(k=>k._id===c.classId)?.name===filterClass)&&matchesRecordSearch([c.name,c.className,classes.find(k=>k._id===c.classId)?.name,c.roomNumber],query));
   return (
     <div className="space-y-6 pb-12 font-sans">
       {/* Header */}
@@ -119,14 +124,8 @@ export default function SectionsPage() {
         </div>
       )}
 
-      {/* Form Card */}
-      <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-xs space-y-4">
-        <div className="flex items-center gap-2 border-b border-zinc-100 pb-3">
-          <Plus className="w-4 h-4 text-red-600" />
-          <h2 className="text-sm font-bold text-zinc-900">Add New Section Division</h2>
-        </div>
-
-        <form onSubmit={create} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 text-xs items-end">
+  <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-zinc-500">Browse records below. Use the button to add a new record.</p><button className={workspacePrimary} onClick={()=>setShowCreate(true)}>Add section</button></div>
+ {showCreate&&<WorkspaceDialog title="Add section" description="Choose a class, then define its section name, room and capacity." busy={saving} onClose={()=>setShowCreate(false)} wide>{error&&<p role="alert" className="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}      <form onSubmit={create} className="grid items-start gap-4 sm:grid-cols-2 text-xs">
           <label className="grid gap-1 font-bold text-zinc-800">
             Class *
             <select required name="classId" className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-900 focus:outline-none">
@@ -160,9 +159,9 @@ export default function SectionsPage() {
           >
             {saving ? "Creating…" : "Create Section"}
           </button>
-        </form>
-      </div>
+        </form></WorkspaceDialog>}
 
+<RecordFilters search={query} onSearch={setQuery} placeholder="Search sections, names or identifiers" count={filteredSections.length} total={sections.length} filters={[{label:"Class",value:filterClass,onChange:setFilterClass,options:classes.map(c=>c.name)}]} onReset={()=>{setQuery("");setFilterClass("");setFilterStatus("")}}/>
       {/* Sections Grid */}
       {loading ? (
         <div className="p-8 text-center text-xs font-bold text-zinc-400 animate-pulse">
@@ -170,7 +169,7 @@ export default function SectionsPage() {
         </div>
       ) : sections.length ? (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {sections.map((section) => {
+          {filteredSections.map((section) => {
             const assignment = assignments.find((item) => String(item.sectionId?._id || item.sectionId) === section._id);
             const currentTeacherId = String(assignment?.teacherUserId?._id || assignment?.teacherUserId || "");
             const currentTeacher = teachers.find((t) => t._id === currentTeacherId);

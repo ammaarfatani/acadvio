@@ -1,4 +1,6 @@
 "use client";
+import {TableScroll} from "@/components/TableScroll";
+
 
 
 
@@ -66,7 +68,7 @@ export default function ExpensesPage() {
         <p role="status" className="rounded-xl bg-white p-8 text-center text-xs text-zinc-500 border border-zinc-200">Loading expenses...</p>
       ) : filtered.length ? (
         <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-xs">
-          <table className="w-full min-w-[650px] text-left text-xs">
+          <TableScroll><table className="w-full min-w-[650px] text-left text-xs">
             <thead className="bg-zinc-950 text-white text-[10px] uppercase font-bold">
               <tr>
                 <th className="p-3.5">Expense Title</th>
@@ -92,7 +94,7 @@ export default function ExpensesPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></TableScroll>
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-10 text-center space-y-1">

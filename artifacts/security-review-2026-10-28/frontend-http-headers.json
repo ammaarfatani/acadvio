@@ -1,0 +1,29 @@
+[
+  {
+    "path": "/login",
+    "status": 200,
+    "nosniff": "nosniff",
+    "frame": "DENY",
+    "csp": "frame-ancestors 'none'; base-uri 'self'; object-src 'none'",
+    "hsts": "max-age=31536000; includeSubDomains",
+    "poweredBy": null
+  },
+  {
+    "path": "/payment?plan=PROFESSIONAL&billingCycle=monthly&market=GB",
+    "status": 200,
+    "nosniff": "nosniff",
+    "frame": "DENY",
+    "csp": "frame-ancestors 'none'; base-uri 'self'; object-src 'none'",
+    "hsts": "max-age=31536000; includeSubDomains",
+    "poweredBy": null
+  },
+  {
+    "path": "/favicon.ico",
+    "status": 200,
+    "nosniff": "nosniff",
+    "frame": "DENY",
+    "csp": "frame-ancestors 'none'; base-uri 'self'; object-src 'none'",
+    "hsts": "max-age=31536000; includeSubDomains",
+    "poweredBy": null
+  }
+]

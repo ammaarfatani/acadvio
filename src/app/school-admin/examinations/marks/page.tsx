@@ -1,4 +1,6 @@
 "use client";
+import {TableScroll} from "@/components/TableScroll";
+
 import { StudentAvatar } from "@/components/StudentAvatar";
 
 import { useEffect, useState } from "react";
@@ -428,7 +430,7 @@ export default function MarksEntryPage() {
           </div>
         ) : students.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <TableScroll><table className="w-full text-left text-xs">
               <thead className="bg-zinc-100/70 border-b border-zinc-200 text-zinc-600 font-bold uppercase text-[10px]">
                 <tr>
                   <th className="p-3 w-20 text-center">Roll No</th>
@@ -519,7 +521,7 @@ export default function MarksEntryPage() {
                   );
                 })}
               </tbody>
-            </table>
+            </table></TableScroll>
           </div>
         ) : (
           <div className="p-12 text-center text-zinc-500">

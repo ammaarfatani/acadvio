@@ -1014,7 +1014,7 @@ if (require.main === module) {
   seedDatabase()
     .then(() => process.exit(0))
     .catch((err) => {
-      console.error("[Seeder] Error during seed:", err);
+      console.error("[Seeder] Initialization failed. Review server configuration.");
       process.exit(1);
     });
 }

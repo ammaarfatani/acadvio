@@ -1,0 +1,48 @@
+{
+  "localOnly": true,
+  "recorded": false,
+  "results": [
+    {
+      "role": "SUPER_ADMIN",
+      "login": 200,
+      "endpoint": "/super-admin/analytics",
+      "status": 200
+    },
+    {
+      "role": "SCHOOL_ADMIN",
+      "login": 200,
+      "endpoint": "/school-admin/dashboard",
+      "status": 200
+    },
+    {
+      "role": "TEACHER",
+      "login": 200,
+      "endpoint": "/teacher/dashboard",
+      "status": 200
+    },
+    {
+      "role": "FINANCE",
+      "login": 200,
+      "endpoint": "/finance/dashboard",
+      "status": 200
+    },
+    {
+      "role": "EXAM_STAFF",
+      "login": 200,
+      "endpoint": "/exams/dashboard",
+      "status": 200
+    },
+    {
+      "role": "RECEPTIONIST",
+      "login": 200,
+      "endpoint": "/receptionist/dashboard",
+      "status": 200
+    },
+    {
+      "role": "PARENT",
+      "login": 200,
+      "endpoint": "/parent/children",
+      "status": 200
+    }
+  ]
+}

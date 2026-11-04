@@ -1,4 +1,6 @@
 "use client";
+import {TableScroll} from "@/components/TableScroll";
+
 import {StudentAvatar} from "@/components/StudentAvatar";
 
 
@@ -192,7 +194,7 @@ export default function ReceptionistStudentsPage() {
       {/* STUDENTS TABLE */}
       <div className="bg-white border border-zinc-200 rounded-2xl shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs min-w-[850px]">
+          <TableScroll><table className="w-full text-left text-xs min-w-[850px]">
             <thead className="bg-zinc-50 border-b border-zinc-200 text-zinc-500 font-bold uppercase tracking-wider text-[11px]">
               <tr>
                 <th className="py-3 px-4">Student</th>
@@ -284,7 +286,7 @@ export default function ReceptionistStudentsPage() {
                 })
               )}
             </tbody>
-          </table>
+          </table></TableScroll>
         </div>
 
         {/* PAGINATION */}

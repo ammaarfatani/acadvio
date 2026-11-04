@@ -1,4 +1,5 @@
 "use client";
+import {RecordFilters,matchesRecordSearch} from "@/components/RecordFilters";
 import { printSchoolDocument } from "@/lib/print-school-document";
 
 import { FeeDocument } from "@/components/SchoolDocuments";
@@ -9,6 +10,7 @@ import { useAuth } from "@/lib/auth-context";
 
 export default function PrintableReceiptPage() {
   const { user } = useAuth();
+  const [search,setSearch]=useState("");
   const [payment, setPayment] = useState<any>(null);
   const [paidChallans, setPaidChallans] = useState<any[]>([]);
   const [selectedChallanId, setSelectedChallanId] = useState<string>("");
@@ -64,6 +66,7 @@ export default function PrintableReceiptPage() {
     void loadReceipt(cId);
   };
 
+  const filteredPaid=paidChallans.filter(c=>matchesRecordSearch([c.challanNumber,c.studentName,c.admissionNumber,c.rollNumber,c.month],search));
   const challan = payment?.challanId;
   const student = payment?.studentId;
   const feeRows = Object.entries(challan?.feeBreakdown || {})
@@ -94,8 +97,9 @@ export default function PrintableReceiptPage() {
         </button>
       </div>
 
+      {paidChallans.length>0&&<RecordFilters search={search} onSearch={setSearch} placeholder="Search receipt, student, admission or month" count={filteredPaid.length} total={paidChallans.length} onReset={()=>setSearch("")}/>}
       {paidChallans.length > 0 && (
-        <div className="print:hidden bg-white border border-zinc-200 p-4 rounded-xl flex items-center justify-between gap-4">
+        <div className="print:hidden bg-white border border-zinc-200 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <span className="font-bold text-zinc-950">
             Select Paid Transaction ({paidChallans.length} Receipts Available):
           </span>
@@ -104,7 +108,7 @@ export default function PrintableReceiptPage() {
             onChange={(e) => handleSelectChallan(e.target.value)}
             className="border border-zinc-300 rounded-lg px-3 py-1.5 font-mono font-bold bg-zinc-50"
           >
-            {paidChallans.map((c) => (
+            {filteredPaid.map((c) => (
               <option key={c._id} value={c._id}>
                 {c.challanNumber} — {c.studentName} (Paid PKR{" "}
                 {(c.paidAmountPKR || 0).toLocaleString()})

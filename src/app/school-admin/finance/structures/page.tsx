@@ -1,9 +1,11 @@
 "use client";
+import {RecordFilters, matchesRecordSearch} from "@/components/RecordFilters";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { schoolAdminApi } from "@/lib/schoolAdminApi";
 
 export default function FeeStructuresPage() {
+  const [search,setSearch]=useState(""),[filterClass,setFilterClass]=useState(""),[filterSession,setFilterSession]=useState("");
   const [structures, setStructures] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,6 +59,7 @@ export default function FeeStructuresPage() {
       setSaving(false);
     }
   }
+  const filteredStructures=structures.filter(s=>matchesRecordSearch([s.title,s.className,s.sectionName,s.academicSession],search)&&(!filterClass||s.className===filterClass)&&(!filterSession||s.academicSession===filterSession));
   return (
     <div className="mx-auto max-w-6xl space-y-6 pb-12">
       <header>
@@ -81,6 +84,7 @@ export default function FeeStructuresPage() {
           {notice}
         </p>
       )}
+      <details className="rounded-lg border bg-white"><summary className="cursor-pointer px-5 py-4 text-sm font-semibold text-red-700">Create a fee structure</summary>
       <form
         onSubmit={create}
         className="grid gap-3 rounded-2xl border border-zinc-200 bg-white p-5 sm:grid-cols-2 lg:grid-cols-4"
@@ -138,7 +142,8 @@ export default function FeeStructuresPage() {
         >
           {saving ? "Saving…" : "Create structure"}
         </button>
-      </form>
+      </form></details>
+      <RecordFilters search={search} onSearch={setSearch} placeholder="Search structure, class or session" count={filteredStructures.length} total={structures.length} filters={[{label:"Class",value:filterClass,onChange:setFilterClass,options:Array.from(new Set(structures.map(s=>s.className).filter(Boolean)))},{label:"Session",value:filterSession,onChange:setFilterSession,options:Array.from(new Set(structures.map(s=>s.academicSession).filter(Boolean)))}]} onReset={()=>{setSearch("");setFilterClass("");setFilterSession("")}}/>
       {loading ? (
         <p
           role="status"
@@ -146,9 +151,9 @@ export default function FeeStructuresPage() {
         >
           Loading fee structures…
         </p>
-      ) : structures.length ? (
+      ) : filteredStructures.length ? (
         <div className="grid gap-3 sm:grid-cols-2">
-          {structures.map((item) => (
+          {filteredStructures.map((item) => (
             <article
               key={item._id}
               className="rounded-2xl border border-zinc-200 bg-white p-5"

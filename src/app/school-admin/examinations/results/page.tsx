@@ -1,4 +1,6 @@
 "use client";
+import {TableScroll} from "@/components/TableScroll";
+
 
 
 
@@ -297,7 +299,7 @@ export default function ResultsPage() {
           </div>
         ) : filteredResults.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <TableScroll><table className="w-full text-left text-xs">
               <thead className="bg-zinc-100/70 border-b border-zinc-200 text-zinc-600 font-bold uppercase text-[10px]">
                 <tr>
                   <th className="p-3.5 text-center w-16">Rank</th>
@@ -369,7 +371,7 @@ export default function ResultsPage() {
                   );
                 })}
               </tbody>
-            </table>
+            </table></TableScroll>
           </div>
         ) : (
           <div className="p-12 text-center text-zinc-500">

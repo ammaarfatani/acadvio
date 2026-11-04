@@ -21,11 +21,13 @@ import teacherRoutes from "./teacher.routes";
 import financeRoutes from "./finance.routes";
 import examRoutes from "./exam.routes";
 import receptionistRoutes from "./receptionist.routes";
+import staffCertificateRoutes from "./staffCertificate.routes";
 
 const router = Router();
 router.use("/smart-reports",smartReportsRoutes);
 router.use("/id-cards",identityCardRoutes);
 router.use("/school-documents",schoolDocumentRoutes);
+router.use("/staff-certificates",staffCertificateRoutes);
 router.use("/student-media",studentMediaRoutes);
 router.use("/workforce", workforceRoutes);
 

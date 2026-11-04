@@ -1,0 +1,8 @@
+Testing only: local MongoDB 127.0.0.1:27018.
+Temporary test records are separate from your school records.
+Connected disposable database; initializing indexes.
+Indexes ready; checking real workforce endpoints.
+PASS: 83 finance/payroll HTTP and scheduler MongoDB checks.
+Follow-up (2026-11-02): PASS: 98 finance/payroll HTTP and scheduler MongoDB checks, including school-scoped Finance access grant/revoke and School Admin payments.
+Final follow-up (2026-11-02): PASS: 102 finance/payroll HTTP and scheduler MongoDB checks, including future Finance account permission inheritance.
+Final follow-up (2026-11-02): PASS: 103 finance/payroll HTTP and scheduler MongoDB checks, including only Bank Transfer / Online and Cash payment methods.

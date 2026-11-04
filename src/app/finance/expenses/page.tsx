@@ -1,4 +1,6 @@
 "use client";
+import {TableScroll} from "@/components/TableScroll";
+
 import {useRecordRefresh} from "@/lib/use-record-refresh";
 import {confirmAction,requestReason} from "@/components/ConfirmationHost";
 
@@ -13,7 +15,7 @@ interface ExpenseItem {
   _id: string;
   id?: string;
   title: string;
-  category: "Salary" | "Rent" | "Electricity" | "Stationery" | "Maintenance" | "Transport" | "Other";
+  category: "Water" | "Rent" | "Electricity" | "Stationery" | "Maintenance" | "Transport" | "Other";
   amountPKR: number;
   expenseDate: string;
   paymentMethod: string;
@@ -33,7 +35,7 @@ export default function ExpenseManagementPage() {
 
   // Form State
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState<"Salary" | "Rent" | "Electricity" | "Stationery" | "Maintenance" | "Transport" | "Other">("Stationery");
+  const [category, setCategory] = useState<"Water" | "Rent" | "Electricity" | "Stationery" | "Maintenance" | "Transport" | "Other">("Stationery");
   const [amountPKR, setAmountPKR] = useState(0);
   const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split("T")[0]);
   const [paymentMethod, setPaymentMethod] = useState("Cash");
@@ -147,7 +149,7 @@ export default function ExpenseManagementPage() {
       {/* Filter Bar */}
       <div className="bg-white border border-zinc-200 p-4 rounded-xl shadow-xs flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="flex flex-wrap items-center gap-1.5">
-          {["ALL", "Salary", "Rent", "Electricity", "Stationery", "Maintenance", "Transport", "Other"].map((cat) => (
+          {["ALL", "Water", "Rent", "Electricity", "Stationery", "Maintenance", "Transport", "Other"].map((cat) => (
             <button
               key={cat}
               onClick={() => setCategoryFilter(cat)}
@@ -180,7 +182,7 @@ export default function ExpenseManagementPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <TableScroll><table className="w-full text-left text-xs">
             <thead className="bg-zinc-950 text-white uppercase text-[10px] font-bold">
               <tr>
                 <th className="p-3.5">Expense Title</th>
@@ -244,7 +246,7 @@ export default function ExpenseManagementPage() {
                 })
               )}
             </tbody>
-          </table>
+          </table></TableScroll>
         </div>
       </div>
 
@@ -280,7 +282,7 @@ export default function ExpenseManagementPage() {
                     onChange={(e: any) => setCategory(e.target.value)}
                     className="w-full border border-zinc-300 rounded-lg p-2.5 bg-zinc-50 focus:outline-none"
                   >
-                    <option value="Salary">Salary Payroll</option>
+                    <option value="Water">Water</option>
                     <option value="Rent">Building Rent</option>
                     <option value="Electricity">Electricity & Utilities</option>
                     <option value="Stationery">Stationery & Printing</option>

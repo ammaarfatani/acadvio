@@ -20,7 +20,7 @@ body{font-family:var(--font-sans)}:focus-visible{outline:2px solid var(--acadivo
 /* Shared portal alignment safeguards; tables keep their own scroll regions. */
 .portal-shell .portal-content form,.portal-shell .portal-content form>*,.portal-shell .portal-content .grid>*{min-width:0}
 .portal-shell .portal-content input,.portal-shell .portal-content select,.portal-shell .portal-content textarea{max-width:100%}
-.portal-shell .portal-content td{overflow-wrap:anywhere}.portal-shell [role=dialog],.portal-shell [role=alertdialog]{max-height:calc(100dvh - 32px);overflow-y:auto}
+.portal-shell .portal-content td{overflow-wrap:normal;word-break:normal}.portal-shell [role=dialog],.portal-shell [role=alertdialog]{max-height:calc(100dvh - 32px);overflow-y:auto}
 @media(max-width:640px){.portal-shell .portal-content .flex.items-center.justify-between{flex-wrap:wrap;gap:12px}.portal-shell .portal-content .flex.items-center.justify-between>select{width:100%}.portal-shell .portal-content form button[type=submit]{min-height:44px}}
 
 /* Header controls share a baseline; the branch caption never shifts its field. */

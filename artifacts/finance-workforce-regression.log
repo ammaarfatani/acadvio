@@ -1,0 +1,7 @@
+Testing only: local MongoDB 127.0.0.1:27018.
+Temporary test records are separate from your school records.
+Connected disposable database; initializing indexes.
+Indexes ready; checking real workforce endpoints.
+PASS: 136 real workforce HTTP/MongoDB checks.
+Follow-up (2026-11-02): PASS: 136 real workforce HTTP/MongoDB checks.
+Final follow-up (2026-11-02): PASS: 136 real workforce HTTP/MongoDB checks.

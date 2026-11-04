@@ -1,8 +1,10 @@
 "use client";
+import {TableScroll} from "@/components/TableScroll";
 
 
 
-import { useEffect, useState } from "react";
+
+import { useEffect, useState, useRef } from "react";
 import {
   FileCheck2,
   CheckCircle2,
@@ -13,9 +15,11 @@ import {
   ShieldCheck,
   HelpCircle,
 } from "lucide-react";
+import {confirmAction} from "@/components/ConfirmationHost";
 import { examStaffApi } from "@/lib/examStaffApi";
 
 export default function MarksEntryDeskPage() {
+  const [dirty,setDirty]=useState(false),[loadedKey,setLoadedKey]=useState(""),[studentSearch,setStudentSearch]=useState("");
   const [activeTab, setActiveTab] = useState<"ENTRY" | "MISSING" | "VERIFICATION">("ENTRY");
 
   const [exams, setExams] = useState<any[]>([]);
@@ -75,7 +79,13 @@ export default function MarksEntryDeskPage() {
     }
   }, [selectedClassId]);
 
-  const loadMarks = async () => {
+  const selectionKey=[selectedExamId,selectedClassId,selectedSectionId,selectedSubjectId].join("/");
+  const currentSelection=useRef(selectionKey);currentSelection.current=selectionKey;
+  const ready=loadedKey===selectionKey;
+  useEffect(()=>{if(!dirty)return;const warn=(e:BeforeUnloadEvent)=>{e.preventDefault();e.returnValue=""};window.addEventListener("beforeunload",warn);return()=>window.removeEventListener("beforeunload",warn)},[dirty]);
+  const loadMarks = async (afterSave=false) => {
+    if(loading||saving&&!afterSave)return;
+    if(dirty&&!afterSave&&!(await confirmAction("Discard unsaved marks and load this selection?")))return;
     if (!selectedExamId || !selectedClassId || !selectedSubjectId) return;
 
     setLoading(true);
@@ -86,6 +96,8 @@ export default function MarksEntryDeskPage() {
         examStaffApi.getMarks(selectedExamId, selectedClassId, selectedSubjectId, selectedSectionId),
       ]);
 
+      if(currentSelection.current!==selectionKey)return;
+      setLoadedKey(selectionKey);setDirty(false);
       const studentList = stuRes?.data || [];
       setStudents(studentList);
 
@@ -121,10 +133,11 @@ export default function MarksEntryDeskPage() {
   };
 
   useEffect(() => {
-    void loadMarks();
+    if(!dirty){setStudents([]);setExistingMarksDoc(null);}
   }, [selectedExamId, selectedClassId, selectedSectionId, selectedSubjectId]);
 
   const handleRecordChange = (studentId: string, field: "obtainedMarks" | "remarks" | "isAbsent", value: any) => {
+    setDirty(true);
     setMarksRecords((prev) => ({
       ...prev,
       [studentId]: {
@@ -136,13 +149,14 @@ export default function MarksEntryDeskPage() {
 
   const handleSaveMarks = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedExamId || !selectedClassId || !selectedSubjectId || students.length === 0) return;
+    if (saving||!ready||!selectedExamId || !selectedClassId || !selectedSubjectId || students.length === 0) return;
+    if(!Number.isFinite(maxMarks)||maxMarks<=0||!Number.isFinite(passingMarks)||passingMarks<0||passingMarks>maxMarks){setError("Passing marks must be between zero and maximum marks.");return;}
 
     // Validate marks limits
     for (const s of students) {
       const rec = marksRecords[s._id];
       if (rec) {
-        if (rec.obtainedMarks!=="" && (rec.obtainedMarks < 0 || rec.obtainedMarks > maxMarks)) {
+        if (rec.obtainedMarks!=="" && (!Number.isFinite(rec.obtainedMarks) || rec.obtainedMarks < 0 || rec.obtainedMarks > maxMarks)) {
           setError(`Invalid marks for ${s.name}: Marks must be between 0 and ${maxMarks}.`);
           return;
         }
@@ -175,7 +189,7 @@ export default function MarksEntryDeskPage() {
 
       setNotice("Marks saved successfully and student grades calculated!");
       setTimeout(() => setNotice(null), 4000);
-      await loadMarks();
+      setDirty(false);await loadMarks(true);
     } catch (err: any) {
       setError(err?.message || "Unable to save examination marks.");
     } finally {
@@ -190,7 +204,7 @@ export default function MarksEntryDeskPage() {
         <div>
           <h1 className="text-2xl font-black text-zinc-950 flex items-center gap-2">
             <FileCheck2 className="h-6 w-6 text-school-primary" />
-            Marks Entry, Verification & Missing Marks Desk
+            Mark Entry
           </h1>
           <p className="text-xs text-zinc-500">
             Record subject marks, verify teacher-entered scores, and track missing mark sheets across examination terms.
@@ -198,7 +212,7 @@ export default function MarksEntryDeskPage() {
         </div>
 
         {/* Sub-Tab Selector */}
-        <div className="flex items-center gap-1 bg-zinc-200 p-1 rounded-xl text-xs font-bold shrink-0">
+        <div className="flex flex-wrap items-center gap-1 bg-zinc-200 p-1 rounded-xl text-xs font-bold shrink-0">
           <button
             onClick={() => setActiveTab("ENTRY")}
             className={`px-3 py-1.5 rounded-lg transition-colors ${activeTab === "ENTRY" ? "bg-white text-zinc-950 shadow-xs" : "text-zinc-600 hover:text-zinc-900"}`}
@@ -294,6 +308,8 @@ export default function MarksEntryDeskPage() {
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-white p-4"><p role="status" className="text-sm text-zinc-600">{dirty?"Unsaved changes — save before changing your selection.":ready?"Loaded records · changes are saved only when you choose Save Subject Marks.":"Choose the examination, class and subject, then load students."}</p><button type="button" disabled={loading||saving||!selectedExamId||!selectedClassId||!selectedSubjectId} onClick={()=>void loadMarks()} className="min-h-11 rounded-md bg-school-primary px-4 text-sm font-semibold text-white disabled:opacity-50">{loading?"Loading…":"Load Students"}</button></div>
+      <label className="grid gap-2 text-xs font-semibold">Search loaded students<input type="search" value={studentSearch} onChange={e=>setStudentSearch(e.target.value)} placeholder="Student name, ID or roll" className="min-h-11 rounded-md border px-3"/></label>
       {/* MARKS ENTRY TAB */}
       {activeTab === "ENTRY" && (
         <form onSubmit={handleSaveMarks} className="space-y-4">
@@ -306,7 +322,7 @@ export default function MarksEntryDeskPage() {
                   min="1"
                   max="1000"
                   value={maxMarks}
-                  onChange={(e) => setMaxMarks(Number(e.target.value))}
+                  onChange={(e) => {setDirty(true);setMaxMarks(Number(e.target.value))}}
                   className="w-24 border border-zinc-300 rounded-lg p-2 font-mono font-bold focus:outline-none"
                 />
               </div>
@@ -318,7 +334,7 @@ export default function MarksEntryDeskPage() {
                   min="1"
                   max={maxMarks}
                   value={passingMarks}
-                  onChange={(e) => setPassingMarks(Number(e.target.value))}
+                  onChange={(e) => {setDirty(true);setPassingMarks(Number(e.target.value))}}
                   className="w-24 border border-zinc-300 rounded-lg p-2 font-mono font-bold focus:outline-none"
                 />
               </div>
@@ -332,7 +348,7 @@ export default function MarksEntryDeskPage() {
 
             <button
               type="submit"
-              disabled={saving || students.length === 0}
+              disabled={saving || !ready || students.length === 0}
               className="w-full sm:w-auto px-5 py-2.5 bg-school-primary text-white font-bold rounded-xl shadow-xs hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-1.5 text-xs"
             >
               {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -347,25 +363,25 @@ export default function MarksEntryDeskPage() {
             </p>
           ) : students.length > 0 ? (
             <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-xs">
-              <table className="w-full min-w-[700px] text-left text-xs">
+              <TableScroll><table className="w-full min-w-[700px] text-left text-xs">
                 <thead className="bg-zinc-950 text-white uppercase text-[10px] font-bold">
                   <tr>
                     <th className="p-3.5">Roll No</th>
                     <th className="p-3.5">Student Name</th>
-                    <th className="p-3.5">Admission No</th>
+                    <th className="p-3.5">Student / Admission ID</th><th className="p-3.5">Entry status</th>
                     <th className="p-3.5 w-36 text-center">Absent?</th>
                     <th className="p-3.5 w-44">Obtained Marks (Max {maxMarks})</th>
                     <th className="p-3.5">Teacher / Staff Remarks</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-200">
-                  {students.map((s) => {
+                  {students.filter(s=>[s.name,s.studentId,s.admissionNumber,s.rollNumber].join(" ").toLowerCase().includes(studentSearch.toLowerCase())).map((s) => {
                     const rec = marksRecords[s._id] || { obtainedMarks: "", remarks: "", isAbsent: false };
                     return (
                       <tr key={s._id} className={rec.isAbsent ? "bg-red-50/50" : "hover:bg-zinc-50"}>
                         <td className="p-3.5 font-mono font-bold text-zinc-900">{s.rollNumber}</td>
                         <td className="p-3.5 font-bold text-zinc-950">{s.name}</td>
-                        <td className="p-3.5 font-mono text-zinc-500">{s.admissionNumber || "—"}</td>
+                        <td className="p-3.5 font-mono text-zinc-500">{s.studentId || s.admissionNumber || "—"}</td><td className="p-3.5">{rec.isAbsent?"Absent":rec.obtainedMarks===""?"Pending":dirty?"Unsaved":"Saved"}</td>
                         <td className="p-3.5 text-center">
                           <input
                             type="checkbox"
@@ -399,7 +415,7 @@ export default function MarksEntryDeskPage() {
                     );
                   })}
                 </tbody>
-              </table>
+              </table></TableScroll>
             </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-10 text-center space-y-2">
@@ -436,7 +452,7 @@ export default function MarksEntryDeskPage() {
                 <div className="flex justify-between">
                   <span>Verification Status:</span>
                   <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded uppercase">
-                    VERIFIED & SYNCED
+                    SAVED RECORD
                   </span>
                 </div>
               </div>
@@ -469,7 +485,7 @@ export default function MarksEntryDeskPage() {
           ) : (
             <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl text-xs flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-              <span>All student marks for this subject have been recorded.</span>
+              <span>{students.filter(s=>!existingMarksDoc.records?.some((r:any)=>String(r.studentId)===String(s._id))).length} students have no saved entry in this selection.</span>
             </div>
           )}
         </div>

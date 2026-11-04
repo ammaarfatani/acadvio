@@ -7,5 +7,17 @@ for(const path of ["workforce/settings","teacher/dashboard","finance/dashboard",
 const invalid=await fetch(base+"/api/parent/children",{headers:{Authorization:"Bearer invalid-token"}});eq(invalid.status,401,"invalid bearer rejected");
 const missing=await fetch(base+"/api/not-a-real-module?token=private-fixture-value");const body=await missing.text();eq(missing.status,404,"unknown module");eq(body.includes("private-fixture-value"),false,"404 does not echo URL secrets");eq(body.includes("stack"),false,"no stack trace");
 for(let n=0;n<11;n++){const r=await fetch(base+"/api/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:"invalid-email",password:"x"})});eq(r.status,n<10?400:429,"failed sign-in request throttled");}
+
+for(const query of ['status[$ne]=PAID','search[$regex]=.*','classId=x&classId=y','__proto__[polluted]=true','status.x=1']) {
+ const r=await fetch(base+'/api/finance/challans?'+query);eq(r.status,400,'structured/ambiguous filter rejected '+query);
+}
+for(const body of ['{"email":{"$ne":null},"password":"x"}','{"nested":{"__proto__":{"polluted":true}}}','{"nested":{"a.b":"x"}}']) {
+ const r=await fetch(base+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body});eq(r.status,400,'operator/prototype field rejected');
+}
+const hostile=await fetch(base+'/api/auth/refresh-token',{method:'POST',headers:{Origin:'https://attacker.example','Content-Type':'application/json'},body:'{}'});eq(hostile.status,403,'untrusted browser origin cannot rotate cookie session');
+const cached=await fetch(base+'/api/auth/me');eq(cached.headers.get('cache-control'),'private, no-store','API responses not stored in shared caches');
+const literal=require('../src/server/utils/search.util.ts').literalSearch;eq(literal('^(a+)+$'),'\\^\\(a\\+\\)\\+\\$','search is escaped literally');
+assert.throws(()=>literal('a'.repeat(201)));checks++;
+
 console.log(`PASS: ${checks} anonymous portal, header, error-disclosure and authentication throttling checks. No database connection used.`);
 }finally{if(server)await new Promise(r=>server.close(r));}})().catch(e=>{console.error(e);process.exitCode=1});
