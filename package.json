@@ -2,6 +2,10 @@
   "name": "acadivo-school-crm",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@10.13.1",
+  "engines": {
+    "node": ">=22 <25"
+  },
   "scripts": {
     "dev": "next dev",
     "dev:backend": "tsx watch src/server/index.ts",
