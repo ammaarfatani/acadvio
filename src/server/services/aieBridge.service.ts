@@ -1,5 +1,6 @@
 import { z } from "zod";
 import mongoose from "mongoose";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { AuthenticatedUser } from "../middlewares/auth.middleware";
 import { branchContext } from "../utils/branchScope";
 import { availableReports, fetchAuthorizedReport } from "./assistant.service";
@@ -11,16 +12,19 @@ import { FeeCalculationService } from "./feeCalculation.service";
 import { StudentAttendance } from "../models/attendance.model";
 import { Student } from "../models/student.model";
 import { ProcessedResult } from "../models/exam.model";
+import { StudentLifecycleEvent } from "../models/studentLifecycleEvent.model";
 import { children } from "./parent.service";
 import { authorizeReports, reportFilters } from "./smartReports.service";
 import { intelligenceDashboard, intelligenceSettings } from "./schoolIntelligence.service";
 
 export const bridgeInput = z.object({
-  tool: z.enum(["students","teachers","finance","pending_fees","attendance","examinations","my_teaching","platform","children","intelligence"]),
+  tool: z.enum(["students","student_history","teachers","finance","pending_fees","attendance","examinations","my_teaching","platform","children","intelligence"]),
   classLevel: z.number().int().min(1).max(20).optional(),
   section: z.string().regex(/^[A-Za-z0-9]{1,12}$/).optional(),
   studentName: z.string().trim().min(2).max(100).optional(),
   admissionNumber: z.string().trim().min(2).max(32).regex(/^[A-Za-z0-9/-]+$/).optional(),
+  studentIdentifier: z.string().trim().min(2).max(40).regex(/^[A-Za-z0-9/-]+$/).optional(),
+  cursor: z.string().min(20).max(700).optional(),
   lookupMode: z.enum(["find","summary"]).optional(),
   period: z.enum(["today","month","last_month"]).default("month"),
 }).strict();
@@ -28,6 +32,7 @@ export const bridgeInput = z.object({
 export function bridgeContextFor(actor: AuthenticatedUser) {
   if (!actor.isSuperAdmin && (!actor.schoolId || !branchContext.getStore())) throw {statusCode:403,message:"A verified school and branch context is required."};
   const tools: string[] = [...availableReports(actor)];
+  if(actor.userType === "SCHOOL_ADMIN" && actor.permissions?.includes("students.view")) tools.push("student_history");
   if(tools.includes("finance")) tools.push("pending_fees");
   if (actor.userType === "PARENT" && actor.permissions?.includes("children.view")) tools.push("children");
   try { authorizeReports(actor); tools.push("intelligence"); } catch { /* unavailable */ }
@@ -46,15 +51,23 @@ export function aiePeriod(period:string, now = new Date()) {
   const civil=(year:number,month:number,day:number)=>new Date(Date.UTC(year,month,day)-5*3600000);
   return period === "today" ? {start:civil(y,m,d),end:now} : period === "last_month" ? {start:civil(y,m-1,1),end:civil(y,m,1)} : {start:civil(y,m,1),end:now};
 }
+function encodeStudentCursor(value:Record<string,unknown>) {
+  const body=Buffer.from(JSON.stringify(value)).toString("base64url"), secret=process.env.JWT_ACCESS_SECRET;
+  if(!secret)throw {statusCode:500,message:"Student pagination is temporarily unavailable."};
+  const sig=createHmac("sha256",secret).update(body).digest("base64url");return `${body}.${sig}`;
+}
+function decodeStudentCursor(token:string,expected:Record<string,unknown>) {
+  try {const [body,sig]=token.split("."),secret=process.env.JWT_ACCESS_SECRET;if(!body||!sig||!secret)throw 0;const actual=createHmac("sha256",secret).update(body).digest();const supplied=Buffer.from(sig,"base64url");if(actual.length!==supplied.length||!timingSafeEqual(actual,supplied))throw 0;const payload=JSON.parse(Buffer.from(body,"base64url").toString("utf8"));if(payload.exp<Date.now()||Object.entries(expected).some(([k,v])=>payload[k]!==v)||typeof payload.name!=="string"||typeof payload.admissionNumber!=="string")throw 0;return payload;}catch{throw {statusCode:400,message:"The student search cursor is invalid or expired. Start the search again."};}
+}
 
 export async function executeBridgeTool(actor:AuthenticatedUser, input:z.infer<typeof bridgeInput>) {
   const context=bridgeContextFor(actor);
   if (!context.tools.includes(input.tool)) throw {statusCode:403,message:"This tool is not available for your account."};
   const filtered=input.classLevel !== undefined || input.section !== undefined;
-  if(filtered && !["finance","pending_fees","attendance","examinations","students"].includes(input.tool)) throw {statusCode:400,message:"Class filters are not supported for this tool."};
+  if(filtered && !["finance","pending_fees","attendance","examinations","students","student_history"].includes(input.tool)) throw {statusCode:400,message:"Class filters are not supported for this tool."};
   if(filtered && input.tool === "students" && input.lookupMode !== "find") throw {statusCode:400,message:"Class filters for student records require find mode."};
-  if((input.studentName || input.lookupMode === "find" || input.tool === "students" && filtered) && input.tool !== "students") throw {statusCode:400,message:"Student search filters require the student capability."};
-  if((input.studentName||input.admissionNumber) && input.lookupMode !== "find") throw {statusCode:400,message:"Student search requires find mode."};
+  if((input.studentName || input.studentIdentifier || input.admissionNumber || input.lookupMode === "find" || input.tool === "students" && filtered) && !["students","student_history"].includes(input.tool)) throw {statusCode:400,message:"Student search filters require the student capability."};
+  if((input.studentName||input.admissionNumber||input.studentIdentifier||input.cursor) && input.lookupMode !== "find" && input.tool !== "student_history") throw {statusCode:400,message:"Student search requires find mode."};
   if(input.section && !input.classLevel) throw {statusCode:400,message:"Specify a class before a section."};
     if(input.section && input.tool === "examinations") throw {statusCode:400,message:"Published results do not store section identity. Use a class filter."};
   const scope:any={schoolId:actor.schoolId ? new mongoose.Types.ObjectId(actor.schoolId) : undefined};
@@ -72,12 +85,41 @@ export async function executeBridgeTool(actor:AuthenticatedUser, input:z.infer<t
   const {start,end}=aiePeriod(input.period);
   const aggregate=(model:any,pipeline:any[])=>model.aggregate(pipeline).option({maxTimeMS:8000});
   if(input.tool === "students" && input.lookupMode === "find") {
-    if(!input.studentName&&!input.admissionNumber&&!input.classLevel) return {kind:"student_search",students:[],matchCount:0,needsName:true,note:"Ask the user for a student name before searching."};
+    if(!input.studentName&&!input.admissionNumber&&!input.studentIdentifier&&!input.classLevel) return {kind:"student_search",students:[],totalMatches:0,matchCount:0,needsName:true,note:"Ask the user for a student name before searching."};
     const escaped=input.studentName?.normalize("NFKC").trim().replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
-    const matches=await Student.find({...scope,status:{$ne:"ARCHIVED"},...(input.admissionNumber?{admissionNumber:input.admissionNumber}:{}),...(escaped?{$or:[{name:{$regex:escaped,$options:"i"}},{nameUrdu:{$regex:escaped,$options:"i"}}]}:{})})
-      .select("name admissionNumber className sectionName status")
-      .sort({name:1,admissionNumber:1}).limit(11).maxTimeMS(8000).lean();
-    return {kind:"student_search",students:matches.slice(0,10).map((student:any)=>({name:student.name,admissionNumber:student.admissionNumber,className:student.className,sectionName:student.sectionName||null,status:student.status})),matchCount:matches.length>10?">10":matches.length,hasMore:matches.length>10,note:"Search results are limited to 10 authorized, non-archived students. Use the student directory for additional results."};
+    const identifier=input.studentIdentifier||input.admissionNumber;
+    const exact=identifier?new RegExp(`^${identifier.replace(/[.*+?^${}()|[\\]\\]/g,"\\$&")}$`,"i"):undefined;
+    const filter:any={...scope,...(identifier?{$or:[{rollNumber:exact},{admissionNumber:exact},{studentId:exact}]}:{}),...(escaped?{$or:[...(identifier?[{rollNumber:exact},{admissionNumber:exact},{studentId:exact}]:[]),{name:{$regex:escaped,$options:"i"}},{nameUrdu:{$regex:escaped,$options:"i"}}]}:{})};
+    const totalMatches=await Student.countDocuments(filter).maxTimeMS(8000);
+    const pageSize=25;
+    const cursorScope={schoolId:String(actor.schoolId),branchId:String(actor.branchId||""),filter:JSON.stringify([input.studentName?.normalize("NFKC").trim().toLowerCase()||"",identifier?.toLowerCase()||"",input.classLevel||null,input.section?.toLowerCase()||""])};
+    const after=input.cursor?decodeStudentCursor(input.cursor,cursorScope):undefined;
+    if(after) filter.$and=[...(filter.$and||[]),{$or:[{name:{$gt:after.name}},{name:after.name,admissionNumber:{$gt:after.admissionNumber}}]}];
+    const matches=await Student.find(filter).select("name studentId admissionNumber rollNumber className sectionName status academicSessionName admissionDate")
+      .sort({name:1,admissionNumber:1}).limit(pageSize+1).maxTimeMS(8000).lean();
+    const hasMore=matches.length>pageSize, page=matches.slice(0,pageSize), last=page[page.length-1];
+    const nextCursor=hasMore&&last?encodeStudentCursor({...cursorScope,name:last.name,admissionNumber:last.admissionNumber,exp:Date.now()+15*60*1000}):undefined;
+    return {kind:"student_search",students:page.map((student:any)=>({name:student.name,studentCode:student.studentId,admissionNumber:student.admissionNumber,rollNumber:student.rollNumber,className:student.className,sectionName:student.sectionName||null,status:student.status,academicSessionName:student.academicSessionName||null,admissionDate:student.admissionDate||null})),totalMatches,matchCount:totalMatches,hasMore,nextCursor,note:"Search covers all matching authorized records, including historical statuses. Results are returned 25 at a time."};
+  }
+  if(input.tool === "student_history") {
+    if(actor.userType!=="SCHOOL_ADMIN" || !actor.permissions?.includes("students.view")) throw {statusCode:403,message:"Student history is not available for this account."};
+    const identifier=input.studentIdentifier||input.admissionNumber;
+    const escaped=input.studentName?.normalize("NFKC").trim().replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+    const filter:any={...scope,...(identifier?{$or:[{rollNumber:new RegExp(`^${identifier.replace(/[.*+?^${}()|[\\]\\]/g,"\\$&")}$`,"i")},{admissionNumber:new RegExp(`^${identifier.replace(/[.*+?^${}()|[\\]\\]/g,"\\$&")}$`,"i")},{studentId:new RegExp(`^${identifier.replace(/[.*+?^${}()|[\\]\\]/g,"\\$&")}$`,"i")}]}:{}),...(escaped?{$or:[{name:{$regex:escaped,$options:"i"}},{nameUrdu:{$regex:escaped,$options:"i"}}]}:{})};
+    const matches=await Student.find(filter).select("_id name studentId admissionNumber rollNumber className sectionName status academicSessionName admissionDate").limit(2).maxTimeMS(8000).lean();
+    if(matches.length!==1) return {kind:"student_search",students:matches.map((s:any)=>({name:s.name,studentCode:s.studentId,admissionNumber:s.admissionNumber,rollNumber:s.rollNumber,className:s.className,sectionName:s.sectionName,status:s.status})),totalMatches:matches.length,needsName:matches.length===0,ambiguous:matches.length>1,note:matches.length>1?"Several students match; refine the name or use an exact identifier.":"No authorized student matches this history request."};
+    const s:any=matches[0], sid=String(s._id);
+    const attendanceAllowed=actor.permissions?.includes("attendance.view")===true;
+    const resultsAllowed=actor.permissions?.includes("results.view")===true&&hasFeature(actor.plan,"EXAMINATIONS");
+    const [attendanceDocs,results,lifecycle,feeDocs,payments]=await Promise.all([
+      attendanceAllowed?StudentAttendance.find({...scope,"records.studentId":s._id}).select("date className sectionName records").sort({date:-1}).limit(100).maxTimeMS(8000).lean():[],
+      resultsAllowed?ProcessedResult.find({...scope,studentId:s._id,isPublished:true,needsProcessing:{$ne:true}}).select("examTitle className percentage status grade publishedAt createdAt").sort({publishedAt:-1}).limit(100).maxTimeMS(8000).lean():[],
+      StudentLifecycleEvent.find({...scope,studentId:s._id}).select("eventType description createdAt metadata").sort({createdAt:-1}).limit(100).maxTimeMS(8000).lean(),
+      actor.permissions?.includes("fees.view")?FeeChallan.find({...scope,studentId:s._id,isVoided:{$ne:true},status:{$ne:"VOIDED"}}).select("challanNumber totalAmountPKR paidAmountPKR remainingAmountPKR dueDate status feeBreakdown").sort({createdAt:-1}).limit(50).maxTimeMS(8000).lean():[],
+      actor.permissions?.includes("fees.view")?FeePayment.find({...scope,studentId:s._id}).select("amountPKR paidAt paymentMethod receiptNumber").sort({paidAt:-1}).limit(50).maxTimeMS(8000).lean():[],
+    ]);
+    const attendance=attendanceAllowed?attendanceDocs.map((doc:any)=>{const r=doc.records.find((x:any)=>String(x.studentId)===sid);return r?{date:doc.date,className:doc.className,sectionName:doc.sectionName,status:r.status}:null;}).filter(Boolean):undefined;
+    return {kind:"student_history",profile:{name:s.name,studentCode:s.studentId,admissionNumber:s.admissionNumber,rollNumber:s.rollNumber,className:s.className,sectionName:s.sectionName,academicSessionName:s.academicSessionName,status:s.status,admissionDate:s.admissionDate},enrollmentHistory:lifecycle,attendance:attendanceAllowed?{records:attendance,totalReturned:attendance?.length||0}:undefined,feeHistory:actor.permissions?.includes("fees.view")?{invoices:feeDocs,payments,totalOutstanding:feeDocs.reduce((n:number,x:any)=>n+Number(x.remainingAmountPKR||0),0)}:undefined,examResults:resultsAllowed?results:undefined,unavailable:[...(!attendanceAllowed?["Attendance: your account lacks attendance.view."]:[]),...(!actor.permissions?.includes("fees.view")?["Fees and payments: your account lacks fees.view."]:[]),...(!resultsAllowed?["Examination results: your account lacks results.view or the examinations feature."]:[]),"Certificates: not connected to this assistant tool."]};
   }
   if(input.tool === "pending_fees") {
     const evaluatedAt=new Date();

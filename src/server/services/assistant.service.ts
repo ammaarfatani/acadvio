@@ -35,8 +35,8 @@ export async function fetchAuthorizedReport(actor:AuthenticatedUser,input:z.infe
     return {metrics:dashboard.metrics,assignedSubjects:dashboard.teacher.assignedSubjects,todayTimetable:dashboard.todayTimetable,classTeacherAssignments:dashboard.classTeacherAssignments};
   }
   if(input.report === "students") {
-    const [counts,recent] = await Promise.all([Student.aggregate([{$match:scope},{$group:{_id:"$status",count:{$sum:1}}}]),Student.find({schoolId,...(input.studentStatus ? {status:input.studentStatus} : {})}).select("name rollNumber className status admissionDate").sort({admissionDate:-1}).limit(20).lean()]);
-    return {counts,students:recent,limit:20,note:"Student list is limited to the 20 most recently admitted matching records."};
+    const counts=await Student.aggregate([{$match:{...scope,...(input.studentStatus?{status:input.studentStatus}:{})}},{$group:{_id:"$status",count:{$sum:1}}}]);
+    return {counts,note:"Student totals cover the authorized school and branch scope. Use student search for paginated records."};
   }
   if(input.report === "teachers")return {counts:await User.aggregate([{$match:{...scope,userType:"TEACHER"}},{$group:{_id:"$status",count:{$sum:1}}}])};
   if(input.report === "finance") {

@@ -192,6 +192,8 @@ const StudentSchema = new Schema<IStudent>(
 
 StudentSchema.index({ schoolId: 1, admissionNumber: 1 }, { unique: true });
 StudentSchema.index({ schoolId: 1, studentId: 1 }, { unique: true });
+StudentSchema.index({ schoolId: 1, branchId: 1, rollNumber: 1 }, { name: "student_branch_roll_lookup" });
+StudentSchema.index({ schoolId: 1, branchId: 1, name: 1, admissionNumber: 1 }, { name: "student_branch_name_cursor" });
 StudentSchema.index(
   {
     schoolId: 1,
