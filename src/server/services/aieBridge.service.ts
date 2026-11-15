@@ -9,6 +9,7 @@ import { ClassModel, SectionModel } from "../models/classSection.model";
 import { FeeChallan, FeePayment } from "../models/fee.model";
 import { FeeCalculationService } from "./feeCalculation.service";
 import { StudentAttendance } from "../models/attendance.model";
+import { Student } from "../models/student.model";
 import { ProcessedResult } from "../models/exam.model";
 import { children } from "./parent.service";
 import { authorizeReports, reportFilters } from "./smartReports.service";
@@ -18,6 +19,9 @@ export const bridgeInput = z.object({
   tool: z.enum(["students","teachers","finance","pending_fees","attendance","examinations","my_teaching","platform","children","intelligence"]),
   classLevel: z.number().int().min(1).max(20).optional(),
   section: z.string().regex(/^[A-Za-z0-9]{1,12}$/).optional(),
+  studentName: z.string().trim().min(2).max(100).optional(),
+  admissionNumber: z.string().trim().min(2).max(32).regex(/^[A-Za-z0-9/-]+$/).optional(),
+  lookupMode: z.enum(["find","summary"]).optional(),
   period: z.enum(["today","month","last_month"]).default("month"),
 }).strict();
 
@@ -47,9 +51,12 @@ export async function executeBridgeTool(actor:AuthenticatedUser, input:z.infer<t
   const context=bridgeContextFor(actor);
   if (!context.tools.includes(input.tool)) throw {statusCode:403,message:"This tool is not available for your account."};
   const filtered=input.classLevel !== undefined || input.section !== undefined;
-  if(filtered && !["finance","pending_fees","attendance","examinations"].includes(input.tool)) throw {statusCode:400,message:"Class filters are not supported for this tool."};
+  if(filtered && !["finance","pending_fees","attendance","examinations","students"].includes(input.tool)) throw {statusCode:400,message:"Class filters are not supported for this tool."};
+  if(filtered && input.tool === "students" && input.lookupMode !== "find") throw {statusCode:400,message:"Class filters for student records require find mode."};
+  if((input.studentName || input.lookupMode === "find" || input.tool === "students" && filtered) && input.tool !== "students") throw {statusCode:400,message:"Student search filters require the student capability."};
+  if((input.studentName||input.admissionNumber) && input.lookupMode !== "find") throw {statusCode:400,message:"Student search requires find mode."};
   if(input.section && !input.classLevel) throw {statusCode:400,message:"Specify a class before a section."};
-  if(input.section && input.tool === "examinations") throw {statusCode:400,message:"Published results do not store section identity. Use a class filter."};
+    if(input.section && input.tool === "examinations") throw {statusCode:400,message:"Published results do not store section identity. Use a class filter."};
   const scope:any={schoolId:actor.schoolId ? new mongoose.Types.ObjectId(actor.schoolId) : undefined};
   if(input.classLevel) {
     const classes=await ClassModel.find({schoolId:actor.schoolId,numericLevel:input.classLevel}).select("_id name").limit(3).maxTimeMS(5000).lean();
@@ -64,6 +71,14 @@ export async function executeBridgeTool(actor:AuthenticatedUser, input:z.infer<t
   }
   const {start,end}=aiePeriod(input.period);
   const aggregate=(model:any,pipeline:any[])=>model.aggregate(pipeline).option({maxTimeMS:8000});
+  if(input.tool === "students" && input.lookupMode === "find") {
+    if(!input.studentName&&!input.admissionNumber&&!input.classLevel) return {kind:"student_search",students:[],matchCount:0,needsName:true,note:"Ask the user for a student name before searching."};
+    const escaped=input.studentName?.normalize("NFKC").trim().replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+    const matches=await Student.find({...scope,status:{$ne:"ARCHIVED"},...(input.admissionNumber?{admissionNumber:input.admissionNumber}:{}),...(escaped?{$or:[{name:{$regex:escaped,$options:"i"}},{nameUrdu:{$regex:escaped,$options:"i"}}]}:{})})
+      .select("name admissionNumber className sectionName status")
+      .sort({name:1,admissionNumber:1}).limit(11).maxTimeMS(8000).lean();
+    return {kind:"student_search",students:matches.slice(0,10).map((student:any)=>({name:student.name,admissionNumber:student.admissionNumber,className:student.className,sectionName:student.sectionName||null,status:student.status})),matchCount:matches.length>10?">10":matches.length,hasMore:matches.length>10,note:"Search results are limited to 10 authorized, non-archived students. Use the student directory for additional results."};
+  }
   if(input.tool === "pending_fees") {
     const evaluatedAt=new Date();
     const invoices=await FeeChallan.find({...scope,isVoided:{$ne:true},status:{$ne:"VOIDED"},remainingAmountPKR:{$gt:0}})
