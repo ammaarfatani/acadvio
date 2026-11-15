@@ -22,7 +22,6 @@ import {
   Search,
   Settings,
   X,
-  MessageSquare,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { apiFetch, authApi } from "@/lib/api";
@@ -33,6 +32,7 @@ import { ScreenshotPrivacy } from "./ScreenshotPrivacy";
 import SchoolLogo from "./SchoolLogo";
 import { Presence, RouteMotion } from "./Motion";
 import AcadivoAssistant from "./AcadivoAssistant";
+import { AssistantLogo, useAssistantBrand } from "./AssistantBranding";
 
 export default function PortalShell({
   role,
@@ -42,6 +42,7 @@ export default function PortalShell({
   children: React.ReactNode;
 }) {
   const { user, clearSession, refreshUser } = useAuth();
+  const assistantBrand = useAssistantBrand(user);
   const pathname = usePathname(),
     router = useRouter();
   const config = portalNavigation[role];
@@ -317,7 +318,7 @@ export default function PortalShell({
           disabled={billingOnly}
           className="flex w-full items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-medium hover:bg-zinc-50 disabled:opacity-40"
         >
-          <MessageSquare size={16} />
+          <AssistantLogo brand={assistantBrand} size="compact" decorative />
           <span>Acadivo AI</span>
           <ChevronRight size={14} className="ml-auto" />
         </button>
@@ -445,8 +446,9 @@ export default function PortalShell({
                   setAssistant(true)
                 )}
                 title="Open Acadivo AI"
-                className="ui-topbar-assistant hidden h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-md border px-3 text-xs font-medium hover:bg-zinc-50 sm:inline-flex"
+                className="ui-topbar-assistant hidden h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md border px-3 text-xs font-medium hover:bg-zinc-50 sm:inline-flex"
               >
+                <AssistantLogo brand={assistantBrand} size="compact" decorative />
                 Ask Acadivo
               </button>
             )}
@@ -613,11 +615,27 @@ export default function PortalShell({
         <ChangePassword onClose={() => setPasswordOpen(false)} />
       </Presence>
       <ScreenshotPrivacy />
+      {user && !billingOnly && (
+        <button
+          type="button"
+          aria-label="Open Acadivo Intelligence"
+          aria-haspopup="dialog"
+          aria-expanded={assistant && !billingOnly}
+          title="Open Acadivo Intelligence"
+          className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-40 inline-flex rounded-full shadow-lg shadow-slate-900/15 hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-rose-700 motion-safe:transition motion-safe:hover:-translate-y-1 print:hidden sm:bottom-6 sm:right-6"
+          onClick={(event) => {
+            focusOrigin.current = event.currentTarget;
+            setAssistant(true);
+          }}
+        >
+          <AssistantLogo brand={assistantBrand} size="launcher" decorative />
+        </button>
+      )}
       <Presence
           show={assistant && !billingOnly}
         kind="drawer"
       >
-        <AcadivoAssistant onClose={() => setAssistant(false)} />
+        <AcadivoAssistant brand={assistantBrand} onClose={() => setAssistant(false)} />
       </Presence>
     </div>
   );
