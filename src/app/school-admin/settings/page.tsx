@@ -13,6 +13,8 @@ export default function SchoolSettingsPage() {
   const { refreshUser,user } = useAuth();
   const financeEnabled=!!user?.features?.includes("FINANCE");
   const [profile, setProfile] = useState<any>({ currency: "PKR", dateFormat: "DD/MM/YYYY", bankDetails: {} });
+  const [numbering, setNumbering] = useState<any>({ student:{prefix:"STUD",startAt:1,padding:3}, admission:{prefix:"ADM-",startAt:1,padding:6}, employee:{prefix:"EMPD",startAt:1,padding:3} });
+  const [numberingSaved, setNumberingSaved] = useState(false);
 
   const [savedNotice, setSavedNotice] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -23,6 +25,7 @@ export default function SchoolSettingsPage() {
       try {
         const res = await schoolAdminApi.getSchoolProfile();
         if (res?.data) {
+          if(res.data.documentSettings?.numbering) setNumbering((current:any)=>({student:{...current.student,...res.data.documentSettings.numbering.student},admission:{...current.admission,...res.data.documentSettings.numbering.admission},employee:{...current.employee,...res.data.documentSettings.numbering.employee}}));
           setProfile({
             ...res.data,
             currency: res.data.currency || "PKR",
@@ -51,6 +54,14 @@ export default function SchoolSettingsPage() {
     }
   };
 
+  const saveNumbering = async () => {
+    setSaveError(""); setNumberingSaved(false);
+    try { await schoolAdminApi.updateNumberingSettings(numbering); setNumberingSaved(true); setTimeout(()=>setNumberingSaved(false),3000); }
+    catch(e:any) { setSaveError(e.message||"Could not save numbering settings."); }
+  };
+
+  const numberPreview=(item:any)=>`${item.prefix}${String(item.startAt).padStart(item.padding,"0")}`;
+
   return (
     <div className="space-y-8 pb-12 max-w-4xl">
       
@@ -73,6 +84,18 @@ export default function SchoolSettingsPage() {
 
       <Link href={(user?.school?.slug?"/"+user.school.slug+"/admin":"/school-admin")+"/settings/document-templates"} className="block rounded-lg border border-red-100 bg-red-50 p-4"><strong>Document Templates</strong><p className="mt-1 text-xs text-zinc-600">Choose school document designs and manage shared signatures, stamp and print settings.</p></Link>
       <SchoolLogoEditor/>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-xs space-y-4">
+        <div className="border-b border-zinc-100 pb-2"><h2 className="text-base font-bold">ID &amp; Numbering Configuration</h2><p className="mt-1 text-xs text-zinc-500">New student, admission, and employee IDs continue after the highest compatible ID already stored for this school. Existing identifiers remain unchanged.</p></div>
+        <div className="grid gap-4 md:grid-cols-3">
+          {([["student","Student ID"],["admission","Admission Number"],["employee","Employee / Staff ID"]] as const).map(([kind,label])=><div key={kind} className="rounded-xl border border-zinc-200 p-4 space-y-3">
+            <h3 className="text-sm font-bold">{label}</h3>
+            <label className="block text-xs font-semibold">Prefix<input value={numbering[kind].prefix} onChange={e=>setNumbering({...numbering,[kind]:{...numbering[kind],prefix:e.target.value}})} className="mt-1 block w-full rounded-lg border border-zinc-200 p-2 font-mono" maxLength={30}/></label>
+            <div className="grid grid-cols-2 gap-2"><label className="text-xs font-semibold">Starting number<input type="number" min="1" value={numbering[kind].startAt} onChange={e=>setNumbering({...numbering,[kind]:{...numbering[kind],startAt:Number(e.target.value)}})} className="mt-1 block w-full rounded-lg border border-zinc-200 p-2"/></label><label className="text-xs font-semibold">Zero padding<input type="number" min="0" max="12" value={numbering[kind].padding} onChange={e=>setNumbering({...numbering,[kind]:{...numbering[kind],padding:Number(e.target.value)}})} className="mt-1 block w-full rounded-lg border border-zinc-200 p-2"/></label></div>
+            <p className="text-xs text-zinc-500">Format preview: <span className="font-mono font-bold text-zinc-800">{numberPreview(numbering[kind])}</span> · preview only; allocation checks stored records.</p>
+          </div>)}
+        </div>
+        <div className="flex items-center justify-between"><p className="text-xs text-zinc-500">IDs use the existing school-wide uniqueness scope. Roll numbering continues using the current class, section, and academic-session rules.</p><div className="flex items-center gap-3">{numberingSaved&&<span className="text-xs font-semibold text-emerald-700">Saved</span>}<button type="button" onClick={saveNumbering} className="rounded-xl bg-school-primary px-4 py-2 text-xs font-bold text-white">Save ID Settings</button></div></div>
+      </section>
       <form onSubmit={handleSaveSettings} className="space-y-6">
         
         {/* Section 2: School Information & Print Headers */}

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { financeApi } from "@/lib/financeApi";
+const formatPKR = (amount: number) => Number(amount || 0).toLocaleString("en-PK", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function FinanceDashboardPage() {
   const [data, setData] = useState<any>(null);
@@ -96,7 +97,7 @@ export default function FinanceDashboardPage() {
         detail={
           <>
             Net collection surplus ·{" "}
-            <strong>PKR {metrics.netCollectionPKR.toLocaleString()}</strong>
+            <strong>PKR {formatPKR(metrics.netCollectionPKR)}</strong>
           </>
         }
         actions={
@@ -134,7 +135,7 @@ export default function FinanceDashboardPage() {
             Today&#39;s Collection
           </span>
           <p className="text-lg font-black text-zinc-950 mt-1 font-mono">
-            PKR {metrics.todayCollectionPKR.toLocaleString()}
+            PKR {formatPKR(metrics.todayCollectionPKR)}
           </p>
         </div>
 
@@ -143,7 +144,7 @@ export default function FinanceDashboardPage() {
             Monthly Collection
           </span>
           <p className="text-lg font-black text-zinc-950 mt-1 font-mono">
-            PKR {metrics.monthlyCollectionPKR.toLocaleString()}
+            PKR {formatPKR(metrics.monthlyCollectionPKR)}
           </p>
         </div>
 
@@ -152,7 +153,7 @@ export default function FinanceDashboardPage() {
             Pending Dues
           </span>
           <p className="text-lg font-black text-amber-600 mt-1 font-mono">
-            PKR {metrics.pendingFeesPKR.toLocaleString()}
+            PKR {formatPKR(metrics.pendingFeesPKR)}
           </p>
         </div>
 
@@ -161,7 +162,7 @@ export default function FinanceDashboardPage() {
             Overdue Fees
           </span>
           <p className="text-lg font-black text-red-600 mt-1 font-mono">
-            PKR {metrics.overdueFeesPKR.toLocaleString()}
+            PKR {formatPKR(metrics.overdueFeesPKR)}
           </p>
         </div>
 
@@ -170,7 +171,7 @@ export default function FinanceDashboardPage() {
             Total Expenses
           </span>
           <p className="text-lg font-black text-red-700 mt-1 font-mono">
-            PKR {metrics.totalExpensesPKR.toLocaleString()}
+            PKR {formatPKR(metrics.totalExpensesPKR)}
           </p>
         </div>
 
@@ -179,13 +180,13 @@ export default function FinanceDashboardPage() {
             Net Balance
           </span>
           <p className="text-lg font-black text-red-400 mt-1 font-mono">
-            PKR {metrics.netCollectionPKR.toLocaleString()}
+            PKR {formatPKR(metrics.netCollectionPKR)}
           </p>
         </div>
       </div>
 
       {/* Visual Charts & Category Breakdown */}
-        <section aria-label="Payroll and operating costs" className="grid gap-4 sm:grid-cols-3">{[["Operational expenses",metrics.operationalExpensesPKR||0],["Salary paid this month",metrics.payrollPaidPKR||0],["Payroll outstanding",metrics.payrollPendingPKR||0]].map(([label,value])=><div key={String(label)} className="rounded-lg border bg-white p-5"><p className="text-sm text-zinc-500">{label}</p><p className="mt-2 text-xl font-semibold">PKR {Number(value).toLocaleString()}</p></div>)}</section>
+        <section aria-label="Payroll and operating costs" className="grid gap-4 sm:grid-cols-3">{[["Operational expenses",metrics.operationalExpensesPKR||0],["Salary paid this month",metrics.payrollPaidPKR||0],["Payroll outstanding",metrics.payrollPendingPKR||0]].map(([label,value])=><div key={String(label)} className="rounded-lg border bg-white p-5"><p className="text-sm text-zinc-500">{label}</p><p className="mt-2 text-xl font-semibold">PKR {formatPKR(Number(value))}</p></div>)}</section>
         <div className="flex justify-end"><FinanceReminderSettings/></div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Fee Collection Status Distribution */}
@@ -300,7 +301,7 @@ export default function FinanceDashboardPage() {
                       <div className="flex justify-between text-zinc-800 font-medium">
                         <span>{cat}</span>
                         <span className="font-mono font-bold">
-                          PKR {Number(amt || 0).toLocaleString()} ({pct}%)
+                          PKR {formatPKR(Number(amt || 0))} ({pct}%)
                         </span>
                       </div>
                       <div className="w-full bg-zinc-100 h-2 rounded-full overflow-hidden">

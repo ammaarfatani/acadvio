@@ -154,3 +154,41 @@ html[data-screenshot-full="true"] #workspace-content { flex: none; overflow: vis
  body:has(#payroll-report) .fixed:has(#payroll-report){position:static!important;padding:0!important;overflow:visible!important;}
  body:has(#payroll-report) .portal-shell,body:has(#payroll-report) .portal-content {height:auto!important;overflow:visible!important;}
 }
+/* Shared HTML preview/print layout for the three-copy fee challan sheet. */
+.challan-preview-list { display:grid; gap:1.5rem; justify-items:center; }
+.challan-sheet { box-sizing:border-box; background:#fff; color:#111; box-shadow:0 2px 12px #0002; display:flex; flex-direction:column; overflow:hidden; font-family:Arial,Helvetica,sans-serif; }
+.challan-stacked { justify-content:center; }
+.challan-columns { flex-direction:row; align-items:center; }
+.challan-copy { position:relative; box-sizing:border-box; flex:0 0 auto; height:auto!important; min-height:52mm; border:var(--challan-border) solid var(--challan-accent); padding:3mm; overflow:hidden; font-size:var(--challan-font); line-height:1.15; display:flex; flex-direction:column; gap:var(--challan-spacing); }
+.challan-copy[data-design="modern"][data-monochrome="false"]::before { content:""; position:absolute; top:0; left:0; right:0; height:2.5pt; background:var(--challan-accent); }
+.challan-copy-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:2mm; border-bottom:var(--challan-border) solid var(--challan-accent); padding-bottom:1mm; }
+.challan-school-brand { display:flex; align-items:center; gap:2mm; min-width:0; }
+.challan-school-brand img { object-fit:contain; flex:0 0 auto; }
+.challan-school-brand div { display:grid; min-width:0; }
+.challan-school-brand b { font-size:1.25em; text-transform:uppercase; }
+.challan-school-brand strong { font-size:1.02em; }
+.challan-school-brand small { font-size:.82em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.challan-copy-label { border:var(--challan-border) solid var(--challan-accent); padding:.5mm 1.5mm; white-space:nowrap; font-size:.9em; }
+.challan-meta { border:var(--challan-border) solid var(--challan-accent); }
+.challan-meta-row { display:grid; grid-template-columns:16% 42% 18% 24%; min-height:4mm; border-bottom:var(--challan-border) solid #777; }
+.challan-meta-row:last-child { border-bottom:0; }
+.challan-meta-row>* { padding:.7mm 1mm; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.challan-meta-row>*:not(:last-child) { border-right:var(--challan-border) solid #aaa; }
+.challan-context { margin:0; font-size:.9em; line-height:1.15; }
+.challan-free-label { margin:0; padding:1mm; border:1px solid #166534; color:#166534; font-weight:800; text-align:center; letter-spacing:.04em; }
+.challan-free-status { margin:0; color:#166534; font-weight:700; text-align:right; }
+.challan-fees { border-collapse:collapse; width:100%; font-size:.95em; }
+.challan-copy[data-design="classic"] .challan-fees thead { background:#f2f2f2; }
+.challan-copy[data-design="modern"][data-monochrome="false"] .challan-fees thead { background:#f4f7f8; }
+.challan-fees th,.challan-fees td { border:var(--challan-border) solid var(--challan-accent); padding:1mm 1.2mm; text-align:left; }
+.challan-fees th:last-child,.challan-fees td:last-child { text-align:right; white-space:nowrap; }
+.challan-fees th:first-child,.challan-fees td:first-child { width:68%; }
+.challan-fee-paired-row { display:grid; grid-template-columns:1fr 1fr; }
+.challan-fee-pair { min-width:0; display:grid; grid-template-columns:62% 38%; align-items:center; padding:0 1mm; }
+.challan-fee-pair:first-child { border-right:var(--challan-border) solid var(--challan-accent); padding-left:0; }
+.challan-fee-pair>span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.challan-fee-pair>b { text-align:right; white-space:nowrap; }
+.challan-month { display:inline-block; margin-left:2mm; border:var(--challan-border) solid var(--challan-accent); padding:.3mm 1.4mm; font-weight:bold; }
+.challan-signatures { margin:0; display:flex; justify-content:space-between; }
+@media screen and (max-width: 760px) { .challan-sheet { max-width:100%; height:auto!important; min-height:0; } .challan-copy { width:100%!important; } .challan-columns { flex-direction:column; } }
+@media print { .challan-preview-list { display:block; } .challan-sheet { box-shadow:none; break-after:page; page-break-after:always; } .challan-sheet:last-child { break-after:auto; page-break-after:auto; } }

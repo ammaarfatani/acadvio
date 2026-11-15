@@ -1,3 +1,4 @@
+import { FeeCalculationService } from "../services/feeCalculation.service";
 import {SalaryPayment} from "../models/workforce.model";
 import {branchContext} from "../utils/branchScope";
 import {AuditLog} from "../models/auditLog.model";
@@ -43,6 +44,17 @@ const allowedRoles = [
   UserType.SCHOOL_ADMIN,
   UserType.SUPER_ADMIN,
 ];
+
+const FeeFollowUpSchema = z.object({
+  contactDate: z.coerce.date().optional(),
+  nextFollowUpDate: z.coerce.date().optional(),
+  status: z.enum(["OPEN", "CONTACTED", "PROMISED", "FOLLOW_UP", "RESOLVED"]).default("OPEN"),
+  note: z.string().trim().min(1).max(2000),
+}).strict();
+
+router.get("/defaulters/export", requireUserType(...allowedRoles), requirePermission("fees.view"), FinanceController.exportFeeDefaulters);
+router.get("/defaulters", requireUserType(...allowedRoles), requirePermission("fees.view"), FinanceController.getFeeDefaulters);
+router.post("/defaulters/:studentId/follow-ups", requireUserType(...allowedRoles), requirePermission("fees.update"), validate(FeeFollowUpSchema), FinanceController.addFeeDefaulterFollowUp);
 
 router.get("/reminder-settings",requireUserType(UserType.SCHOOL_ADMIN,UserType.FINANCE),requirePermission("fees.view"),async(req,res,next)=>{try{const school:any=await School.findById(req.user!.schoolId).select("financeReminderDays").lean();return sendSuccess(res,{overdueIntervalDays:school?.financeReminderDays||7,timezone:"Asia/Karachi"});}catch(e){next(e)}});
 router.put("/reminder-settings",requireUserType(UserType.SCHOOL_ADMIN),requirePermission("settings.update"),async(req,res,next)=>{try{const scope=branchContext.getStore();if(scope&&!scope.owner&&scope.branchId!==scope.mainBranchId)throw {statusCode:403,message:"The main school administrator manages school-wide reminder settings."};const v=z.object({overdueIntervalDays:z.number().int().min(1).max(90)}).strict().parse(req.body);await School.updateOne({_id:req.user!.schoolId},{$set:{financeReminderDays:v.overdueIntervalDays}});await AuditLog.create({schoolId:req.user!.schoolId,action:"FEE_REMINDER_SETTINGS_UPDATED",performedByName:req.user!.email,details:"Overdue reminder interval: "+v.overdueIntervalDays+" days."});return sendSuccess(res,v);}catch(e){next(e)}});
@@ -134,6 +146,7 @@ router.get(
 );
 
 // Fee Structures
+router.put("/structures/:structureId", requireUserType(...allowedRoles), requirePermission("fees.update"), validate(FeeStructureSchema), FinanceController.updateFeeStructure);
 router.get(
   "/structures",
   requireUserType(...allowedRoles),
@@ -172,7 +185,7 @@ router.get(
       if (!session || !(await ClassModel.exists({ _id: q.classId, schoolId })))
         throw {
           statusCode: 400,
-          message: "Choose an authorized class/session.",
+          message: !session ? "Select a valid academic session for this school." : "Select a class belonging to this school.",
         };
       if (
         q.sectionId &&
@@ -182,7 +195,7 @@ router.get(
           schoolId,
         }))
       )
-        throw { statusCode: 400, message: "Choose a valid class section." };
+        throw { statusCode: 400, message: "Choose a section belonging to this class." };
       const rows: any[] = await Student.find({
         schoolId,
         classId: q.classId,
@@ -218,10 +231,34 @@ router.get(
           message:
             "Duplicate active invoices exist for this period. Review them before printing.",
         };
+      const printProfile = await SchoolService.getSchoolProfile(schoolId!);
+      const printSchool = {
+        name: printProfile.name,
+        branchName: printProfile.branchName,
+        address: printProfile.address,
+        phone: printProfile.phone,
+        email: printProfile.email,
+        logoUrl: printProfile.logoUrl,
+        bankDetails: printProfile.bankDetails,
+      };
+      const currentTemplate = printProfile.documentSettings?.challanTemplate;
+      const previewChallans = challans.map((c: any) => {
+        const snapshot = c.documentSnapshot || {};
+        return {
+          ...c,
+          currentPayablePKR: FeeCalculationService.evaluateCurrentPayable(c).payableAmount,
+          documentSnapshot: {
+            ...snapshot,
+            school: snapshot.school || printSchool,
+            bank: snapshot.bank || snapshot.school?.bankDetails || printSchool.bankDetails,
+            challanTemplate: snapshot.challanTemplate || currentTemplate,
+          },
+        };
+      });
       res.set("Cache-Control", "private, no-store");
       return sendSuccess(res, {
         students,
-        challans,
+        challans: previewChallans,
         next:
           rows.length > 100 ? String(students[students.length - 1]._id) : null,
       });
@@ -290,7 +327,7 @@ router.get(
         };
       res.set("Cache-Control", "private, no-store");
       return sendSuccess(res, {
-        challans,
+        challans: challans.map((c: any) => ({ ...c, currentPayablePKR: FeeCalculationService.evaluateCurrentPayable(c).payableAmount })),
         payments,
         expenses,
         salaryPayments:req.user!.permissions?.includes("payroll.view")?salaryPayments:[],
@@ -439,6 +476,24 @@ router.get(
   "/challans",
   requireUserType(...allowedRoles),
   FinanceController.getChallans,
+);
+router.get(
+  "/challans/:challanId/pdf",
+  requireUserType(...allowedRoles),
+  requirePermission("fees.view"),
+  FinanceController.getChallanPdf,
+);
+router.post(
+  "/challans/bulk-pdf",
+  requireUserType(...allowedRoles),
+  requirePermission("fees.view"),
+  FinanceController.getBulkChallansPdf,
+);
+router.get(
+  "/challans/bulk-pdf",
+  requireUserType(...allowedRoles),
+  requirePermission("fees.view"),
+  FinanceController.getBulkChallansPdf,
 );
 router.get(
   "/receipts/:challanId",

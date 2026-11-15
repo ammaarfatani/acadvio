@@ -29,6 +29,7 @@ import { ExamSchedule } from "../models/exam.model";
 import { Announcement } from "../models/announcement.model";
 import { IssuedSchoolDocument } from "../models/issuedSchoolDocument.model";
 import { AcademicSession } from "../models/academicSession.model";
+import { ClassCategory } from "../models/classCategory.model";
 
 type Definition = {
   title: string;
@@ -576,11 +577,24 @@ for (const [key, columns] of Object.entries({
   for (const c of columns)
     if (!reportDefinitions[key].columns.includes(c))
       reportDefinitions[key].columns.push(c);
+const categoryReportKeys = [
+  "students", "guardians", "issuedDocuments", "attendance", "collections",
+  "invoices", "results", "subjectResults", "admissions",
+];
+for (const key of categoryReportKeys) {
+  reportDefinitions[key].filters.classCategoryId = "classCategoryId";
+  if (key !== "admissions") {
+    reportDefinitions[key].filters.classId ||= "classId";
+    reportDefinitions[key].filters.sectionId ||= "sectionId";
+    reportDefinitions[key].filters.academicSessionId ||= "academicSessionId";
+  }
+}
 export const reportFilters = z
   .object({
     from: date,
     to: date,
     classId: id.optional(),
+    classCategoryId: id.optional(),
     sectionId: id.optional(),
     academicSessionId: id.optional(),
     studentId: id.optional(),
@@ -650,6 +664,7 @@ export async function validateReportReferences(
 ) {
   const descriptions: Record<string, string> = {};
   const lookups: any = {
+    classCategoryId: ClassCategory,
     classId: ClassModel,
     sectionId: SectionModel,
     academicSessionId: AcademicSession,
@@ -686,6 +701,11 @@ export async function validateReportReferences(
     )
       throw { statusCode: 400, message: "Choose a staff employee." };
     if (
+      field === "classId" && filters.classCategoryId &&
+      String(ref.classCategoryId || "") !== filters.classCategoryId
+    )
+      throw { statusCode: 400, message: "The selected class does not belong to the selected category." };
+    if (
       field === "subjectId" &&
       filters.classId &&
       String(ref.classId) !== filters.classId
@@ -712,6 +732,11 @@ export async function validateReportReferences(
         statusCode: 400,
         message: "The section does not belong to the selected class.",
       };
+    if (
+      field === "sectionId" && filters.classCategoryId &&
+      !(await ClassModel.exists({ _id: ref.classId, schoolId: actor.schoolId, classCategoryId: filters.classCategoryId }))
+    )
+      throw { statusCode: 400, message: "The selected section does not belong to the selected category." };
     if (
       field === "studentId" &&
       (!reportKey || ["students", "guardians"].includes(reportKey)) &&
@@ -797,10 +822,79 @@ export function periodBounds(filters: Filters) {
     ),
   };
 }
+async function categoryFilter(actor: AuthenticatedUser, key: string, filters: Filters) {
+  if (!filters.classCategoryId) return undefined;
+  if (key === "collections") return undefined;
+  const category: any = await ClassCategory.findOne({ _id: filters.classCategoryId, schoolId: actor.schoolId }).select("name displayOrder").lean();
+  if (!category) throw { statusCode: 400, message: "Choose an authorized class category." };
+  const classes: any[] = await ClassModel.find({ schoolId: actor.schoolId, classCategoryId: filters.classCategoryId, ...(filters.classId ? { _id: filters.classId } : {}) }).select("_id").limit(50001).lean();
+  const classIds = classes.map((c) => c._id);
+  const schema = reportDefinitions[key].model.schema;
+  if (schema.path("applyingClassId")) {
+    const alternatives: any[] = [{ applyingClassId: { $in: classIds } }];
+    if (!filters.classId && schema.path("applyingClassCategoryName")) alternatives.push({ applyingClassCategoryName: category.name });
+    return { $or: alternatives };
+  }
+  if (schema.path("classId")) {
+    const alternatives: any[] = [{ classId: { $in: classIds } }];
+    if (!filters.classId && schema.path("classCategoryName")) alternatives.push({ classCategoryName: category.name });
+    return { $or: alternatives };
+  }
+  if (schema.path("classCategoryName")) return { classCategoryName: category.name };
+  if (schema.path("studentId")) {
+    const students: any[] = await Student.find({ schoolId: actor.schoolId, classId: { $in: classIds } }).select("_id").limit(50001).lean();
+    if (students.length > 50000) throw { statusCode: 413, message: "This category contains too many student links for a single report. Narrow the date range or class." };
+    return { studentId: { $in: students.map((s) => s._id) } };
+  }
+  return { _id: { $exists: false } };
+}
+async function feeCollectionPlacementFilter(actor: AuthenticatedUser, key: string, filters: Filters) {
+  if (key !== "collections" || !(filters.classCategoryId || filters.classId || filters.sectionId || filters.academicSessionId)) return undefined;
+  const match: any = { schoolId: actor.schoolId };
+  if (filters.classId) match.classId = filters.classId;
+  if (filters.sectionId) {
+    const section: any = await SectionModel.findOne({ _id: filters.sectionId, schoolId: actor.schoolId }).select("name classId").lean();
+    if (!section) throw { statusCode: 400, message: "Choose an authorized section." };
+    match.sectionName = section.name;
+    if (!filters.classId) match.classId = section.classId;
+  }
+  if (filters.academicSessionId) {
+    const session: any = await AcademicSession.findOne({ _id: filters.academicSessionId, schoolId: actor.schoolId }).select("name").lean();
+    if (!session) throw { statusCode: 400, message: "Choose an authorized academic session." };
+    match.academicSession = session.name;
+  }
+  if (filters.classCategoryId) {
+    const category: any = await ClassCategory.findOne({ _id: filters.classCategoryId, schoolId: actor.schoolId }).select("name").lean();
+    if (!category) throw { statusCode: 400, message: "Choose an authorized class category." };
+    const classes: any[] = await ClassModel.find({ schoolId: actor.schoolId, classCategoryId: filters.classCategoryId, ...(filters.classId ? { _id: filters.classId } : {}) }).select("_id").limit(50001).lean();
+    const categoryIds = classes.map((c) => c._id);
+    match.$or = [{ classId: { $in: categoryIds } }, ...(!filters.classId ? [{ classCategoryName: category.name }] : [])];
+  }
+  const challans: any[] = await FeeChallan.find(match).select("_id").limit(50001).lean();
+  if (challans.length > 50000) throw { statusCode: 413, message: "This fee collection filter matches over 50,000 challans. Narrow the date range or class." };
+  return { challanId: { $in: challans.map((c) => c._id) } };
+}
+async function studentPlacementFilter(actor: AuthenticatedUser, key: string, filters: Filters) {
+  const spec = reportDefinitions[key];
+  if (!spec.model.schema.path("studentId") || spec.model.schema.path("challanId")) return undefined;
+  const placement: any = { schoolId: actor.schoolId };
+  let needed = false;
+  for (const field of ["classId", "sectionId", "academicSessionId"] as const) {
+    const value = filters[field];
+    if (!value || spec.model.schema.path(spec.filters[field] || field)) continue;
+    placement[field] = value;
+    needed = true;
+  }
+  if (!needed) return undefined;
+  const students: any[] = await Student.find(placement).select("_id").limit(50001).lean();
+  if (students.length > 50000) throw { statusCode: 413, message: "This student placement filter matches over 50,000 students. Narrow the report filters." };
+  return { studentId: { $in: students.map((s) => s._id) } };
+}
 export function reportPipeline(
   actor: AuthenticatedUser,
   key: string,
   filters: Filters,
+  categoryCondition?: any,
 ) {
   const spec = reportDefinitions[key],
     { start, end } = periodBounds(filters);
@@ -814,20 +908,22 @@ export function reportPipeline(
   if (["students", "guardians"].includes(key) && filters.studentId)
     delete match[spec.date];
   const after: any = {};
-  for (const [key, value] of Object.entries(filters)) {
-    if (key === "from" || key === "to" || value === undefined) continue;
-    const field = spec.filters[key];
+  for (const [filterKey, value] of Object.entries(filters)) {
+    if (filterKey === "from" || filterKey === "to" || filterKey === "classCategoryId" || value === undefined) continue;
+    const field = spec.filters[filterKey];
     if (!field)
       throw {
         statusCode: 400,
-        message: `${key} is not supported by ${spec.title}. Remove this filter or select compatible reports.`,
+        message: `${filterKey} is not supported by ${spec.title}. Remove this filter or select compatible reports.`,
       };
+    if (categoryReportKeys.includes(key) && ["classId", "sectionId", "academicSessionId"].includes(filterKey) && !spec.model.schema.path(field)) continue;
     const target =
       spec.unwind && field.startsWith(spec.unwind + ".") ? after : match;
-    target[field] = key.endsWith("Id")
+    target[field] = filterKey.endsWith("Id")
       ? new mongoose.Types.ObjectId(value)
       : value;
   }
+  if (categoryCondition) (match.$and ||= []).push(categoryCondition);
   const pipeline: any[] = [{ $match: match }];
   if (spec.unwind)
     pipeline.push({
@@ -944,6 +1040,46 @@ function setReportPath(row: any, path: string, value: any) {
   for (const key of parts.slice(0, -1)) at = at[key] || (at[key] = {});
   at[parts.at(-1)!] = value;
 }
+async function reportCategories(actor: AuthenticatedUser, key: string, rows: any[]) {
+  const classIds = new Set<string>(), studentIds = new Set<string>(), challanIds = new Set<string>();
+  for (const row of rows) {
+    const classId = row.classId || row.applyingClassId;
+    const studentId = row.studentId || row.records?.studentId;
+    if (row.challanId) challanIds.add(String(row.challanId));
+    if (classId) classIds.add(String(classId));
+    if (studentId) studentIds.add(String(studentId));
+  }
+  const [classes, students, challans] = await Promise.all([
+    classIds.size ? ClassModel.find({ schoolId: actor.schoolId, _id: { $in: [...classIds] } }).select("classCategoryId classCategoryName").lean() : [],
+    !classIds.size && studentIds.size ? Student.find({ schoolId: actor.schoolId, _id: { $in: [...studentIds] } }).select("classId classCategoryName").lean() : [],
+    challanIds.size ? FeeChallan.find({ schoolId: actor.schoolId, _id: { $in: [...challanIds] } }).select("classId classCategoryName").lean() : [],
+  ]);
+  const challanMap = new Map((challans as any[]).map((challan) => [String(challan._id), challan]));
+  for (const challan of challans as any[]) { if (challan.classId) classIds.add(String(challan.classId)); }
+  const allClasses: any[] = [...classes];
+  const loadedClasses = new Set(allClasses.map((c: any) => String(c._id)));
+  const extraClassIds = [...new Set([...students.map((s: any) => String(s.classId || "")), ...(challans as any[]).map((c: any) => String(c.classId || ""))])].filter((id) => id && !loadedClasses.has(id));
+  if (extraClassIds.length) allClasses.push(...await ClassModel.find({ schoolId: actor.schoolId, _id: { $in: extraClassIds } }).select("_id classCategoryId classCategoryName").lean());
+  const categoryIds = [...new Set(allClasses.map((c: any) => String(c.classCategoryId || "")).filter(Boolean))];
+  const categoryDocs: any[] = categoryIds.length ? await ClassCategory.find({ schoolId: actor.schoolId, _id: { $in: categoryIds } }).select("name displayOrder").lean() : [];
+  const byId = new Map(categoryDocs.map((c: any) => [String(c._id), c.name]));
+  const classMap = new Map(allClasses.map((c: any) => [String(c._id), byId.get(String(c.classCategoryId || "")) || c.classCategoryName || ""]));
+  const studentMap = new Map(students.map((s: any) => [String(s._id), s]));
+  const categoryNames = rows.map((row) => {
+    const snapshot = row.classCategoryName || row.applyingClassCategoryName || challanMap.get(String(row.challanId))?.classCategoryName;
+    if (snapshot) return String(snapshot);
+    const classId = row.classId || row.applyingClassId || studentMap.get(String(row.studentId || row.records?.studentId))?.classId;
+    return classMap.get(String(classId || "")) || "Uncategorized";
+  });
+  const displayOrder = new Map(categoryDocs.map((c: any) => [c.name, Number(c.displayOrder || 0)]));
+  const groups = new Map<string, number[]>();
+  rows.forEach((row, index) => { const name = categoryNames[index] || "Uncategorized"; if (!groups.has(name)) groups.set(name, []); groups.get(name)!.push(index); });
+  return [...groups.entries()].sort(([a], [b]) => {
+    if (a === "Uncategorized") return 1;
+    if (b === "Uncategorized") return -1;
+    return (displayOrder.get(a) ?? Number.MAX_SAFE_INTEGER) - (displayOrder.get(b) ?? Number.MAX_SAFE_INTEGER) || a.localeCompare(b);
+  }).map(([category, indexes]) => ({ category, count: indexes.length, indexes }));
+}
 async function resolveReportRelations(
   actor: AuthenticatedUser,
   key: string,
@@ -1022,7 +1158,11 @@ export async function reportRows(
     delete effectiveFilters.academicSessionId;
     delete effectiveFilters.term;
   }
-  const pipeline = reportPipeline(actor, selection.report, effectiveFilters);
+  const categoryCondition = await categoryFilter(actor, selection.report, effectiveFilters);
+  const placementCondition = categoryReportKeys.includes(selection.report) ? await studentPlacementFilter(actor, selection.report, effectiveFilters) : undefined;
+  const feeCollectionCondition = await feeCollectionPlacementFilter(actor, selection.report, effectiveFilters);
+  const conditions = [categoryCondition, placementCondition, feeCollectionCondition].filter(Boolean);
+  const pipeline = reportPipeline(actor, selection.report, effectiveFilters, conditions.length > 1 ? { $and: conditions } : conditions[0]);
   const filterLabels = await validateReportReferences(
     actor,
     filters,
@@ -1049,6 +1189,7 @@ export async function reportRows(
   const projection = Object.fromEntries(
     [
       ...selection.columns,
+      ...(categoryReportKeys.includes(selection.report) ? ["classId", "applyingClassId", "studentId", "challanId", "records.studentId", "classCategoryName", "applyingClassCategoryName"] : []),
       ...reportRelations(selection.report)
         .filter((r) => selection.columns.includes(r.target))
         .map((r) => r.source),
@@ -1077,16 +1218,25 @@ export async function reportRows(
       message:
         "This report exceeds 5,000 rows. Narrow the dates or filters before exporting.",
     };
+  const resolvedRows = await resolveReportRelations(
+    actor,
+    selection.report,
+    selection.columns,
+    result.rows,
+  );
+  const groups = categoryReportKeys.includes(selection.report)
+    ? (await reportCategories(actor, selection.report, result.rows)).map((group) => {
+        const groupRows = group.indexes.map((i: number) => resolvedRows[i]);
+        const subtotalColumns = selection.columns.filter((c) => /(?:AmountPKR|amountPKR|totalAmountPKR|remainingAmountPKR)$/.test(c));
+        return { category: group.category, count: group.count, rows: groupRows, subtotals: Object.fromEntries(subtotalColumns.map((c) => [c, groupRows.reduce((sum: number, row: any) => sum + (typeof reportPathValue(row, c) === "number" ? reportPathValue(row, c) : 0), 0)])) };
+      })
+    : undefined;
   return {
     report: selection.report,
     title: spec.title,
     columns: selection.columns,
-    rows: await resolveReportRelations(
-      actor,
-      selection.report,
-      selection.columns,
-      result.rows,
-    ),
+    rows: resolvedRows,
+    groups,
     columnLabels: Object.fromEntries(
       selection.columns.map((c) => [c, reportColumnLabel(selection.report, c)]),
     ),
@@ -1107,15 +1257,18 @@ export function safeSpreadsheet(value: string | number) {
 export function csvReport(report: Awaited<ReturnType<typeof reportRows>>) {
   const quote = (v: string | number) =>
     '"' + String(safeSpreadsheet(v)).replace(/"/g, '""') + '"';
+  const groups: any[] = report.groups?.length ? report.groups : [{ category: "", rows: report.rows, count: report.rows.length, subtotals: {} }];
+  const columns = report.groups?.length ? report.columns.filter((c) => !["classCategoryName", "applyingClassCategoryName"].includes(c)) : report.columns;
+  const lines = [columns.map((c) => quote(reportColumnLabel(report.report, c))).join(",")];
+  const summable = columns.filter((c) => /(?:AmountPKR|amountPKR|totalAmountPKR|remainingAmountPKR)$/.test(c));
+  for (const group of groups) {
+    if (group.category) lines.push(quote(`${group.category} — ${report.title}`));
+    lines.push(...group.rows.map((row: any) => columns.map((c) => quote(cellValue(row, c))).join(",")));
+    if (group.category) lines.push(columns.map((c, i) => quote(summable.includes(c) ? Number(group.subtotals?.[c] || 0) : i === 0 ? `${group.category} subtotal (${group.count} records)` : "")).join(","));
+  }
+  if (report.groups?.length) lines.push(columns.map((c, i) => quote(summable.includes(c) ? report.groups!.reduce((sum: number, g: any) => sum + Number(g.subtotals?.[c] || 0), 0) : i === 0 ? `GRAND TOTAL (${report.total} records)` : "")).join(","));
   return (
     "\ufeff" +
-    [
-      report.columns
-        .map((c) => quote(reportColumnLabel(report.report, c)))
-        .join(","),
-      ...report.rows.map((row: any) =>
-        report.columns.map((c) => quote(cellValue(row, c))).join(","),
-      ),
-    ].join("\r\n")
+    lines.join("\r\n")
   );
 }

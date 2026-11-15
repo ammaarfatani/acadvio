@@ -9,6 +9,8 @@ import { Appointment } from "../models/appointment.model";
 import { FrontDeskRequest } from "../models/frontDeskRequest.model";
 import { Announcement } from "../models/announcement.model";
 import { SchoolAdminService } from "./schoolAdmin.service";
+import { FeeStructure } from "../models/fee.model";
+import { feeStructureEligible } from "../../lib/student-fee-assignment";
 
 export class ReceptionistService {
   // 1. DASHBOARD METRICS & RECENT ACTIVITY
@@ -262,6 +264,11 @@ export class ReceptionistService {
               classId: admission.applyingClassId,
               sectionId: section._id,
               academicSessionId: admission.academicSessionId,
+              feeEffectiveDate: data.feeEffectiveDate,
+              feeStructureId: data.feeStructureId || undefined,
+              concessionType: data.concessionType || undefined,
+              concessionValue: Math.max(0, Number(data.concessionValue) || 0),
+              concessionReason: data.concessionReason || undefined,
               admissionNumber,
               admissionDate: new Date(),
               address: data.address,
@@ -328,6 +335,11 @@ export class ReceptionistService {
           classId: admission.applyingClassId,
           sectionId: section._id,
           academicSessionId: admission.academicSessionId,
+          feeEffectiveDate: data.feeEffectiveDate,
+              feeStructureId: data.feeStructureId || undefined,
+          concessionType: data.concessionType || undefined,
+          concessionValue: Math.max(0, Number(data.concessionValue) || 0),
+          concessionReason: data.concessionReason || undefined,
           admissionNumber,
           admissionDate: new Date(),
           address: data.address,
@@ -870,6 +882,10 @@ export class ReceptionistService {
   }
 
   // 8. ACADEMIC LOOKUP HELPERS
+  static getClassCategories(schoolId: string) {
+    return SchoolAdminService.getClassCategories(schoolId, { status: "ACTIVE" });
+  }
+
   static getClasses(schoolId: string) {
     return SchoolAdminService.getClasses(schoolId);
   }
@@ -880,5 +896,15 @@ export class ReceptionistService {
 
   static getAcademicSessions(schoolId: string) {
     return SchoolAdminService.getAcademicSessions(schoolId);
+  }
+
+  static async getFeeStructureChoices(schoolId: string, classId: string, sessionId: string) {
+    const [classRecord, session] = await Promise.all([
+      ClassModel.findOne({ _id: classId, schoolId }).select("_id"),
+      AcademicSession.findOne({ _id: sessionId, schoolId }).select("name"),
+    ]);
+    if (!classRecord || !session) throw { statusCode: 400, message: "Select a class and academic session for this school." };
+    const structures = await FeeStructure.find({ schoolId }).sort({ title: 1 }).lean();
+    return structures.filter((structure: any) => feeStructureEligible(structure, { classId, academicSessionName: session.name }));
   }
 }

@@ -93,6 +93,7 @@ export default function PortalShell({
     !!user?.school &&
     !user.school.attendanceSetupCompletedAt &&
     (user.isOrganizationOwner || user.branchId === user.school._id);
+  const seenNavKeys = new Set<string>();
   const groups = billingOnly
     ? [
         {
@@ -105,8 +106,11 @@ export default function PortalShell({
       ]
     : config.groups.map((group) => ({
         ...group,
-        items: group.items.filter(
-          (item) =>
+        items: group.items.filter((item) => {
+          const navKey = (item.path || item.label).toLowerCase();
+          if (seenNavKeys.has(navKey)) return false;
+
+          const isAllowed =
             (role === "SUPER_ADMIN" || !["/subscription", "/payments"].includes(item.path) || canManageSchoolBilling(user)) &&
             (!item.permission ||
               user?.permissions?.includes(item.permission)) &&
@@ -118,8 +122,13 @@ export default function PortalShell({
             (item.path !== "/attendance/devices" ||
               user?.school?.attendanceMode === "BIOMETRIC") &&
             (!item.path.startsWith("/organization") ||
-              user?.isOrganizationOwner),
-        ),
+              user?.isOrganizationOwner);
+
+          if (isAllowed) {
+            seenNavKeys.add(navKey);
+          }
+          return isAllowed;
+        }),
       }));
   const links = groups.flatMap((group) => group.items);
   const current =
@@ -298,8 +307,7 @@ export default function PortalShell({
       )}
     </nav>
   );
-  const footer =
-    role === "PARENT" ? null : (
+  const footer = (
       <div className="shrink-0 border-t border-zinc-200 px-5 py-4">
         <button
           onClick={() => (
@@ -430,7 +438,7 @@ export default function PortalShell({
               )}
             </div>
             {!billingOnly && <BranchSwitcher />}
-            {!billingOnly && role !== "PARENT" && (
+            {!billingOnly && (
               <button
                 onClick={() => (
                   (focusOrigin.current = document.activeElement as HTMLElement),
@@ -606,7 +614,7 @@ export default function PortalShell({
       </Presence>
       <ScreenshotPrivacy />
       <Presence
-        show={assistant && !billingOnly && role !== "PARENT"}
+          show={assistant && !billingOnly}
         kind="drawer"
       >
         <AcadivoAssistant onClose={() => setAssistant(false)} />

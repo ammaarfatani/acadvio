@@ -8,6 +8,8 @@ export interface IClass extends Document {
   numericLevel: number;
   classTeacherId?: mongoose.Types.ObjectId;
   classTeacherName?: string;
+  classCategoryId?: mongoose.Types.ObjectId;
+  classCategoryName?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -20,6 +22,8 @@ const ClassSchema = new Schema<IClass>(
     numericLevel: { type: Number, default: 1 },
     classTeacherId: { type: Schema.Types.ObjectId, ref: "User" },
     classTeacherName: { type: String },
+    classCategoryId: { type: Schema.Types.ObjectId, ref: "ClassCategory", index: true },
+    classCategoryName: { type: String, trim: true },
   },
   { timestamps: true }
 );

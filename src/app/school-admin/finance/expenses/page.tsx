@@ -1,13 +1,12 @@
 "use client";
 import {TableScroll} from "@/components/TableScroll";
-
-
-
-
 import { useCallback, useEffect, useState } from "react";
+import { FileSpreadsheet } from "lucide-react";
 import { schoolAdminApi } from "@/lib/schoolAdminApi";
+import { BulkImportModal } from "@/components/BulkImportModal";
 
 export default function ExpensesPage() {
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -35,15 +34,33 @@ export default function ExpensesPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 pb-12">
+      {bulkOpen && (
+        <BulkImportModal
+          entity="expenses"
+          onClose={() => setBulkOpen(false)}
+          onImported={load}
+        />
+      )}
+
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200 pb-4">
         <div>
           <h1 className="text-2xl font-black text-zinc-950">Expense Audit History</h1>
           <p className="mt-1 text-xs text-zinc-500">Monitor school operational expenses recorded by the Finance & Accounts department.</p>
         </div>
 
-        <div className="text-right">
-          <span className="text-[10px] uppercase font-bold text-zinc-500 block">Category Total</span>
-          <span className="text-lg font-black text-red-600 font-mono">PKR {totalAmount.toLocaleString()}</span>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setBulkOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-300 bg-white px-3.5 py-2 text-xs font-bold text-zinc-800 shadow-sm hover:bg-zinc-50"
+          >
+            <FileSpreadsheet size={15} className="text-emerald-600" />
+            Bulk Upload Expenses
+          </button>
+          <div className="text-right">
+            <span className="text-[10px] uppercase font-bold text-zinc-500 block">Category Total</span>
+            <span className="text-lg font-black text-red-600 font-mono">PKR {totalAmount.toLocaleString()}</span>
+          </div>
         </div>
       </header>
 
@@ -105,4 +122,3 @@ export default function ExpensesPage() {
     </div>
   );
 }
-

@@ -1,0 +1,1 @@
+src/app/receptionist/admissions/page.tsx(204,49): error TS2339: Property 'getFeeStructureChoices' does not exist on type '{ getDashboard: () => Promise<any>; getClassCategories: () => Promise<any>; getClasses: () => Promise<any>; getSections: (classId: string) => Promise<any>; ... 19 more ...; updateSchoolBranding: (brandingData: any) => Promise<...>; }'.

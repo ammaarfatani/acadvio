@@ -9,15 +9,27 @@ import { requirePermission } from "../middlewares/rbac.middleware";
 import { requireExactUserType } from "../middlewares/rbac.middleware";
 import { UserType } from "../constants/roles.constant";
 import { validate } from "../middlewares/validate.middleware";
-import { StudentCreateSchema, StudentUpdateSchema, ClassCreateSchema, SectionCreateSchema, SubjectCreateSchema, FeeStructureSchema, FeeBatchSchema, CollectPaymentSchema, ExpenseSchema, ExamScheduleSchema, AnnouncementSchema, AcademicSessionSchema, TimetableSlotSchema, TeacherAdminCreateSchema, TeacherAdminUpdateSchema } from "../validators/domain.validator";
+import { StudentCreateSchema, StudentUpdateSchema, StudentFeeStructureChangeSchema, ClassCategoryCreateSchema, ClassCategoryUpdateSchema, ClassCreateSchema, ClassUpdateSchema, ClassBulkAssignCategorySchema, SectionCreateSchema, SubjectCreateSchema, FeeStructureSchema, FeeBatchSchema, CollectPaymentSchema, ExpenseSchema, ExamScheduleSchema, AnnouncementSchema, AcademicSessionSchema, TimetableSlotSchema, TeacherAdminCreateSchema, TeacherAdminUpdateSchema } from "../validators/domain.validator";
 
 import rateLimit from "express-rate-limit";
 import { bulkImportHandlers, previewImportSchema, commitImportSchema } from "../controllers/bulkImport.controller";
+import universalImportRoutes from "./universalImport.routes";
+import { School } from "../models/school.model";
 
 const router = Router();
 
 // Protect all school admin routes with authentication and strict tenant enforcement
 router.use(authenticate, requireExactUserType(UserType.SCHOOL_ADMIN), enforceSchoolTenant);
+
+// Mount universal bulk import & school migration routes
+router.use("/universal-import", universalImportRoutes);
+
+const NumberingConfigSchema=z.object({
+  student:z.object({prefix:z.string().max(30),startAt:z.number().int().min(1).max(999999999),padding:z.number().int().min(0).max(12)}).strict(),
+  admission:z.object({prefix:z.string().max(30),startAt:z.number().int().min(1).max(999999999),padding:z.number().int().min(0).max(12)}).strict(),
+  employee:z.object({prefix:z.string().max(30),startAt:z.number().int().min(1).max(999999999),padding:z.number().int().min(0).max(12)}).strict(),
+}).strict();
+router.put("/numbering-settings",requirePermission("settings.update"),async(req,res,next)=>{try{const numbering=NumberingConfigSchema.parse(req.body);const school=await School.findByIdAndUpdate(req.user!.schoolId,{$set:{"documentSettings.numbering":numbering}},{new:true,runValidators:true});if(!school)throw {statusCode:404,message:"School settings not found."};return sendSuccess(res,{numbering:school.documentSettings?.numbering},"ID and numbering configuration saved.");}catch(e){next(e);}});
 
 const importLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false, message: { success: false, message: "Too many import uploads. Please wait before trying again." } });
 for (const entity of ["students", "teachers"] as const) {
@@ -49,12 +61,23 @@ router.post("/timetable", requirePermission("settings.update"), validate(Timetab
 router.get("/students", requirePermission("students.view"), SchoolAdminController.getStudents);
 router.get("/students/next-roll-number", requirePermission("students.create"), SchoolAdminController.getNextStudentRollNumber);
 router.get("/students/:studentId/history", requirePermission("students.view"), SchoolAdminController.getStudentHistory);
+router.get("/students/:studentId/fee-history", requirePermission("fees.view"), SchoolAdminController.getStudentFeeHistory);
 router.post("/students", requirePermission("students.create"), validate(StudentCreateSchema), SchoolAdminController.createStudent);
 router.put("/students/:studentId", requirePermission("students.update"), validate(StudentUpdateSchema), SchoolAdminController.updateStudent);
+router.post("/students/:studentId/fee-structure", requirePermission("fees.update"), validate(StudentFeeStructureChangeSchema), SchoolAdminController.changeStudentFeeStructure);
+
+// Class Categories
+router.get("/classes/categories", requirePermission("settings.view"), SchoolAdminController.getClassCategories);
+router.post("/classes/categories", requirePermission("settings.update"), validate(ClassCategoryCreateSchema), SchoolAdminController.createClassCategory);
+router.put("/classes/categories/:categoryId", requirePermission("settings.update"), validate(ClassCategoryUpdateSchema), SchoolAdminController.updateClassCategory);
+router.delete("/classes/categories/:categoryId", requirePermission("settings.update"), SchoolAdminController.deleteClassCategory);
+router.post("/classes/bulk-assign-category", requirePermission("settings.update"), validate(ClassBulkAssignCategorySchema), SchoolAdminController.bulkAssignCategoryToClasses);
 
 // Classes & Sections
 router.get("/classes", requirePermission("settings.view"), SchoolAdminController.getClasses);
 router.post("/classes", requirePermission("settings.update"), validate(ClassCreateSchema), SchoolAdminController.createClass);
+router.put("/classes/:classId", requirePermission("settings.update"), validate(ClassUpdateSchema), SchoolAdminController.updateClass);
+router.delete("/classes/:classId", requirePermission("settings.update"), SchoolAdminController.deleteClass);
 router.get("/sections", requirePermission("settings.view"), SchoolAdminController.getSections);
 router.post("/sections", requirePermission("settings.update"), validate(SectionCreateSchema), SchoolAdminController.createSection);
 router.get("/class-teacher-assignments", requirePermission("settings.view"), SchoolAdminController.getClassTeacherAssignments);

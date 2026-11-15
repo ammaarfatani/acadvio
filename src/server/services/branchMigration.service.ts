@@ -8,7 +8,34 @@ import { AcademicSession } from "../models/academicSession.model";
 export async function migrateBranchScopes() {
   return withoutBranchScope(async () => {
     const schools = await School.find({}).select("name address phone email").lean();
-    if (schools.length) await Branch.bulkWrite(schools.map((school:any)=>({updateOne:{filter:{_id:school._id,organizationId:school._id},update:{$setOnInsert:{isMain:true,name:school.name,code:"main",address:school.address,phone:school.phone,email:school.email,status:"ACTIVE"}},upsert:true}})));
+    if (schools.length) {
+      const existingMainBranches = await Branch.find({ isMain: true }).select("organizationId").lean();
+      const existingMainOrgIds = new Set(existingMainBranches.map((b: any) => String(b.organizationId)));
+      const schoolsNeedingMain = schools.filter((s: any) => !existingMainOrgIds.has(String(s._id)));
+      if (schoolsNeedingMain.length) {
+        await Branch.bulkWrite(
+          schoolsNeedingMain.map((school: any) => ({
+            updateOne: {
+              filter: { organizationId: school._id, isMain: true },
+              update: {
+                $setOnInsert: {
+                  _id: school._id,
+                  organizationId: school._id,
+                  isMain: true,
+                  name: school.name,
+                  code: "main",
+                  address: school.address,
+                  phone: school.phone,
+                  email: school.email,
+                  status: "ACTIVE",
+                },
+              },
+              upsert: true,
+            },
+          }))
+        );
+      }
+    }
     const schoolIds = schools.map((s:any)=>s._id);
     const seen = new Set<string>(); const tasks: Promise<any>[] = [];
     for (const model of Object.values(mongoose.models)) {

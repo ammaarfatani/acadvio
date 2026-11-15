@@ -11,6 +11,8 @@ require.extensions[".ts"] = (m, f) =>
 const {
   feeMonth,
   feeMonthVariants,
+  feeMonthFromRecord,
+  feeMonthLabel,
   invoiceTotals,
   challanPrintGroups,
 } = require("../src/lib/fee-math.ts");
@@ -22,6 +24,14 @@ const eq = (a, b) => {
 eq(feeMonth("October 2026"), "2026-10");
 eq(feeMonth("2026-10"), "2026-10");
 eq(feeMonthVariants("October 2026"), ["2026-10", "October 2026"]);
+eq(feeMonthFromRecord("2026-10"), "2026-10");
+eq(feeMonthFromRecord("2026-10-01"), "2026-10");
+eq(feeMonthFromRecord("October 2026"), "2026-10");
+eq(feeMonthFromRecord("October", "2026-10-15T00:00:00.000Z"), "2026-10");
+eq(feeMonthFromRecord("October"), undefined);
+eq(feeMonthFromRecord("2026-02-30"), undefined);
+eq(feeMonthLabel("2026-12"), "December 2026");
+eq(new Set(["October", "October 2026", "2026-10"].map(v => feeMonthFromRecord(v, "2026-10-15T00:00:00.000Z"))).size, 1);
 assert.throws(() => feeMonth("2026-13"));
 n++;
 eq(

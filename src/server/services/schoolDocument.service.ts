@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { defaultChallanTemplate } from "../../lib/challan-template";
 import { AuditLog } from "../models/auditLog.model";
 import { randomUUID, createHash } from "crypto";
 import { School } from "../models/school.model";
@@ -76,6 +77,7 @@ export async function documentSettings(schoolId: string) {
   if (!school) throw { statusCode: 404, message: "School not found." };
   return {
     revision: school.documentSettingsRevision || 0,
+    challanTemplate: school.documentSettings?.challanTemplate || defaultChallanTemplate(),
     completedAt: school.documentSetupCompletedAt,
     branding: school.documentSettings?.branding || {},
     templates: Object.fromEntries(

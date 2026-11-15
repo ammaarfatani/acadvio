@@ -5,9 +5,11 @@ export const receptionistApi = {
   getDashboard: () => apiFetch("/receptionist/dashboard"),
 
   // 2. Admissions
+  getClassCategories: () => apiFetch("/receptionist/class-categories"),
   getClasses: () => apiFetch("/receptionist/classes"),
   getSections: (classId: string) => apiFetch(`/receptionist/classes/${encodeURIComponent(classId)}/sections`),
   getAcademicSessions: () => apiFetch("/receptionist/academic-sessions"),
+  getFeeStructureChoices: (classId: string, sessionId: string) => apiFetch(`/receptionist/fee-structure-choices?classId=${encodeURIComponent(classId)}&sessionId=${encodeURIComponent(sessionId)}`),
   getAdmissions: (
     filters: {
       search?: string;

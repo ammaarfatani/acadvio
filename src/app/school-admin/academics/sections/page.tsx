@@ -1,17 +1,17 @@
 "use client";
 import {WorkspaceDialog,workspacePrimary} from "@/components/WorkspaceDialog";
 import {RecordFilters,matchesRecordSearch} from "@/components/RecordFilters";
-
-
-
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { Layers, Plus, ShieldCheck, DoorOpen, Users, AlertCircle } from "lucide-react";
+import { Layers, Plus, ShieldCheck, DoorOpen, Users, AlertCircle, FileSpreadsheet } from "lucide-react";
 import { schoolAdminApi } from "@/lib/schoolAdminApi";
+import { BulkImportModal } from "@/components/BulkImportModal";
 
 export default function SectionsPage() {
-  const [showCreate,setShowCreate]=useState(false),[query,setQuery]=useState(""),[filterClass,setFilterClass]=useState(""),[filterStatus,setFilterStatus]=useState("");
+  const [showCreate,setShowCreate]=useState(false),[query,setQuery]=useState(""),[filterClass,setFilterClass]=useState(""),[filterCategory,setFilterCategory]=useState(""),[filterStatus,setFilterStatus]=useState("");
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [sections, setSections] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [teachers, setTeachers] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,14 +23,16 @@ export default function SectionsPage() {
     setLoading(true);
     setError("");
     try {
-      const [sectionRes, classRes, teacherRes, assignmentRes] = await Promise.all([
+      const [sectionRes, classRes, catRes, teacherRes, assignmentRes] = await Promise.all([
         schoolAdminApi.getSections(),
         schoolAdminApi.getClasses(),
+        schoolAdminApi.getClassCategories(),
         schoolAdminApi.getTeachers(),
         schoolAdminApi.getClassTeacherAssignments(),
       ]);
       setSections(sectionRes?.data || []);
       setClasses(classRes?.data || []);
+      setCategories(catRes?.data || []);
       setTeachers(teacherRes?.data || []);
       setAssignments(assignmentRes?.data?.assignments || []);
     } catch (e: any) {
@@ -90,9 +92,22 @@ export default function SectionsPage() {
     }
   }
 
-  const filteredSections=sections.filter(c=>(!filterClass||classes.find(k=>k._id===c.classId)?.name===filterClass)&&matchesRecordSearch([c.name,c.className,classes.find(k=>k._id===c.classId)?.name,c.roomNumber],query));
+  const filteredSections = sections.filter((s) => {
+    const parentClass = classes.find((k) => k._id === s.classId);
+    if (filterClass && parentClass?.name !== filterClass) return false;
+    if (filterCategory && parentClass?.classCategoryName !== filterCategory) return false;
+    return matchesRecordSearch([s.name, s.className, parentClass?.name, parentClass?.classCategoryName, s.roomNumber], query);
+  });
   return (
     <div className="space-y-6 pb-12 font-sans">
+      {bulkOpen && (
+        <BulkImportModal
+          entity="sections"
+          onClose={() => setBulkOpen(false)}
+          onImported={load}
+        />
+      )}
+
       {/* Header */}
       <div className="border-b border-zinc-200 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -124,15 +139,30 @@ export default function SectionsPage() {
         </div>
       )}
 
-  <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-zinc-500">Browse records below. Use the button to add a new record.</p><button className={workspacePrimary} onClick={()=>setShowCreate(true)}>Add section</button></div>
- {showCreate&&<WorkspaceDialog title="Add section" description="Choose a class, then define its section name, room and capacity." busy={saving} onClose={()=>setShowCreate(false)} wide>{error&&<p role="alert" className="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}      <form onSubmit={create} className="grid items-start gap-4 sm:grid-cols-2 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-zinc-500">Browse records below. Use the button to add a new record.</p>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setBulkOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-300 bg-white px-3.5 py-2 text-xs font-bold text-zinc-800 shadow-sm hover:bg-zinc-50"
+          >
+            <FileSpreadsheet size={15} className="text-emerald-600" />
+            Bulk Upload
+          </button>
+          <button className={workspacePrimary} onClick={()=>setShowCreate(true)}>Add section</button>
+        </div>
+      </div>
+
+      {showCreate&&<WorkspaceDialog title="Add section" description="Choose a class, then define its section name, room and capacity." busy={saving} onClose={()=>setShowCreate(false)} wide>{error&&<p role="alert" className="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+      <form onSubmit={create} className="grid items-start gap-4 sm:grid-cols-2 text-xs">
           <label className="grid gap-1 font-bold text-zinc-800">
             Class *
             <select required name="classId" className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-900 focus:outline-none">
               <option value="">Select class</option>
               {classes.map((item) => (
                 <option key={item._id} value={item._id}>
-                  {item.name}
+                  {item.name} {item.classCategoryName ? `(${item.classCategoryName})` : ""}
                 </option>
               ))}
             </select>
@@ -161,7 +191,23 @@ export default function SectionsPage() {
           </button>
         </form></WorkspaceDialog>}
 
-<RecordFilters search={query} onSearch={setQuery} placeholder="Search sections, names or identifiers" count={filteredSections.length} total={sections.length} filters={[{label:"Class",value:filterClass,onChange:setFilterClass,options:classes.map(c=>c.name)}]} onReset={()=>{setQuery("");setFilterClass("");setFilterStatus("")}}/>
+      <RecordFilters
+        search={query}
+        onSearch={setQuery}
+        placeholder="Search sections, names or identifiers"
+        count={filteredSections.length}
+        total={sections.length}
+        filters={[
+          { label: "Category", value: filterCategory, onChange: setFilterCategory, options: categories.map((c) => c.name) },
+          { label: "Class", value: filterClass, onChange: setFilterClass, options: classes.filter((c) => !filterCategory || c.classCategoryName === filterCategory).map((c) => c.name) },
+        ]}
+        onReset={() => {
+          setQuery("");
+          setFilterClass("");
+          setFilterCategory("");
+          setFilterStatus("");
+        }}
+      />
       {/* Sections Grid */}
       {loading ? (
         <div className="p-8 text-center text-xs font-bold text-zinc-400 animate-pulse">
@@ -173,12 +219,20 @@ export default function SectionsPage() {
             const assignment = assignments.find((item) => String(item.sectionId?._id || item.sectionId) === section._id);
             const currentTeacherId = String(assignment?.teacherUserId?._id || assignment?.teacherUserId || "");
             const currentTeacher = teachers.find((t) => t._id === currentTeacherId);
+            const parentClass = classes.find((k) => k._id === section.classId);
 
             return (
               <article key={section._id} className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-xs hover:border-zinc-300 transition-all space-y-4">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h2 className="font-black text-zinc-950 text-base">{section.className} — {section.name}</h2>
+                    <div className="flex items-center gap-2">
+                      <h2 className="font-black text-zinc-950 text-base">{section.className} — {section.name}</h2>
+                      {parentClass?.classCategoryName && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-200">
+                          {parentClass.classCategoryName}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-zinc-500 font-mono mt-0.5">Room: {section.roomNumber || "Unassigned"}</p>
                   </div>
                   <Layers className="text-red-600 w-5 h-5 shrink-0" />

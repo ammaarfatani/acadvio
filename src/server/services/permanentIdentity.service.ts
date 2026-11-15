@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { formatNumberedIdentifier, normalizeNumberFormat, parseNumberedIdentifier } from "./identityNumbering.util";
 const identityIndexes = new WeakMap<object, Promise<unknown>>();
 // This registry deliberately has no branch plugin: identifiers are school-wide,
 // including archived/deleted people. Reservations are never deleted or recycled.
@@ -40,15 +41,26 @@ export async function permanentIdentity(
       throw { statusCode: 409, message: "Permanent ID cannot be changed." };
     return String(previous.value);
   }
-  const prefix =
-    kind === "employee" ? "EMPD" : kind === "student" ? "STUD" : "ADM-";
-  const counterKey = school + ":" + kind;
+  const schoolConfig = await db.collection("schools").findOne(
+    { _id: new mongoose.Types.ObjectId(school) },
+    { projection: { "documentSettings.numbering": 1 } },
+  );
+  const defaults: Record<string, any> = {
+    employee: { prefix: "EMPD", startAt: 1, padding: 3 },
+    student: { prefix: "STUD", startAt: 1, padding: 3 },
+    admission: { prefix: "ADM-", startAt: 1, padding: 6 },
+  };
+  const format = normalizeNumberFormat(schoolConfig?.documentSettings?.numbering?.[kind] || {}, defaults[kind]);
+  const prefix = format.prefix;
+  const startAt = format.startAt;
+  const counterKey = school + ":" + kind + ":" + prefix;
+  const escapedPrefix = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   if (!(await counters.findOne({ _id: counterKey as any }))) {
     const collections =
       kind === "employee"
         ? ["users", "staffemployments", "teacherprofiles"]
         : ["students"];
-    let max = 0;
+    let max = startAt - 1;
     for (const name of collections) {
       const field =
         kind === "employee"
@@ -61,13 +73,15 @@ export async function permanentIdentity(
         .find(
           {
             schoolId: new mongoose.Types.ObjectId(school),
-            [field]: { $regex: "^" + prefix + "[0-9]+$" },
+            [field]: { $regex: "^" + escapedPrefix + "[0-9]+$" },
           },
           { projection: { [field]: 1 } },
         )
         .toArray();
-      for (const row of rows)
-        max = Math.max(max, Number(String(row[field]).slice(prefix.length)));
+      for (const row of rows) {
+        const parsed = parseNumberedIdentifier(String(row[field]), prefix);
+        if (parsed !== null) max = Math.max(max, parsed);
+      }
     }
     try {
       await counters.updateOne(
@@ -79,17 +93,17 @@ export async function permanentIdentity(
       if (e.code !== 11000) throw e;
     }
   }
+  // A later administrator change may raise the configured starting number.
+  await counters.updateOne({ _id: counterKey as any }, { $max: { value: startAt - 1 } }, { upsert: true });
   for (let attempt = 0; attempt < 100; attempt++) {
     let value = legacy;
     if (!value) {
       const count = await counters.findOneAndUpdate(
-        { _id: (school + ":" + kind) as any },
+        { _id: counterKey as any },
         { $inc: { value: 1 } },
         { upsert: true, returnDocument: "after" },
       );
-      value =
-        prefix +
-        String(count!.value).padStart(kind === "admission" ? 6 : 3, "0");
+      value = formatNumberedIdentifier(count!.value, format);
     }
     // Includes legacy records not yet backfilled. No scope narrowing is allowed here.
     const collision =
@@ -129,10 +143,11 @@ export async function permanentIdentity(
     }
     try {
       await registry.insertOne({ ...key, value, createdAt: new Date() });
-      if (legacy && new RegExp("^" + prefix + "[0-9]+$").test(legacy))
+      const legacySequence = legacy ? parseNumberedIdentifier(legacy, prefix) : null;
+      if (legacySequence !== null)
         await counters.updateOne(
           { _id: counterKey as any },
-          { $max: { value: Number(legacy.slice(prefix.length)) } },
+          { $max: { value: legacySequence } },
           { upsert: true },
         );
       return value!;

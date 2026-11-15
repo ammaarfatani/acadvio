@@ -11,6 +11,9 @@ import {
   readableReportValue,
 } from "@/lib/report-presentation";
 import DataChart from "./DataChart";
+import FeeDefaultersWorkspace from "./FeeDefaultersWorkspace";
+import SchoolFeeCollectionReport from "./SchoolFeeCollectionReport";
+import { useAuth } from "@/lib/auth-context";
 type Report = {
   key: string;
   title: string;
@@ -37,7 +40,10 @@ export default function SchoolReportCenter({
 }: {
   intelligence?: boolean;
 }) {
+  const { user } = useAuth();
   const [catalogue, setCatalogue] = useState<Report[]>([]),
+    [showFeeDefaulters, setShowFeeDefaulters] = useState(false),
+    [showFeeCollection, setShowFeeCollection] = useState(false),
     [selected, setSelected] = useState<Record<string, string[]>>({}),
     [filters, setFilters] = useState<any>(() => {
       const now = new Date();
@@ -123,6 +129,13 @@ export default function SchoolReportCenter({
         delete next.subjectId;
         delete next.examId;
       }
+      if (next.classCategoryId !== filters.classCategoryId) {
+        delete next.classId;
+        delete next.sectionId;
+        delete next.studentId;
+        delete next.subjectId;
+        delete next.examId;
+      }
       if (next.sectionId !== filters.sectionId) delete next.studentId;
     }
     setFilters(next);
@@ -139,6 +152,36 @@ export default function SchoolReportCenter({
       });
       setPreview(response.data.reports);
       setPage(next);
+    });
+  const printCompleteReport = () =>
+    run("Preparing all report pages for printing…", async () => {
+      const first = await apiFetch("/smart-reports/preview", {
+        method: "POST",
+        body: JSON.stringify({ ...request, page: 1 }),
+      });
+      const initial = first.data.reports as any[];
+      const totalRows = initial.reduce((sum, report) => sum + Number(report.total || 0), 0);
+      if (totalRows > 1000) throw new Error("Print preview supports up to 1,000 total rows. Narrow the date range or filters before printing.");
+      const maxPages = Math.max(1, ...initial.map((report) => Math.ceil(report.total / 25)));
+      const merged = new Map<string, any>(initial.map((report) => [report.report, { ...report, rows: [...report.rows], groups: report.groups?.map((group: any) => ({ ...group, rows: [...group.rows], subtotals: { ...group.subtotals } })) }]));
+      for (let nextPage = 2; nextPage <= maxPages; nextPage++) {
+        const response = await apiFetch("/smart-reports/preview", { method: "POST", body: JSON.stringify({ ...request, page: nextPage }) });
+        for (const pageReport of response.data.reports as any[]) {
+          const target = merged.get(pageReport.report);
+          target.rows.push(...pageReport.rows);
+          for (const group of pageReport.groups || []) {
+            let existing = target.groups?.find((item: any) => item.category === group.category);
+            if (!existing) { existing = { ...group, rows: [], subtotals: {} }; target.groups ||= []; target.groups.push(existing); }
+            existing.rows.push(...group.rows);
+            existing.count += group.count;
+            for (const [column, value] of Object.entries(group.subtotals || {})) existing.subtotals[column] = Number(existing.subtotals[column] || 0) + Number(value || 0);
+          }
+        }
+      }
+      setPreview([...merged.values()]);
+      setPage(1);
+      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      window.print();
     });
   const hasPreview = useRef(false);
   useRecordRefresh(() => {
@@ -245,7 +288,17 @@ export default function SchoolReportCenter({
     }
     changeFilters({ ...filters, from: day(start), to: day(end) });
   };
+  const dailyPrincipalSelection = () => {
+    const dailyReports = ["attendance", "staffAttendance", "collections", "expenses", "admissions", "results", "invoices"];
+    const available = catalogue.filter((report) => dailyReports.includes(report.key));
+    setSelected(Object.fromEntries(available.map((report) => [report.key, report.columns])));
+    const today = day(new Date());
+    setFilters({ ...filters, from: today, to: today });
+    setPreview([]);
+    setPage(1);
+  };
   return (
+    <>
     <fieldset
       disabled={!!busy}
       aria-label="School reporting workspace"
@@ -560,6 +613,9 @@ export default function SchoolReportCenter({
                 1. Choose reports ({selections.length} selected)
               </h2>
               <div className="flex gap-4 text-sm">
+                <button onClick={dailyPrincipalSelection} className="font-semibold text-red-700">
+                  Daily Principal Report
+                </button>
                 <button
                   onClick={() => {
                     setSelected(
@@ -674,12 +730,37 @@ export default function SchoolReportCenter({
                   )}
                 </article>
               ))}
+              {user?.permissions?.includes("fees.view") && (
+                <article className={`rounded-md border p-4 ${showFeeCollection ? "border-red-300 bg-red-50/40" : "border-zinc-200"}`}>
+                  <label className="flex items-start gap-3 text-sm font-semibold">
+                    <input type="checkbox" checked={showFeeCollection} onChange={(e) => setShowFeeCollection(e.target.checked)} className="mt-1 accent-red-600" />
+                    <span><span className="block text-[10px] uppercase tracking-wider text-zinc-500">Finance / Fee Reports</span>Student Strength & Fee Collection Report</span>
+                  </label>
+                  <p className="mt-3 text-xs leading-5 text-zinc-500">Compact category-wise student strength, fee status, collections and outstanding balances for an academic session.</p>
+                </article>
+              )}
+              {user?.permissions?.includes("fees.view") && (
+                <article className={`rounded-md border p-4 ${showFeeDefaulters ? "border-red-300 bg-red-50/40" : "border-zinc-200"}`}>
+                  <label className="flex items-start gap-3 text-sm font-semibold">
+                    <input type="checkbox" checked={showFeeDefaulters} onChange={(e) => setShowFeeDefaulters(e.target.checked)} className="mt-1 accent-red-600" />
+                    <span><span className="block text-[10px] uppercase tracking-wider text-zinc-500">Finance / Fee Reports</span>Fee Defaulters Report</span>
+                  </label>
+                  <p className="mt-3 text-xs leading-5 text-zinc-500">Preview students with unpaid balances, separate overdue dues, apply finance filters, and export or print from the shared Finance defaulters workflow.</p>
+                  {showFeeDefaulters && <button onClick={() => document.getElementById("school-fee-defaulters-report")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="mt-3 text-xs font-semibold text-red-700 underline">Open report filters and preview ↓</button>}
+                </article>
+              )}
             </div>
+            {showFeeCollection && user?.permissions?.includes("fees.view") && <section className="mt-5 border-t pt-5"><SchoolFeeCollectionReport /></section>}
             <p className="mt-4 text-xs text-zinc-500">
               Unavailable: transport operations, inventory, historical capacity.
               These are not represented by invented data.
             </p>
           </section>
+          {showFeeDefaulters && user?.permissions?.includes("fees.view") && (
+            <section id="school-fee-defaulters-report" className="scroll-mt-4 rounded-lg border bg-white p-4">
+              <FeeDefaultersWorkspace categoryGrouped />
+            </section>
+          )}
           <FilterPicker
             onLabel={(field, value, name) =>
               setFilterLabels((previous) => ({
@@ -799,6 +880,13 @@ export default function SchoolReportCenter({
                     ? "ZIP bundle"
                     : "report"}
                 </button>
+                <button
+                  disabled={!!busy || !preview.length}
+                  onClick={printCompleteReport}
+                  className={button}
+                >
+                  Print preview
+                </button>
               </div>
               <p className="mt-3 text-xs leading-5 text-zinc-500">
                 5,000 rows/report · 10,000 combined · PDF: 1,000 rows · Maximum
@@ -806,7 +894,17 @@ export default function SchoolReportCenter({
               </p>
             </div>
           </section>
+          {preview.length > 0 && <div id="school-report-print-area" className="space-y-4">
+          <div className="hidden print:block">
+            <h1 className="text-xl font-bold">Acadivo · School Report</h1>
+            <p className="text-sm">Reporting period: {filters.from} — {filters.to} · Asia/Karachi</p>
+          </div>
           {preview.map((report) => (
+            (() => {
+            const grouped = report.groups?.length ? report.groups : [{ category: "", count: report.rows.length, rows: report.rows, subtotals: {} }];
+            const columns = report.groups?.length ? report.columns.filter((c: string) => !["classCategoryName", "applyingClassCategoryName"].includes(c)) : report.columns;
+            const amountColumns = columns.filter((c: string) => /(?:AmountPKR|amountPKR|totalAmountPKR|remainingAmountPKR)$/.test(c));
+            return (
             <section
               key={report.report}
               className="min-w-0 overflow-hidden rounded-lg border bg-white"
@@ -820,11 +918,12 @@ export default function SchoolReportCenter({
                 </h2>
                 <p className="mt-2 text-xs text-zinc-500">{report.note}</p>
               </div>
-              <div className="overflow-x-auto">
+              {grouped.map((group: any) => <div key={group.category || "all"} className="overflow-x-auto">
+                {group.category && <h3 className="border-t bg-zinc-50 px-5 py-3 text-sm font-bold">{group.category} — {report.title} <span className="font-normal">({group.count} records)</span></h3>}
                 <TableScroll><table className="w-full text-left text-xs">
                   <thead className="bg-zinc-100">
                     <tr>
-                      {report.columns.map((c: string) => (
+                      {columns.map((c: string) => (
                         <th
                           key={c}
                           className="whitespace-nowrap p-3 font-medium"
@@ -835,9 +934,9 @@ export default function SchoolReportCenter({
                     </tr>
                   </thead>
                   <tbody>
-                    {report.rows.map((row: any, i: number) => (
+                    {group.rows.map((row: any, i: number) => (
                       <tr key={i} className="border-t">
-                        {report.columns.map((c: string) => (
+                        {columns.map((c: string) => (
                           <td key={c} className="max-w-xs truncate p-3">
                             {displayReportCell(row, c)}
                           </td>
@@ -846,14 +945,19 @@ export default function SchoolReportCenter({
                     ))}
                   </tbody>
                 </table></TableScroll>
-              </div>
-              {!report.rows.length && (
+                {group.category && <div className="border-t bg-zinc-50 p-3 text-right text-xs font-semibold">{group.category} page subtotal: {amountColumns.map((c: string) => `${reportColumnLabel(report.key || report.report, c)} ${Number(group.subtotals?.[c] || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`).join(" · ") || `${group.count} records`}</div>}
+              </div>)}
+              {!report.total && (
                 <p className="p-5 text-sm text-zinc-500">
                   No matching recorded data.
                 </p>
               )}
+              {report.groups?.length > 0 && report.total <= report.rows.length && <p className="border-t p-3 text-right text-xs font-bold">Grand total: {amountColumns.map((c: string) => `${reportColumnLabel(report.key || report.report, c)} ${report.groups.reduce((n: number, g: any) => n + Number(g.subtotals?.[c] || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`).join(" · ") || `${report.total} records`}</p>}
             </section>
+            );
+            })()
           ))}
+          </div>}
           {preview.length > 0 && (
             <div className="flex items-center justify-between gap-3">
               <button
@@ -876,6 +980,8 @@ export default function SchoolReportCenter({
         </>
       )}
     </fieldset>
+    <style jsx global>{`@media print { body * { visibility: hidden !important; } #school-report-print-area, #school-report-print-area *, #fee-collection-print-area, #fee-collection-print-area * { visibility: visible !important; } #school-report-print-area, #fee-collection-print-area { position: absolute; inset: 0; width: 100%; padding: 12mm; color: #111; background: #fff; } #school-report-print-area section { break-inside: auto; border: 0; overflow: visible !important; } #school-report-print-area table, #fee-collection-print-area table { width: 100%; border-collapse: collapse; font-size: 9pt; } #school-report-print-area th, #school-report-print-area td, #fee-collection-print-area th, #fee-collection-print-area td { border: 1px solid #777; padding: 4px; white-space: normal; } #school-report-print-area thead, #fee-collection-print-area thead { display: table-header-group; } #school-report-print-area tr, #fee-collection-print-area tr { break-inside: avoid; } #fee-collection-print-area article { break-inside: auto; } @page { size: A4 landscape; margin: 10mm; } }`}</style>
+    </>
   );
 }
 function ActionReview({
@@ -990,6 +1096,7 @@ function FilterPicker({
       apiFetch(
         `/smart-reports/options?field=${encodeURIComponent(field)}&search=${encodeURIComponent(search)}${[
           "classId",
+          "classCategoryId",
           "sectionId",
           "academicSessionId",
         ]
@@ -1068,6 +1175,7 @@ function FilterPicker({
                 className={control + " mt-2"}
               >
                 <option value="">Choose a record</option>
+                {field === "classCategoryId" && <option value="ALL">All Categories</option>}
                 {options.map((o) => (
                   <option key={o.value} value={o.value}>
                     {o.label}
@@ -1110,6 +1218,13 @@ function FilterPicker({
         <button
           disabled={!value || !fields.includes(field)}
           onClick={() => {
+            if (field === "classCategoryId" && value === "ALL") {
+              const next = { ...filters };
+              delete next.classCategoryId;
+              onChange(next);
+              setValue("");
+              return;
+            }
             onLabel(
               field,
               value.trim(),

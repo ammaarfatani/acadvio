@@ -99,6 +99,7 @@ export function parseImportFile(entity: ImportEntity, filename: string, encoded:
         for (const column of columns) {
             const c = header.get(column.key), cell = c === undefined ? undefined : sheet[XLSX.utils.encode_cell({ r, c })];
             let value = cell?.v ?? "";
+            if (["studentId","admissionNumber","employeeId","rollNumber"].includes(column.key) && typeof value === "number" && cell?.w) value = cell.w;
             if (cell?.f)
                 issues.push(`${column.label}: formulas are not accepted; paste values instead.`);
             if (value instanceof Date)
@@ -142,18 +143,27 @@ function strictDate(value: string, label: string, optional = false) {
     return new Date(value);
 }
 function rollPrefix(cls: any, section: any) { return `${String(cls.name.match(/\d+/)?.[0] || cls.numericLevel || cls.name).trim().replace(/\s+/g, "-")}-${String(section.name).replace(/^section\s*/i, "").trim().replace(/\s+/g, "-")}-`; }
-function rowData(entity: ImportEntity, row: Row, ctx: Awaited<ReturnType<typeof context>>, reserved: Map<string, number>) {
+function rowData(entity: ImportEntity, row: Row, ctx: Awaited<ReturnType<typeof context>>, reserved: Map<string, number>, numericRollGroups: Set<string>, rollPadding: Map<string,number>) {
     const v = row.values, current = ctx.sessions.find((s: any) => s.isCurrent);
     if (entity === "students") {
         const cls = resolve(ctx.classes, v.class, "Class"), section = resolve(ctx.sections, v.section, "Section", { classId: String(cls._id) }), session = resolve(ctx.sessions, v.academicSession, "Academic session", {}, current);
         const group = [session._id, cls._id, section._id].join(":"), prefix = rollPrefix(cls, section);
-        if (!reserved.has(group))
-            reserved.set(group, ctx.students.filter((s: any) => [s.academicSessionId, s.classId, s.sectionId].join(":") === group).reduce((max: number, s: any) => { const suffix = String(s.rollNumber).startsWith(prefix) ? String(s.rollNumber).slice(prefix.length) : ""; return /^\d+$/.test(suffix) ? Math.max(max, Number(suffix)) : max; }, 0));
+        if (!reserved.has(group)) {
+            const existing=ctx.students.filter((s:any)=>[s.academicSessionId,s.classId,s.sectionId].join(":")===group).map((s:any)=>String(s.rollNumber||""));
+            const numeric=existing.filter((value:string)=>/^\d+$/.test(value));
+            const prefixed=existing.map((value:string)=>value.startsWith(prefix)?value.slice(prefix.length):"").filter((value:string)=>/^\d+$/.test(value));
+            const numericMode=numeric.length>0&&prefixed.length===0;
+            if(numericMode){numericRollGroups.add(group);rollPadding.set(group,Math.max(...numeric.map((value:string)=>value.length)));}
+            reserved.set(group,numericMode?Math.max(...numeric.map(Number)):prefixed.reduce((max:number,value:string)=>Math.max(max,Number(value)),0));
+        }
+        if(/^\d+$/.test(v.rollNumber||"")){numericRollGroups.add(group);rollPadding.set(group,Math.max(rollPadding.get(group)||0,v.rollNumber.length));}
         if (v.rollNumber?.startsWith(prefix) && /^\d+$/.test(v.rollNumber.slice(prefix.length)))
             reserved.set(group, Math.max(reserved.get(group)!, Number(v.rollNumber.slice(prefix.length))));
-        const rollNumber = v.rollNumber || `${prefix}${reserved.get(group)! + 1}`;
+        else if(/^\d+$/.test(v.rollNumber||"")) reserved.set(group,Math.max(reserved.get(group)!,Number(v.rollNumber)));
+        const following=reserved.get(group)!+1;
+        const rollNumber = v.rollNumber || (numericRollGroups.has(group)?String(following).padStart(rollPadding.get(group)||0,"0"):`${prefix}${following}`);
         if (!v.rollNumber)
-            reserved.set(group, reserved.get(group)! + 1);
+            reserved.set(group, following);
         return StudentCreateSchema.parse({ bFormNumber:v.bFormNumber||undefined, name: v.name, dob: strictDate(v.dob, "Date of Birth"), gender: v.gender, classId: String(cls._id), className: cls.name, sectionId: String(section._id), sectionName: section.name, academicSessionId: String(session._id), academicSessionName: session.name, rollNumber, studentId: v.studentId || `STU-${randomUUID()}`, admissionNumber: v.admissionNumber || `ADM-${new Date().getFullYear()}-${randomUUID().slice(0, 12)}`, admissionDate: strictDate(v.admissionDate, "Admission Date", true) || new Date(), address: v.address, phone: v.phone || undefined, parentInfo: { fatherName: v.fatherName, fatherPhone: v.fatherPhone, fatherCnic: v.fatherCnic, fatherOccupation: v.fatherOccupation, motherName: v.motherName, motherPhone: v.motherPhone, guardianName: v.guardianName, guardianPhone: v.guardianPhone, guardianEmail: v.guardianEmail, guardianRelation: v.guardianRelation }, emergencyContact: { name: v.emergencyName, phone: v.emergencyPhone, relation: v.emergencyRelation } });
     }
     const assignments: any[] = [];
@@ -191,7 +201,7 @@ export class BulkImportService {
         return XLSX.write(book, { type: "buffer", bookType: "xlsx" });
     }
     static async preview(schoolId: string, actorId: string, entity: ImportEntity, filename: string, encoded: string) {
-        const rows = parseImportFile(entity, filename, encoded), ctx = await context(schoolId, entity), reserved = new Map<string, number>(), seen = new Map<string, Row[]>();
+        const rows = parseImportFile(entity, filename, encoded), ctx = await context(schoolId, entity), reserved = new Map<string, number>(), numericRollGroups=new Set<string>(), rollPadding=new Map<string,number>(), seen = new Map<string, Row[]>();
         const existing = new Set<string>();
         if (entity === "students")
             ctx.students.forEach((s: any) => duplicateKeys(entity, s).forEach(k => existing.add(k)));
@@ -205,7 +215,7 @@ export class BulkImportService {
             try {
                 if (row.issues.length)
                     continue;
-                row.data = rowData(entity, row, ctx, reserved);
+                row.data = rowData(entity, row, ctx, reserved,numericRollGroups,rollPadding);
                 row.recordId = new Types.ObjectId().toString();
                 for (const k of duplicateKeys(entity, row.data)) {
                     if (existing.has(k)) {
@@ -367,12 +377,21 @@ export class BulkImportService {
                     const session = await mongoose.startSession();
                     try {
                         await session.withTransaction(async () => {
-                            if (entity === "students")
-                                await Student.insertMany(items.map(({ row: r }) => ({ ...r.data, _id: new Types.ObjectId(r.recordId), schoolId, status: "ACTIVE" })), { session, ordered: true });
-                            else {
+                            if (entity === "students") {
                                 const {permanentIdentity}=await import("./permanentIdentity.service");
-                                for(const {row:r} of items)r.data.employeeId=await permanentIdentity(schoolId,"employee",r.recordId);
-                                await User.insertMany(items.map(({ row: r }) => ({ _id: new Types.ObjectId(r.recordId), schoolId, roleId: role._id, userType: UserType.TEACHER, name: r.data.name, email: r.data.email, passwordHash: r.data.passwordHash, status: UserStatus.ACTIVE, isEmailVerified: true })), { session });
+                                const studentDocs:any[]=[];
+                                for(const {row:r} of items){
+                                    const suppliedStudentId=String(r.values.studentId||"").trim();
+                                    const suppliedAdmission=String(r.values.admissionNumber||"").trim();
+                                    r.data.studentId=await permanentIdentity(schoolId,"student",r.recordId,suppliedStudentId||undefined);
+                                    r.data.admissionNumber=await permanentIdentity(schoolId,"admission",r.recordId,suppliedAdmission||undefined);
+                                    studentDocs.push({...r.data,_id:new Types.ObjectId(r.recordId),schoolId,status:"ACTIVE"});
+                                }
+                                await Student.insertMany(studentDocs, { session, ordered: true });
+                            } else {
+                                const {permanentIdentity}=await import("./permanentIdentity.service");
+                                for(const {row:r} of items)r.data.employeeId=await permanentIdentity(schoolId,"employee",r.recordId,String(r.values.employeeId||"").trim()||undefined);
+                                await User.insertMany(items.map(({ row: r }) => ({ _id: new Types.ObjectId(r.recordId), schoolId, roleId: role._id, userType: UserType.TEACHER, employeeId:r.data.employeeId, name: r.data.name, email: r.data.email, passwordHash: r.data.passwordHash, status: UserStatus.ACTIVE, isEmailVerified: true })), { session });
                                 await TeacherProfile.insertMany(items.map(({ row: r }) => ({ schoolId, userId: r.recordId, qualification: r.data.qualification, employeeId: r.data.employeeId, phone: r.data.phone })), { session });
                                 const assignments = items.flatMap(({ row: r }) => r.data.assignments.map((a: any) => ({ ...a, schoolId, teacherUserId: r.recordId, status: "ACTIVE" })));
                                 if (assignments.length)

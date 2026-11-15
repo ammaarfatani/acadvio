@@ -9,7 +9,7 @@ import Link from "next/link";
 import { schoolAdminApi } from "@/lib/schoolAdminApi";
 import { useAuth } from "@/lib/auth-context";
 
-const money = (amount: number) => `PKR ${Number(amount || 0).toLocaleString()}`;
+const money = (amount: number) => `PKR ${Number(amount || 0).toLocaleString("en-PK", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 export default function SchoolFinanceDashboard() {
   const { user } = useAuth(); const portalBase = user?.school?.slug ? `/${user.school.slug}/admin` : "/school-admin";
   const [data, setData] = useState<any>(null); const [loading, setLoading] = useState(true); const [error, setError] = useState("");

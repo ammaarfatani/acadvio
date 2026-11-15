@@ -6,6 +6,8 @@ import { confirmAction } from "@/components/ConfirmationHost";
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { schoolAdminApi } from "@/lib/schoolAdminApi";
+import { BulkImportModal } from "@/components/BulkImportModal";
+import { FileSpreadsheet } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import {
   Text,
@@ -27,6 +29,7 @@ const blank = {
   salary: "",
 };
 export default function StaffPage() {
+  const [bulkOpen, setBulkOpen] = useState(false);
   const { user } = useAuth();
   const [createOpen,setCreateOpen]=useState(false),[departmentOpen,setDepartmentOpen]=useState(false);
   const [users, setUsers] = useState<any[]>([]),
@@ -74,6 +77,13 @@ export default function StaffPage() {
   }, [load]);
   return (
     <div className="space-y-6 pb-12">
+      {bulkOpen && (
+        <BulkImportModal
+          entity="staff"
+          onClose={() => setBulkOpen(false)}
+          onImported={load}
+        />
+      )}
       <header>
         <h1 className="text-2xl font-bold">Staff & roles</h1>
         <p className="mt-2 text-sm text-zinc-500">
@@ -97,7 +107,7 @@ export default function StaffPage() {
           {notice}
         </p>
       )}
-      <div className="flex flex-wrap gap-3"><button className={workspacePrimary} onClick={()=>{setError("");setCreateOpen(true)}}>Create Staff Account</button><button className={workspaceSecondary} onClick={()=>{setError("");setDepartmentOpen(true)}}>Add Department</button></div>
+      <div className="flex flex-wrap gap-3"><button type="button" onClick={() => setBulkOpen(true)} className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-300 bg-white px-3.5 py-2 text-xs font-bold text-zinc-800 shadow-sm hover:bg-zinc-50"><FileSpreadsheet size={15} className="text-emerald-600" />Bulk Upload Staff</button><button className={workspacePrimary} onClick={()=>{setError("");setCreateOpen(true)}}>Create Staff Account</button><button className={workspaceSecondary} onClick={()=>{setError("");setDepartmentOpen(true)}}>Add Department</button></div>
       {user?.permissions?.includes("payroll.manage")&&<section className={card+" grid gap-5 border-l-4 border-red-600 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"}>
         <div><div className="flex flex-wrap items-center gap-3"><h2 className="font-semibold">Finance salary payments</h2><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${financePayrollAccess?.enabled?"bg-emerald-100 text-emerald-800":"bg-amber-100 text-amber-900"}`}>{financePayrollAccess?.enabled?"Enabled":"Review only"}</span></div><p className="mt-2 max-w-3xl text-sm text-zinc-600">{financePayrollAccess?.enabled?`Authorized Finance accounts can record approved salary payments, attach proof and notify each employee. ${financePayrollAccess.financeAccounts} Finance account(s) are covered across this school.`:"Finance can review payroll but cannot record salary payments yet. Enable this for Finance staff responsible for disbursements."}</p><p className="mt-2 text-xs leading-5 text-zinc-500">School Admins can also record payments from Monthly Payroll. Only approved payroll can be paid. Bank transfers require a reference; cash payments do not. Finance users should refresh their portal after access changes.</p>{!financePayrollAccess?.financeAccounts&&<p className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900">No Finance account exists yet. This permission will also apply to Finance accounts created later.</p>}</div>
         <div className="flex flex-col items-start gap-2 sm:items-end">{user?.features?.includes("MULTI_BRANCH")&&user?.isOrganizationOwner===false?<p className="max-w-56 text-sm text-zinc-600">Only the organization owner can change this school-wide setting.</p>:<button type="button" role="switch" aria-checked={!!financePayrollAccess?.enabled} disabled={accessBusy||!financePayrollAccess} className={`inline-flex min-h-11 items-center gap-3 rounded-lg border px-4 py-2 text-sm font-semibold disabled:opacity-50 ${financePayrollAccess?.enabled?"border-emerald-300 bg-emerald-50 text-emerald-900":"border-zinc-300 bg-white text-zinc-800"}`} onClick={async()=>{if(!financePayrollAccess)return;setAccessBusy(true);setError("");setNotice("");try{const result=await apiFetch("/users/finance-payroll-access",{method:"PATCH",body:JSON.stringify({enabled:!financePayrollAccess.enabled})});setFinancePayrollAccess({...financePayrollAccess,...result.data});setNotice(result.data.enabled?"Finance payroll payments enabled for this school. Refresh the Finance portal to load the new access.":"Finance payroll payment access disabled for this school.")}catch(e:any){setError(e.message||"Could not update Finance payroll access.")}finally{setAccessBusy(false)}}}><span aria-hidden="true" className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${financePayrollAccess?.enabled?"bg-emerald-600":"bg-zinc-300"}`}><span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${financePayrollAccess?.enabled?"translate-x-4":"translate-x-0"}`}/></span>{accessBusy?"Saving…":financePayrollAccess?.enabled?"Allow Finance to pay salaries":"Allow salary payments"}</button>}<span className="text-xs text-zinc-500">School-wide permission · server-checked</span></div>

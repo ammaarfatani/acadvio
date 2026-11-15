@@ -76,6 +76,23 @@ export const employment = z
     (x) => x.status !== "ENDED" || !!x.leavingDate,
     "Ended employment requires a leaving date",
   );
+function validAdapterHost(host: string) {
+  if (!host || /[\s/@?#]/.test(host) || host.endsWith(":")) return false;
+  try {
+    const parsed = new URL(`http://${host}`);
+    return (
+      !!parsed.hostname &&
+      !parsed.port &&
+      !parsed.username &&
+      !parsed.password &&
+      parsed.pathname === "/" &&
+      !parsed.search &&
+      !parsed.hash
+    );
+  } catch {
+    return false;
+  }
+}
 export const device = z
   .object({
     name: z.string().trim().min(2).max(100),
@@ -101,6 +118,12 @@ export const device = z
       d.connectionType !== "CONNECTOR_HTTP_JSON" ||
       (!!d.host && !!d.port && !!d.transactionPath),
     "Local HTTP adapter needs host, port and transaction path",
+  )
+  .refine(
+    (d) =>
+      d.connectionType !== "CONNECTOR_HTTP_JSON" ||
+      (!!d.host && validAdapterHost(d.host)),
+    { message: "Enter a valid device IP address or hostname without a port.", path: ["host"] },
   );
 export const punch = z
   .object({

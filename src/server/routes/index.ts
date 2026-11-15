@@ -1,3 +1,5 @@
+import aieBridgeRoutes from "./aieBridge.routes";
+import aieProxyRoutes from "./aieProxy.routes";
 import smartReportsRoutes from "./smartReports.routes";
 import identityCardRoutes from "./identityCard.routes";
 import schoolDocumentRoutes from "./schoolDocument.routes";
@@ -22,13 +24,17 @@ import financeRoutes from "./finance.routes";
 import examRoutes from "./exam.routes";
 import receptionistRoutes from "./receptionist.routes";
 import staffCertificateRoutes from "./staffCertificate.routes";
+import universalImportRoutes from "./universalImport.routes";
 
 const router = Router();
-router.use("/smart-reports",smartReportsRoutes);
-router.use("/id-cards",identityCardRoutes);
-router.use("/school-documents",schoolDocumentRoutes);
-router.use("/staff-certificates",staffCertificateRoutes);
-router.use("/student-media",studentMediaRoutes);
+router.use("/universal-import", universalImportRoutes);
+router.use("/aie-bridge", aieBridgeRoutes);
+router.use("/workspace/aie", aieProxyRoutes);
+router.use("/smart-reports", smartReportsRoutes);
+router.use("/id-cards", identityCardRoutes);
+router.use("/school-documents", schoolDocumentRoutes);
+router.use("/staff-certificates", staffCertificateRoutes);
+router.use("/student-media", studentMediaRoutes);
 router.use("/workforce", workforceRoutes);
 
 router.use("/organization", organizationRoutes);
@@ -50,6 +56,3 @@ router.use("/exams", examRoutes);
 router.use("/receptionist", receptionistRoutes);
 
 export default router;
-
-
-

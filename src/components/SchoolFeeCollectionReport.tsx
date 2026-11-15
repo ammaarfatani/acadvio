@@ -1,0 +1,56 @@
+"use client";
+import { useEffect, useMemo, useState } from "react";
+import { apiFetch, privateFile } from "@/lib/api";
+
+const field = "w-full rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-sm";
+const button = "rounded-md border border-zinc-300 px-4 py-2.5 text-sm font-semibold disabled:opacity-40";
+const money = (value: any) => `PKR ${Number(value || 0).toLocaleString("en-PK", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const monthName = (value: string) => {
+  if (!value) return "";
+  const [year, month] = value.split("-").map(Number);
+  return new Date(year, month - 1, 1).toLocaleDateString("en-PK", { month: "long", year: "numeric" });
+};
+const schoolMonth = (value: string | Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Karachi", year: "numeric", month: "2-digit" }).format(new Date(value));
+export default function SchoolFeeCollectionReport() {
+  const [sessions, setSessions] = useState<any[]>([]), [sessionId, setSessionId] = useState(""), [period, setPeriod] = useState<"month" | "range" | "session">("month"), [month, setMonth] = useState(""), [fromMonth, setFromMonth] = useState(""), [toMonth, setToMonth] = useState(""), [report, setReport] = useState<any>(null), [busy, setBusy] = useState(""), [error, setError] = useState("");
+  const activeSession = sessions.find(s => s._id === sessionId);
+  const months = useMemo(() => {
+    if (!activeSession) return [];
+    const [y0, m0] = schoolMonth(activeSession.startDate).split("-").map(Number), [endY, endM] = schoolMonth(activeSession.endDate).split("-").map(Number), out: string[] = [];
+    let y = y0, m = m0;
+    while (y < endY || (y === endY && m <= endM)) { out.push(`${y}-${String(m).padStart(2, "0")}`); if (++m === 13) { m = 1; y++; } }
+    return out;
+  }, [activeSession]);
+  useEffect(() => { let live = true; apiFetch("/smart-reports/fee-collection/sessions").then(r => { if (!live) return; const values = r.data.sessions || []; setSessions(values); const current = values.find((s: any) => s.isCurrent) || values[0]; if (current) { setSessionId(current._id); const key = schoolMonth(new Date()); const first = schoolMonth(current.startDate), last = schoolMonth(current.endDate); const selected = key >= first && key <= last ? key : first; setMonth(selected); setFromMonth(first); setToMonth(selected); } }).catch(e => live && setError(e.message)); return () => { live = false; }; }, []);
+  const payload = () => ({ academicSessionId: sessionId, period, ...(period === "month" ? { month } : period === "range" ? { fromMonth, toMonth } : {}) });
+  const preview = async () => { setBusy("Preparing report…"); setError(""); try { const r = await apiFetch("/smart-reports/fee-collection", { method: "POST", body: JSON.stringify(payload()) }); setReport(r.data.report); } catch (e: any) { setError(e.message || "Report could not be generated."); } finally { setBusy(""); } };
+  const download = async (format: "pdf" | "xlsx") => { setBusy(format === "pdf" ? "Preparing PDF…" : "Preparing Excel…"); setError(""); try { const blob = await privateFile("/smart-reports/fee-collection", { method: "POST", body: JSON.stringify({ ...payload(), format }) }); const url = URL.createObjectURL(blob), a = document.createElement("a"); a.href = url; a.download = `students-fee-collection-${report?.period?.from || fromMonth}-${report?.period?.to || toMonth}.${format}`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 30000); } catch (e: any) { setError(e.message || `Could not create ${format.toUpperCase()}.`); } finally { setBusy(""); } };
+  const print = () => { if (!report) return; window.print(); };
+  return <div className="space-y-4">
+    <section className="grid gap-3 rounded-md border bg-zinc-50 p-4 sm:grid-cols-2 lg:grid-cols-4 print:hidden">
+      <label className="text-xs font-semibold">Academic Session<select className={field+" mt-1"} value={sessionId} onChange={e => { setSessionId(e.target.value); setReport(null); }}><option value="">Select session</option>{sessions.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}</select></label>
+      <label className="text-xs font-semibold">Reporting Period<select className={field+" mt-1"} value={period} onChange={e => { setPeriod(e.target.value as any); setReport(null); }}><option value="month">Single month</option><option value="range">Month range</option><option value="session">Full academic session</option></select></label>
+      {period === "month" && <label className="text-xs font-semibold">Month<select className={field+" mt-1"} value={month} onChange={e => { setMonth(e.target.value); setReport(null); }}><option value="">Choose month</option>{months.map(m => <option key={m} value={m}>{monthName(m)}</option>)}</select></label>}
+      {period === "range" && <><label className="text-xs font-semibold">From month<select className={field+" mt-1"} value={fromMonth} onChange={e => { setFromMonth(e.target.value); setReport(null); }}><option value="">Choose month</option>{months.filter(m => !toMonth || m <= toMonth).map(m => <option key={m} value={m}>{monthName(m)}</option>)}</select></label><label className="text-xs font-semibold">Through month<select className={field+" mt-1"} value={toMonth} onChange={e => { setToMonth(e.target.value); setReport(null); }}><option value="">Choose month</option>{months.filter(m => !fromMonth || m >= fromMonth).map(m => <option key={m} value={m}>{monthName(m)}</option>)}</select></label></>}
+      <div className="flex items-end"><button disabled={!!busy || !sessionId || (period === "month" && !month) || (period === "range" && (!fromMonth || !toMonth))} onClick={preview} className={button+" w-full bg-red-600 text-white"}>{busy || "Preview Report"}</button></div>
+    </section>
+    {error && <p role="alert" className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+    {report && <>
+      <div className="flex flex-wrap gap-3 print:hidden"><button disabled={!!busy} onClick={() => download("pdf")} className={button}>Download PDF</button><button disabled={!!busy} onClick={() => download("xlsx")} className={button}>Export Excel</button><button disabled={!!busy} onClick={print} className={button}>Print Report</button><span className="self-center text-xs text-zinc-500">Print opens your browser’s native print dialog.</span></div>
+      <div id="fee-collection-print-area" className="space-y-4 border border-zinc-300 bg-white p-4 text-black print:border-0 print:p-0">
+        <header className="flex items-center gap-3 border-b-2 border-black pb-3"><div className="min-w-0 flex-1"><h2 className="truncate text-lg font-bold">{report.school.name}</h2><p className="text-xs">{report.school.address} {report.school.phone && `· ${report.school.phone}`}</p><h3 className="mt-1 text-sm font-bold">Students Fee Collection Report</h3><p className="text-xs">Academic session: {report.session.name} · Period: {monthName(report.period.from)}{report.period.to !== report.period.from ? ` – ${monthName(report.period.to)}` : ""}</p><p className="text-xs">Generated: {new Date(report.generatedAt).toLocaleString("en-PK", { timeZone: "Asia/Karachi" })} · Branch: {report.branchScope}</p></div>{report.school.logoUrl && <img src={report.school.logoUrl} alt="School logo" className="max-h-14 max-w-20 object-contain" />}</header>
+        <p className="border-y border-black py-2 text-center text-sm font-bold">Strength: {report.totals.strength} | FFS: {report.totals.ffs} | Non-FFS: {report.totals.nonFfs}</p>
+        <section className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(Math.max(report.categories.length,1), 3)}, minmax(0, 1fr))` }}>
+          {report.categories.map((category: any) => <article key={category.id} className="min-w-0 border border-black">
+            <h4 className="border-b border-black bg-zinc-100 p-2 text-center text-sm font-bold">{category.name}</h4><div className="grid grid-cols-3 border-b border-black text-center text-[10px]"><div className="border-r border-black p-1"><b>Total Students</b><br/>{category.strength}</div><div className="border-r border-black p-1"><b>FFS</b><br/>{category.ffs}</div><div className="p-1"><b>Non-FFS</b><br/>{category.nonFfs}</div></div>
+            {!category.sections.length && <p className="p-2 text-xs">No recorded fee components in this period.</p>}
+            {category.sections.map((section: any) => <div key={section.key} className="border-b border-black last:border-0"><h5 className="border-b border-black px-2 py-1 text-xs font-bold">{section.title}</h5><table className="w-full table-fixed text-[10px]"><thead><tr>{["Previous", "Current", "Total", "Remaining"].map(v => <th key={v} className="border-r border-black px-1 py-1 last:border-r-0">{v}</th>)}</tr></thead><tbody><tr>{[section.previousPKR, section.currentPKR, section.totalPKR, section.outstandingPKR].map((v: number, i: number) => <td key={i} className="border-t border-r border-black px-1 py-1 text-right last:border-r-0">{Number(v).toLocaleString("en-PK", { minimumFractionDigits: 2 })}</td>)}</tr></tbody></table><div className="px-2 py-1 text-[10px]">Total Received Fee: <b>{money(section.receivedPKR)}</b></div><div className="px-2 pb-1 text-[10px]">Total Outstanding Fee: <b>{money(section.outstandingPKR)}</b></div></div>)}
+          </article>)}
+        </section>
+        <section className="border border-black"><h4 className="border-b border-black bg-zinc-100 p-2 text-sm font-bold">School-wide fee totals</h4><div className="p-2 text-xs">Strength: <b>{report.totals.strength}</b> · FFS: <b>{report.totals.ffs}</b> · Non-FFS: <b>{report.totals.nonFfs}</b></div><table className="w-full text-xs"><thead><tr>{["Fee Component", "Previous", "Current", "Total", "Received", "Outstanding"].map(v => <th key={v} className="border border-black p-1 text-left">{v}</th>)}</tr></thead><tbody>{report.totals.sections.map((s: any) => <tr key={s.key}><td className="border border-black p-1">{s.title}</td>{[s.previousPKR,s.currentPKR,s.totalPKR,s.receivedPKR,s.outstandingPKR].map((v: number,i: number)=><td key={i} className="border border-black p-1 text-right">{money(v)}</td>)}</tr>)}</tbody></table></section>
+        {report.months.length > 1 && <section className="border border-black"><h4 className="border-b border-black bg-zinc-100 p-2 text-sm font-bold">Month-wise breakdown</h4><table className="w-full text-xs"><thead><tr>{["Billing Month", "Billed", "Received in Period", "Outstanding at Period End"].map(v=><th key={v} className="border border-black p-1 text-left">{v}</th>)}</tr></thead><tbody>{report.months.map((m: any)=><tr key={m.month}><td className="border border-black p-1">{monthName(m.month)}</td>{[m.billedPKR,m.receivedPKR,m.outstandingPKR].map((v: number,i: number)=><td key={i} className="border border-black p-1 text-right">{money(v)}</td>)}</tr>)}</tbody></table></section>}
+        <p className="text-[10px]">Previous = billed before the selected period. Current = billed during the selected period. Received = recorded cash receipts during the selected period, attributed proportionally to the challan fee components. Remaining = unpaid challan balance through the period end. Amounts are PKR.</p>
+      </div>
+    </>}
+  </div>;
+}

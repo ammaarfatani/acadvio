@@ -37,7 +37,7 @@ export default function Dashboard() {
   const fees = data.fees.reduce(
     (a: any, f: any) => ({
       paid: a.paid + Number(f.paidAmountPKR || 0),
-      due: a.due + Number(f.remainingAmountPKR || 0),
+      due: a.due + Number(f.currentPayablePKR ?? f.remainingAmountPKR ?? 0),
     }),
     { paid: 0, due: 0 },
   );

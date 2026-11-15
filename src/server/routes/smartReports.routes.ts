@@ -48,6 +48,8 @@ import { ExamSchedule } from "../models/exam.model";
 import { User } from "../models/user.model";
 import { StaffEmployment } from "../models/workforce.model";
 import { Subject } from "../models/subject.model";
+import { ClassCategory } from "../models/classCategory.model";
+import { feeCollectionExcel, feeCollectionPdf, feeCollectionReport } from "../services/feeCollectionReport.service";
 const router = Router(),
   id = z.string().regex(/^[a-f0-9]{24}$/i);
 const handle =
@@ -117,6 +119,33 @@ router.get(
     }),
   ),
 );
+const feeCollectionInput = z.object({
+  academicSessionId: id,
+  period: z.enum(["month", "range", "session"]),
+  month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional(),
+  fromMonth: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional(),
+  toMonth: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional(),
+}).strict();
+const feeCollectionExportInput = feeCollectionInput.extend({ format: z.enum(["preview", "pdf", "xlsx"]).default("preview") }).strict().superRefine((v, ctx) => {
+  if (v.period === "month" && !v.month) ctx.addIssue({ code: "custom", path: ["month"], message: "Select a reporting month." });
+  if (v.period === "range" && (!v.fromMonth || !v.toMonth)) ctx.addIssue({ code: "custom", path: ["fromMonth"], message: "Select both range months." });
+});
+router.get("/fee-collection/sessions", handle(async (req, res) => {
+  if (!req.user.permissions.includes("fees.view")) throw { statusCode: 403, message: "Fee report permission is required." };
+  const rows = await AcademicSession.find({ schoolId: req.user.schoolId }).sort({ startDate: -1 }).select("name startDate endDate isCurrent").lean();
+  return sendSuccess(res, { sessions: rows });
+}));
+router.post("/fee-collection", handle(async (req, res) => {
+  if (!req.user.permissions.includes("fees.view")) throw { statusCode: 403, message: "Fee report permission is required." };
+  const input = feeCollectionExportInput.parse(req.body);
+  const report = await feeCollectionReport(req.user, input);
+  await audit(req.user, input.format === "preview" ? "FEE_COLLECTION_REPORT_PREVIEW" : "FEE_COLLECTION_REPORT_EXPORT", { session: input.academicSessionId, period: report.period, format: input.format });
+  if (input.format === "preview") return sendSuccess(res, { report });
+  const data = input.format === "pdf" ? await feeCollectionPdf(report) : await feeCollectionExcel(report);
+  res.set("Content-Type", input.format === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  res.set("Content-Disposition", `attachment; filename="students-fee-collection-${report.period.from}-${report.period.to}.${input.format}"`);
+  return res.send(data);
+}));
 router.get(
   "/options",
   handle(async (req, res) => {
@@ -131,9 +160,11 @@ router.get(
           "examId",
           "department",
           "subjectId",
+          "classCategoryId",
         ]),
         search: z.string().trim().max(80).default(""),
         classId: id.optional(),
+        classCategoryId: id.optional(),
         academicSessionId: id.optional(),
         sectionId: id.optional(),
       })
@@ -153,6 +184,7 @@ router.get(
         message: "This filter requires directory access.",
       };
     const models: any = {
+        classCategoryId: ClassCategory,
         studentId: Student,
         employeeId: User,
         classId: ClassModel,
@@ -202,6 +234,16 @@ router.get(
         message: "Section does not match the selected class.",
       };
     const filter: any = { schoolId: req.user.schoolId };
+    if (input.classCategoryId && input.field !== "classCategoryId") {
+      if (!(await ClassCategory.exists({ _id: input.classCategoryId, schoolId: req.user.schoolId })))
+        throw { statusCode: 400, message: "Class category not found." };
+      if (input.field === "classId") filter.classCategoryId = input.classCategoryId;
+      if (["studentId", "sectionId", "subjectId"].includes(input.field)) {
+        const categoryClassIds = await ClassModel.find({ schoolId: req.user.schoolId, classCategoryId: input.classCategoryId }).distinct("_id");
+        if (input.field === "studentId") filter.classId = { $in: categoryClassIds };
+        if (input.field === "sectionId" || input.field === "subjectId") filter.classId = input.classId ? input.classId : { $in: categoryClassIds };
+      }
+    }
     if (input.classId) {
       if (
         !(await ClassModel.exists({

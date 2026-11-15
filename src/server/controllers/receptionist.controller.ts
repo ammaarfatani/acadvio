@@ -282,6 +282,16 @@ export class ReceptionistController {
   }
 
   // 8. ACADEMIC HELPERS
+  static async getClassCategories(req: Request, res: Response, next: NextFunction) {
+    try {
+      const schoolId = req.user?.schoolId;
+      if (!schoolId) throw { statusCode: 400, message: "No school tenant context." };
+      return sendSuccess(res, await ReceptionistService.getClassCategories(schoolId), "School class categories retrieved.");
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async getClasses(req: Request, res: Response, next: NextFunction) {
     try {
       const schoolId = req.user?.schoolId;
@@ -318,5 +328,15 @@ export class ReceptionistController {
     } catch (error) {
       next(error);
     }
+  }
+
+  static async getFeeStructureChoices(req: Request, res: Response, next: NextFunction) {
+    try {
+      const schoolId = req.user?.schoolId;
+      if (!schoolId) throw { statusCode: 400, message: "No school tenant context." };
+      const { classId, sessionId } = req.query;
+      if (typeof classId !== "string" || typeof sessionId !== "string") throw { statusCode: 400, message: "Select a class and academic session." };
+      return sendSuccess(res, await ReceptionistService.getFeeStructureChoices(schoolId, classId, sessionId), "Eligible fee structures retrieved.");
+    } catch (error) { next(error); }
   }
 }

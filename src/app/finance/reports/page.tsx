@@ -8,6 +8,7 @@ import { useRecordRefresh } from "@/lib/use-record-refresh";
 import { useEffect, useState } from "react";
 import { BarChart3, Download, DollarSign, CheckCircle2 } from "lucide-react";
 import { financeApi } from "@/lib/financeApi";
+const formatPKR = (value: number) => Number(value || 0).toLocaleString("en-PK", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function NetFinancialReportsPage() {
   const [session, setSession] = useState("");
@@ -96,7 +97,7 @@ export default function NetFinancialReportsPage() {
               c.month,
               c.totalAmountPKR,
               c.paidAmountPKR,
-              c.remainingAmountPKR,
+              c.currentPayablePKR ?? c.remainingAmountPKR,
             ]),
             ...payments.map((p) => [
               "Payment",
@@ -202,7 +203,7 @@ export default function NetFinancialReportsPage() {
     classMap[cls].count += 1;
     classMap[cls].expectedFee += Number(c.totalAmountPKR || 0);
     classMap[cls].collected += Number(c.paidAmountPKR || 0);
-    classMap[cls].pending += Number(c.remainingAmountPKR || 0);
+    classMap[cls].pending += Number(c.currentPayablePKR ?? c.remainingAmountPKR ?? 0);
   });
 
   const classWiseCollections = Object.values(classMap).map((item) => {
@@ -306,7 +307,7 @@ export default function NetFinancialReportsPage() {
               Recorded collections less expenses
             </span>
             <span className="text-2xl font-black text-red-600 font-mono">
-              PKR {netOperatingSurplus.toLocaleString()}
+              PKR {formatPKR(netOperatingSurplus)}
             </span>
           </div>
         </div>
@@ -320,25 +321,25 @@ export default function NetFinancialReportsPage() {
             <div className="flex justify-between text-zinc-700">
               <span>Tuition Fee Billed:</span>
               <span className="font-mono font-bold text-zinc-950">
-                PKR {totalTuitionIncome.toLocaleString()}
+                PKR {formatPKR(totalTuitionIncome)}
               </span>
             </div>
             <div className="flex justify-between text-zinc-700">
               <span>Admission, Exam & Other Funds:</span>
               <span className="font-mono font-bold text-zinc-950">
-                PKR {totalOtherFees.toLocaleString()}
+                PKR {formatPKR(totalOtherFees)}
               </span>
             </div>
             <div className="flex justify-between text-zinc-700">
               <span>Discounts & Concessions:</span>
               <span className="font-mono font-bold text-red-600">
-                -PKR {totalDiscounts.toLocaleString()}
+                -PKR {formatPKR(totalDiscounts)}
               </span>
             </div>
             <div className="flex justify-between border-t border-zinc-300 pt-2 font-black text-zinc-950">
               <span>Recorded payments received:</span>
               <span className="font-mono text-red-600">
-                PKR {netCollectedIncome.toLocaleString()}
+                PKR {formatPKR(netCollectedIncome)}
               </span>
             </div>
           </div>
@@ -351,25 +352,25 @@ export default function NetFinancialReportsPage() {
             <div className="flex justify-between text-zinc-700">
               <span>Faculty & Staff Payroll:</span>
               <span className="font-mono font-bold text-zinc-950">
-                PKR {totalPayrollExpenses.toLocaleString()}
+                PKR {formatPKR(totalPayrollExpenses)}
               </span>
             </div>
             <div className="flex justify-between text-zinc-700">
               <span>Electricity, Rent & Campus Utilities:</span>
               <span className="font-mono font-bold text-zinc-950">
-                PKR {totalUtilityExpenses.toLocaleString()}
+                PKR {formatPKR(totalUtilityExpenses)}
               </span>
             </div>
             <div className="flex justify-between text-zinc-700">
               <span>Stationery, Maintenance & Other:</span>
               <span className="font-mono font-bold text-zinc-950">
-                PKR {totalOtherExpenses.toLocaleString()}
+                PKR {formatPKR(totalOtherExpenses)}
               </span>
             </div>
             <div className="flex justify-between border-t border-red-300 pt-2 font-black text-red-950">
               <span>Total Expenses Paid Out:</span>
               <span className="font-mono">
-                PKR {totalExpensesSum.toLocaleString()}
+                PKR {formatPKR(totalExpensesSum)}
               </span>
             </div>
           </div>
@@ -426,13 +427,13 @@ export default function NetFinancialReportsPage() {
                       {c.totalStudents} Challans
                     </td>
                     <td className="p-3.5 text-center font-mono font-bold text-zinc-900">
-                      PKR {c.expectedFee.toLocaleString()}
+                      PKR {formatPKR(c.expectedFee)}
                     </td>
                     <td className="p-3.5 text-center font-mono font-bold text-emerald-700">
-                      PKR {c.collected.toLocaleString()}
+                      PKR {formatPKR(c.collected)}
                     </td>
                     <td className="p-3.5 text-center font-mono font-bold text-amber-600">
-                      PKR {c.pending.toLocaleString()}
+                      PKR {formatPKR(c.pending)}
                     </td>
                     <td className="p-3.5 text-center font-mono font-black text-red-600">
                       {c.percentage}

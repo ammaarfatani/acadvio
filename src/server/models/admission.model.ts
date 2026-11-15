@@ -14,6 +14,7 @@ export interface IAdmission extends Document {
   previousClass?: string;
   applyingClassId: mongoose.Types.ObjectId;
   applyingClassName: string;
+  applyingClassCategoryName?: string;
   academicSessionId: mongoose.Types.ObjectId;
   academicSessionName: string;
   admissionSource?: string;
@@ -40,6 +41,7 @@ const AdmissionSchema = new Schema<IAdmission>({
   previousClass: { type: String, trim: true },
   applyingClassId: { type: Schema.Types.ObjectId, ref: "ClassModel", required: true },
   applyingClassName: { type: String, required: true },
+  applyingClassCategoryName: { type: String, trim: true },
   academicSessionId: { type: Schema.Types.ObjectId, ref: "AcademicSession", required: true },
   academicSessionName: { type: String, required: true },
   admissionSource: { type: String, trim: true },

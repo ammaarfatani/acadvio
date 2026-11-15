@@ -48,6 +48,13 @@ export const StudentCreateSchema = z.object({
   academicSessionName: z.string().optional(),
   address: text("Address", 5),
   phone: z.string().optional(),
+  feeEffectiveDate: date.optional(),
+  feeChangeReason: z.string().trim().max(500).optional(),
+  feeStructureId: id.optional(),
+  feeStructureTitle: z.string().trim().optional(),
+  concessionType: z.enum(["FIXED", "PERCENTAGE"]).optional(),
+  concessionValue: z.coerce.number().min(0).optional(),
+  concessionReason: z.string().trim().optional(),
   photoUrl: z.string().optional(),
   bFormNumber: z.string().trim().max(32).optional(),
   photoData: z.string().max(7000000).nullable().optional(),
@@ -148,6 +155,13 @@ export const AdmissionAdmitSchema = z.object({
   sectionId: id,
   address: text("Address", 5),
   phone: z.string().optional(),
+  feeEffectiveDate: date.optional(),
+  feeChangeReason: z.string().trim().max(500).optional(),
+  feeStructureId: id.optional(),
+  feeStructureTitle: z.string().trim().optional(),
+  concessionType: z.enum(["FIXED", "PERCENTAGE"]).optional(),
+  concessionValue: z.coerce.number().min(0).optional(),
+  concessionReason: z.string().trim().optional(),
   photoUrl: z.string().optional(),
   bFormNumber: z.string().trim().max(32).optional(),
   photoData: z.string().max(7000000).nullable().optional(),
@@ -161,12 +175,41 @@ export const AdmissionAdmitSchema = z.object({
   emergencyPhone: z.string().optional(),
   emergencyRelation: z.string().optional(),
 });
+export const ClassCategoryCreateSchema = z.object({
+  name: text("Category name", 1),
+  description: z.string().trim().max(1000).optional().default(""),
+  displayOrder: z.coerce.number().int().min(0).optional().default(0),
+  status: z.enum(["ACTIVE", "INACTIVE"]).optional().default("ACTIVE"),
+});
+
+export const ClassCategoryUpdateSchema = z.object({
+  name: text("Category name", 1).optional(),
+  description: z.string().trim().max(1000).optional(),
+  displayOrder: z.coerce.number().int().min(0).optional(),
+  status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
+});
+
 export const ClassCreateSchema = z.object({
   name: text("Class name"),
   code: text("Class code"),
   numericLevel: z.coerce.number().int().positive().optional(),
   classTeacherId: z.string().optional(),
   classTeacherName: z.string().optional(),
+  classCategoryId: z.string().optional().nullable(),
+});
+
+export const ClassUpdateSchema = z.object({
+  name: text("Class name").optional(),
+  code: text("Class code").optional(),
+  numericLevel: z.coerce.number().int().positive().optional(),
+  classTeacherId: z.string().optional().nullable(),
+  classTeacherName: z.string().optional().nullable(),
+  classCategoryId: z.string().optional().nullable(),
+});
+
+export const ClassBulkAssignCategorySchema = z.object({
+  classIds: z.array(id).min(1, "Select at least one class to assign a category."),
+  classCategoryId: id,
 });
 export const SectionCreateSchema = z.object({
   classId: id,
@@ -251,20 +294,61 @@ const feeAmounts = {
   dueDateDay: z.coerce.number().int().min(1).max(31).optional(),
 };
 export const FeeStructureSchema = z.object({
+  customCharges: z.array(z.object({ label: z.string().trim().min(1).max(60), amount })).max(12).optional(),
   title: text("Fee structure title"),
+  structureType: z.string().trim().optional(),
+  isDefault: z.boolean().optional(),
   academicSession: z.string().optional(),
-  classId: id,
-  className: text("Class name"),
+  classScope: z.enum(["SPECIFIC", "ALL"]).default("SPECIFIC"),
+  classId: id.optional(),
+  className: z.string().trim().optional(),
+  classCategoryName: z.string().trim().optional(),
   sectionId: z.string().optional(),
   sectionName: z.string().optional(),
+  earlyPaymentDiscount: z
+    .object({
+      enabled: z.boolean().default(false),
+      type: z.enum(["FIXED", "PERCENTAGE"]).default("FIXED"),
+      amount: z.coerce.number().min(0).default(0),
+      cutoffDaysBeforeDue: z.coerce.number().min(0).optional(),
+    })
+    .optional(),
+  lateFeeFinePolicy: z
+    .object({
+      type: z.enum(["FIXED", "PERCENTAGE"]).default("FIXED"),
+      model: z.enum(["ONE_TIME", "STAGES", "RECURRING", "DISABLED"]).default("DISABLED"),
+      amount: z.coerce.number().min(0).default(0),
+      graceDays: z.coerce.number().min(0).optional(),
+      stages: z
+        .array(
+          z.object({
+            daysAfterDue: z.coerce.number().min(1),
+            fineAmount: z.coerce.number().min(0),
+          })
+        )
+        .optional(),
+      dailyRate: z.coerce.number().min(0).optional(),
+      maxFineCap: z.coerce.number().min(0).optional(),
+    })
+    .optional(),
   ...feeAmounts,
+}).superRefine((value, ctx) => {
+  if (value.classScope !== "ALL" && !value.classId) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["classId"], message: "Select a class or choose All Classes." });
+});
+
+export const StudentFeeStructureChangeSchema = z.object({
+  feeStructureId: id,
+  effectiveDate: date.optional(),
+  academicSession: z.string().trim().optional(),
+  reason: z.string().trim().optional(),
+  concessionType: z.enum(["FIXED", "PERCENTAGE"]).optional(),
+  concessionValue: z.coerce.number().min(0).optional(),
+  concessionReason: z.string().trim().optional(),
 });
 export const FeeBatchSchema = z.object({
   classId: id,
   className: z.string().optional(),
   month: text("Fee month"),
-  dueDate: date,
-  lateFeeFine: amount.optional(),
   academicSessionId: id.optional(),
   sectionId: id.optional(),
   studentIds: z
@@ -277,6 +361,7 @@ export const FeeBatchSchema = z.object({
 export const CollectPaymentSchema = z.object({
   requestId: z.string().uuid().optional(),
   transactionReference: z.string().trim().max(160).optional(),
+  paymentDate: z.string().date().optional(),
   challanId: id,
   amountPKR: positive,
   paymentMethod: z.enum(["Cash", "Bank Transfer", "Online", "Cheque", "Other"]),
@@ -453,12 +538,16 @@ export const TeacherAdminUpdateSchema = TeacherAdminCreateSchema.omit({
 export const BrandingSchema = z
   .object({
     name: text("School name", 3).optional(),
+    email: z.string().email().optional(),
     phone: z
       .string()
       .min(7, "Enter a valid phone number.")
       .max(25, "Phone number is too long.")
       .optional(),
+    alternativePhone: z.string().max(25).optional(),
     address: text("Address", 5).optional(),
+    city: z.string().max(100).optional(),
+    website: z.string().max(200).optional(),
     domain: z.string().optional(),
     currency: z.enum(["PKR"]).optional(),
     dateFormat: z.enum(["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"]).optional(),
@@ -471,6 +560,28 @@ export const BrandingSchema = z
         branch: z.string().max(150).optional(),
         instructions: z.string().max(2000).optional(),
         enabled: z.boolean().optional(),
+      })
+      .optional(),
+    feePolicy: z
+      .object({
+        earlyDiscountEnabled: z.boolean().optional(),
+        earlyDiscountAmount: z.coerce.number().min(0).optional(),
+        earlyDiscountType: z.enum(["FIXED", "PERCENTAGE"]).optional(),
+        earlyDiscountDaysBeforeDue: z.coerce.number().min(0).max(30).optional(),
+        lateFineModel: z.enum(["ONE_TIME", "STAGES", "RECURRING", "DISABLED"]).optional(),
+        lateFineAmount: z.coerce.number().min(0).optional(),
+        lateFineGraceDays: z.coerce.number().min(0).max(30).optional(),
+        lateFineCap: z.coerce.number().min(0).optional(),
+        lateFineStages: z
+          .array(
+            z.object({
+              afterDays: z.coerce.number().min(1),
+              fineAmount: z.coerce.number().min(0),
+            })
+          )
+          .optional(),
+        lateFineDailyRate: z.coerce.number().min(0).optional(),
+        unpaidBalancesCarryForward: z.boolean().optional(),
       })
       .optional(),
   })

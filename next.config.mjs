@@ -4,6 +4,20 @@ const nextConfig = {
   distDir: process.env.NEXT_BUILD_DIR || ".next",
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
+  async redirects() {
+    return [
+      {
+        source: "/school-admin/data-management/migration",
+        destination: "/school-admin/data-management/complete-school-import",
+        permanent: true,
+      },
+      {
+        source: "/:slug/admin/data-management/migration",
+        destination: "/:slug/admin/data-management/complete-school-import",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [{source: "/:path*", headers: [
       { key: "X-Content-Type-Options", value: "nosniff" },

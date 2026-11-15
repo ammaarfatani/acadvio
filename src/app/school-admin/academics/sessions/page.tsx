@@ -6,13 +6,14 @@ import {RecordFilters,matchesRecordSearch} from "@/components/RecordFilters";
 
 import {Presence} from "@/components/Motion";
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { Calendar, Plus } from "lucide-react";
+import { Calendar, Plus, FileSpreadsheet } from "lucide-react";
+import { BulkImportModal } from "@/components/BulkImportModal";
 import {apiFetch} from "@/lib/api";
 import {Text,card,button} from "@/components/WorkforceUI";
 import { schoolAdminApi } from "@/lib/schoolAdminApi";
 
 export default function SessionsPage() {
-  const [showCreate,setShowCreate]=useState(false),[query,setQuery]=useState(""),[filterClass,setFilterClass]=useState(""),[filterStatus,setFilterStatus]=useState("");
+  const [showCreate,setShowCreate]=useState(false),[bulkOpen,setBulkOpen]=useState(false),[query,setQuery]=useState(""),[filterClass,setFilterClass]=useState(""),[filterStatus,setFilterStatus]=useState("");
   const [editing,setEditing]=useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +49,27 @@ export default function SessionsPage() {
     <header><h1 className="text-2xl font-black text-zinc-950">Academic Sessions</h1><p className="mt-1 text-sm text-zinc-500">Manage this school’s academic calendar. New records use the current session by default.</p></header>
     {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
     {notice && <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
-<div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-zinc-500">Browse records below. Use the button to add a new record.</p><button className={workspacePrimary} onClick={()=>setShowCreate(true)}>Create academic session</button></div>
+    {bulkOpen && (
+      <BulkImportModal
+        entity="academicSessions"
+        onClose={() => setBulkOpen(false)}
+        onImported={load}
+      />
+    )}
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <p className="text-sm text-zinc-500">Browse records below. Use the button to add a new record.</p>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setBulkOpen(true)}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3.5 py-2 text-xs font-semibold text-zinc-800 shadow-sm hover:bg-zinc-50"
+        >
+          <FileSpreadsheet size={15} className="text-emerald-600" />
+          Bulk Upload Sessions
+        </button>
+        <button className={workspacePrimary} onClick={() => setShowCreate(true)}>Create academic session</button>
+      </div>
+    </div>
  {showCreate&&<WorkspaceDialog title="Create academic session" description="Set the academic year and date range. The current session is used for new records." busy={saving} onClose={()=>setShowCreate(false)} wide>{error&&<p role="alert" className="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}    <form onSubmit={create} className="grid gap-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm sm:grid-cols-2">
       <div className="sm:col-span-2"><h2 className="font-bold">Create session</h2></div>
       <label className="space-y-1 text-sm">Session name *<input name="name" required placeholder="2026-2027" className="w-full rounded-lg border border-zinc-300 px-3 py-2" /></label>

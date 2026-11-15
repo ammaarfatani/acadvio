@@ -57,6 +57,7 @@ export class UserService {
       schoolId,
       roleId: role._id,
       userType: input.userType,
+      employeeId:input.employeeId,
       name: input.name,
       email: input.email.toLowerCase(),
       passwordHash,

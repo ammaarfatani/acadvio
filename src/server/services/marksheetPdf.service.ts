@@ -127,8 +127,9 @@ export async function marksheetPdf(data: any, sharedDoc?: any) {
           margin + 73,
           { width: metadataWidth() },
         );
+      const categorySuffix = data.student.classCategoryName ? ` (${data.student.classCategoryName})` : "";
       doc.text(
-        `Session: ${data.student.academicSessionName || data.student.academicSessionId} | Class / section: ${data.student.className} / ${data.student.sectionName || "Not assigned"}`,
+        `Session: ${data.student.academicSessionName || data.student.academicSessionId} | Class / section: ${data.student.className}${categorySuffix} / ${data.student.sectionName || "Not assigned"}`,
         metadataLeft,
         doc.y + 6,
         { width: metadataWidth() },

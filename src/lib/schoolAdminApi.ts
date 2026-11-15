@@ -3,11 +3,43 @@ import { apiFetch } from "./api";
 import type { ImportEntity } from "./bulk-import";
 
 export const schoolAdminApi = {
-  getBulkTemplate: (entity: ImportEntity) => apiFetch(`/school-admin/${entity}/bulk-import/template`),
-  previewBulkImport: (entity: ImportEntity, data: { filename: string; base64: string }) => apiFetch(`/school-admin/${entity}/bulk-import/preview`, { method: "POST", body: JSON.stringify(data) }),
-  getBulkImport: (entity: ImportEntity, id: string, page = 1) => apiFetch(`/school-admin/${entity}/bulk-import/${id}?page=${page}`),
-  commitBulkImport: (entity: ImportEntity, id: string, skipDuplicates: boolean) => apiFetch(`/school-admin/${entity}/bulk-import/${id}/commit`, { method: "POST", body: JSON.stringify({ skipDuplicates }) }),
-  getBulkImportErrors: (entity: ImportEntity, id: string) => apiFetch(`/school-admin/${entity}/bulk-import/${id}/errors`),
+  // Universal Module & Master Bulk Import
+  getBulkTemplate: (entity: ImportEntity) => apiFetch(`/school-admin/universal-import/${entity}/template`),
+  previewBulkImport: (entity: ImportEntity, data: { filename: string; base64: string }) =>
+    apiFetch(`/school-admin/universal-import/${entity}/preview`, { method: "POST", body: JSON.stringify(data) }),
+  getBulkImport: (entity: ImportEntity, id: string, page = 1) =>
+    apiFetch(`/school-admin/universal-import/${entity}/${id}?page=${page}`),
+  commitBulkImport: (entity: ImportEntity, id: string, skipDuplicates: boolean) =>
+    apiFetch(`/school-admin/universal-import/${entity}/${id}/commit`, { method: "POST", body: JSON.stringify({ skipDuplicates }) }),
+  getBulkImportErrors: (entity: ImportEntity, id: string) =>
+    apiFetch(`/school-admin/universal-import/${entity}/${id}/errors`),
+  getModuleTemplate: (entity: string, type: "blank" | "example" = "blank") =>
+    apiFetch(`/school-admin/universal-import/${entity}/template?type=${type}`),
+
+  // Complete School Migration Master Endpoints
+  getMigrationPlanInfo: () => apiFetch("/school-admin/universal-import/plan-info"),
+  getMasterTemplate: (plan?: string, type: "blank" | "example" = "blank") => {
+    const q = new URLSearchParams();
+    if (plan) q.set("plan", plan);
+    if (type) q.set("type", type);
+    const queryStr = q.toString() ? `?${q.toString()}` : "";
+    return apiFetch(`/school-admin/universal-import/master/template${queryStr}`);
+  },
+  getMasterSample: (plan?: string) => {
+    const queryStr = plan ? `?plan=${plan}&type=example` : "?type=example";
+    return apiFetch(`/school-admin/universal-import/master/sample${queryStr}`);
+  },
+  previewMasterImport: (data: { filename: string; base64: string }) =>
+    apiFetch("/school-admin/universal-import/master/preview", { method: "POST", body: JSON.stringify(data) }),
+  getMasterImport: (id: string, page = 1) =>
+    apiFetch(`/school-admin/universal-import/master/${id}?page=${page}`),
+  commitMasterImport: (id: string, skipDuplicates: boolean) =>
+    apiFetch(`/school-admin/universal-import/master/${id}/commit`, { method: "POST", body: JSON.stringify({ skipDuplicates }) }),
+  getMasterImportErrors: (id: string) =>
+    apiFetch(`/school-admin/universal-import/master/${id}/errors`),
+  getMigrationHistory: () =>
+    apiFetch("/school-admin/universal-import/master/history"),
+
   getDashboardMetrics: () => apiFetch("/school-admin/dashboard"),
   getAcademicSessions: () => apiFetch("/school-admin/academic-sessions"),
   createAcademicSession: (data: any) => apiFetch("/school-admin/academic-sessions", { method: "POST", body: JSON.stringify(data) }),
@@ -48,6 +80,40 @@ export const schoolAdminApi = {
       body: JSON.stringify(studentData),
     }),
   getStudentHistory: (studentId: string) => apiFetch(`/school-admin/students/${studentId}/history`),
+  getStudentFeeHistory: (studentId: string) => apiFetch(`/school-admin/students/${studentId}/fee-history`),
+  changeStudentFeeStructure: (studentId: string, data: any) =>
+    apiFetch(`/school-admin/students/${studentId}/fee-structure`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  // Class Categories
+  getClassCategories: (params?: { search?: string; status?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.search) query.append("search", params.search);
+    if (params?.status) query.append("status", params.status);
+    const qs = query.toString();
+    return apiFetch(`/school-admin/classes/categories${qs ? `?${qs}` : ""}`);
+  },
+  createClassCategory: (categoryData: any) =>
+    apiFetch("/school-admin/classes/categories", {
+      method: "POST",
+      body: JSON.stringify(categoryData),
+    }),
+  updateClassCategory: (categoryId: string, categoryData: any) =>
+    apiFetch(`/school-admin/classes/categories/${categoryId}`, {
+      method: "PUT",
+      body: JSON.stringify(categoryData),
+    }),
+  deleteClassCategory: (categoryId: string) =>
+    apiFetch(`/school-admin/classes/categories/${categoryId}`, {
+      method: "DELETE",
+    }),
+  bulkAssignCategoryToClasses: (data: { classIds: string[]; classCategoryId: string }) =>
+    apiFetch("/school-admin/classes/bulk-assign-category", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
   // Classes & Sections
   getClasses: () => apiFetch("/school-admin/classes"),
@@ -55,6 +121,15 @@ export const schoolAdminApi = {
     apiFetch("/school-admin/classes", {
       method: "POST",
       body: JSON.stringify(classData),
+    }),
+  updateClass: (classId: string, classData: any) =>
+    apiFetch(`/school-admin/classes/${classId}`, {
+      method: "PUT",
+      body: JSON.stringify(classData),
+    }),
+  deleteClass: (classId: string) =>
+    apiFetch(`/school-admin/classes/${classId}`, {
+      method: "DELETE",
     }),
   getSections: (classId?: string) => {
     const params = new URLSearchParams();
@@ -78,8 +153,6 @@ export const schoolAdminApi = {
       method: "POST",
       body: JSON.stringify(subjectData),
     }),
-
-  // Attendance
 
   // Finance
   getFeeStructures: () => apiFetch("/school-admin/fees/structures"),
@@ -161,6 +234,8 @@ export const schoolAdminApi = {
       method: "PUT",
       body: JSON.stringify(brandingData),
     }),
+  updateNumberingSettings: (numbering: any) =>
+    apiFetch("/school-admin/numbering-settings", { method: "PUT", body: JSON.stringify(numbering) }),
 
   // Users & Staff
   getSchoolUsers: () => apiFetch("/users"),

@@ -26,6 +26,7 @@ export interface IStudent extends Document {
   gender: "Male" | "Female" | "Other";
   classId: mongoose.Types.ObjectId;
   className: string;
+  classCategoryName?: string;
   sectionId?: mongoose.Types.ObjectId;
   sectionName?: string;
   rollNumber: string;
@@ -34,6 +35,30 @@ export interface IStudent extends Document {
   academicSessionName?: string;
   address: string;
   phone?: string;
+  feeStructureId?: mongoose.Types.ObjectId;
+  feeStructureTitle?: string;
+  concessionType?: "FIXED" | "PERCENTAGE";
+  concessionValue?: number;
+  concessionReason?: string;
+  feeStructureHistory?: Array<{
+    previousFeeStructureId?: mongoose.Types.ObjectId;
+
+    newFeeStructureId: mongoose.Types.ObjectId;
+    newFeeStructureTitle: string;
+    previousConcessionType?: "FIXED" | "PERCENTAGE";
+    previousConcessionValue?: number;
+    newConcessionType?: "FIXED" | "PERCENTAGE";
+    newConcessionValue?: number;
+    concessionReason?: string;
+    effectiveDate: Date;
+    academicSession?: string;
+    reason?: string;
+    changedBy?: string;
+    changedByName?: string;
+    changedByUserId?: mongoose.Types.ObjectId;
+    changedAt: Date;
+    previousFeeStructureTitle?: string;
+  }>;
   parentInfo: {
     fatherName: string;
     fatherPhone: string;
@@ -94,6 +119,7 @@ const StudentSchema = new Schema<IStudent>(
     gender: { type: String, enum: ["Male", "Female", "Other"], required: true },
     classId: { type: Schema.Types.ObjectId, ref: "ClassModel", required: true },
     className: { type: String, required: true },
+    classCategoryName: { type: String, trim: true },
     sectionId: { type: Schema.Types.ObjectId, ref: "SectionModel" },
     sectionName: { type: String },
     rollNumber: { type: String, required: true },
@@ -102,6 +128,34 @@ const StudentSchema = new Schema<IStudent>(
     academicSessionName: { type: String },
     address: { type: String, required: true },
     phone: { type: String },
+    feeStructureId: { type: Schema.Types.ObjectId, ref: "FeeStructure" },
+    feeStructureTitle: { type: String, trim: true },
+    concessionType: { type: String, enum: ["FIXED", "PERCENTAGE"] },
+    concessionValue: { type: Number, default: 0, min: 0 },
+    concessionReason: { type: String, trim: true },
+    feeStructureHistory: [
+      {
+        feeStructureId: { type: Schema.Types.ObjectId, ref: "FeeStructure" },
+        feeStructureTitle: { type: String, trim: true },
+        previousFeeStructureId: { type: Schema.Types.ObjectId, ref: "FeeStructure" },
+
+        newFeeStructureId: { type: Schema.Types.ObjectId, ref: "FeeStructure" },
+        newFeeStructureTitle: { type: String, trim: true },
+        previousConcessionType: { type: String, enum: ["FIXED", "PERCENTAGE"] },
+        previousConcessionValue: { type: Number, min: 0 },
+        newConcessionType: { type: String, enum: ["FIXED", "PERCENTAGE"] },
+        newConcessionValue: { type: Number, min: 0 },
+        concessionReason: { type: String, trim: true },
+        effectiveDate: { type: Date, default: Date.now },
+        academicSession: { type: String, trim: true },
+        reason: { type: String, trim: true },
+        changedBy: { type: String, trim: true },
+        changedByName: { type: String, trim: true },
+        changedByUserId: { type: Schema.Types.ObjectId, ref: "User" },
+        changedAt: { type: Date, default: Date.now },
+        previousFeeStructureTitle: { type: String, trim: true },
+      },
+    ],
     parentInfo: {
       fatherName: { type: String, required: true },
       fatherPhone: { type: String, required: true },

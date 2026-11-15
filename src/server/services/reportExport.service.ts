@@ -1,5 +1,6 @@
 import {
   reportColumnLabel,
+  reportPathValue,
   readableReportValue,
 } from "../../lib/report-presentation";
 import { normalizeCardImage } from "./identityCardRender.service";
@@ -15,45 +16,47 @@ const PDFDocument = require("pdfkit");
 type Report = Awaited<ReturnType<typeof reportRows>>;
 export function workbookExport(reports: Report[], metadata: string) {
   const workbook = XLSX.utils.book_new();
+  const sheetDateCells: string[][] = [], sheetCurrencyCells: string[][] = [];
   for (const report of reports) {
-    const values = [
-      report.columns.map((c) => reportColumnLabel(report.report, c)),
-      ...report.rows.map((row: any) =>
-        report.columns.map((c) => safeSpreadsheet(cellValue(row, c))),
-      ),
+    const columns = report.groups?.length ? report.columns.filter((c) => !["classCategoryName", "applyingClassCategoryName"].includes(c)) : report.columns;
+    const groups: any[] = report.groups?.length ? report.groups : [{ category: "", rows: report.rows, count: report.rows.length, subtotals: {} }];
+    const values: any[][] = [
+      columns.map((c) => reportColumnLabel(report.report, c)),
     ];
-    const summable = report.columns.map((c) =>
+    const summable = columns.map((c) =>
       /AmountPKR$|^amountPKR$|^lateMinutes$|^workingMinutes$|^totalDays$/.test(
         c,
       ),
     );
-    if (summable.some(Boolean))
-      values.push(
-        report.columns.map((c, i) =>
-          summable[i]
-            ? report.rows.reduce(
-                (sum: number, row: any) =>
-                  sum +
-                  (typeof cellValue(row, c) === "number"
-                    ? Number(cellValue(row, c))
-                    : 0),
-                0,
-              )
-            : i === 0
-              ? "TOTAL"
-              : "",
-        ),
-      );
-    const sheet = XLSX.utils.aoa_to_sheet(values);
-    report.columns.forEach((column, index) => {
+    const dataCells = (row: any) => columns.map((c) => {
+      const value = reportPathValue(row, c);
+      if (value instanceof Date) return value;
+      return safeSpreadsheet(typeof value === "number" ? value : cellValue(row, c));
+    });
+    for (const group of groups) {
+      if (group.category) values.push([`${group.category} — ${report.title}`, ...columns.slice(1).map(() => "")]);
+      values.push(...group.rows.map(dataCells));
+      if (group.category) values.push(columns.map((c, i) => summable[i] ? Number(group.subtotals?.[c] || 0) : i === 0 ? `${group.category} subtotal (${group.count} records)` : ""));
+    }
+    if (report.groups?.length) values.push(columns.map((c, i) => summable[i] ? (report.groups || []).reduce((sum: number, group: any) => sum + Number(group.subtotals?.[c] || 0), 0) : i === 0 ? `GRAND TOTAL (${report.total} records)` : ""));
+    else if (summable.some(Boolean)) values.push(columns.map((c, i) => summable[i] ? report.rows.reduce((sum: number, row: any) => { const value = reportPathValue(row, c); return sum + (typeof value === "number" ? value : 0); }, 0) : i === 0 ? "TOTAL" : ""));
+    const sheet = XLSX.utils.aoa_to_sheet(values, { cellDates: true });
+    sheetDateCells.push(values.flatMap((row, r) => row.flatMap((value, c) => value instanceof Date ? [XLSX.utils.encode_cell({ r, c })] : [])));
+    sheetCurrencyCells.push(values.flatMap((row, r) => row.flatMap((value, c) => /(?:AmountPKR|amountPKR|totalAmountPKR|remainingAmountPKR)$/.test(columns[c] || "") && typeof value === "number" ? [XLSX.utils.encode_cell({ r, c })] : [])));
+    columns.forEach((column, index) => {
       if (/PKR$|percentage/i.test(column))
         for (let row = 1; row < values.length; row++) {
           const cell = sheet[XLSX.utils.encode_cell({ r: row, c: index })];
           if (cell?.t === "n")
             cell.z = /PKR$/.test(column) ? "#,##0.00" : "0.00";
         }
+      if (/date|At$|^dob$/i.test(column))
+        for (let row = 1; row < values.length; row++) {
+          const cell = sheet[XLSX.utils.encode_cell({ r: row, c: index })];
+          if (cell?.t === "d" || cell?.t === "n") cell.z = "yyyy-mm-dd";
+        }
     });
-    sheet["!cols"] = report.columns.map((c) => ({
+    sheet["!cols"] = columns.map((c) => ({
       wch: Math.min(
         40,
         Math.max(18, reportColumnLabel(report.report, c).length + 3),
@@ -62,7 +65,7 @@ export function workbookExport(reports: Report[], metadata: string) {
     sheet["!autofilter"] = {
       ref: XLSX.utils.encode_range({
         s: { r: 0, c: 0 },
-        e: { r: report.rows.length, c: report.columns.length - 1 },
+        e: { r: values.length - 1, c: columns.length - 1 },
       }),
     };
     XLSX.utils.book_append_sheet(workbook, sheet, report.report.slice(0, 31));
@@ -101,7 +104,7 @@ export function workbookExport(reports: Report[], metadata: string) {
     archive.FileIndex[index].size = content.length;
   };
   const styles =
-    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFBD111B"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF3F3F0"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="0" fontId="2" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFBD111B"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF3F3F0"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="5"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="0" fontId="2" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="14" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="4" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
   replaceEntry("xl/styles.xml", Buffer.from(styles));
   for (let i = 0; i < workbook.SheetNames.length; i++) {
     const path = `xl/worksheets/sheet${i + 1}.xml`,
@@ -114,6 +117,8 @@ export function workbookExport(reports: Report[], metadata: string) {
     xml = xml.replace(/<row r="1"[^>]*>[\s\S]*?<\/row>/, (row) =>
       row.replace(/ s="\d+"/g, "").replace(/<c /g, '<c s="1" '),
     );
+    for (const ref of sheetDateCells[i] || []) xml = xml.replace(new RegExp(`<c r="${ref}"[^>]*>`), `<c r="${ref}" s="3" t="n">`);
+    for (const ref of sheetCurrencyCells[i] || []) xml = xml.replace(new RegExp(`<c r="${ref}"[^>]*>`), `<c r="${ref}" s="4" t="n">`);
     replaceEntry(path, Buffer.from(xml));
   }
   return XLSX.CFB.write(archive, { type: "buffer", fileType: "zip" }) as Buffer;
@@ -154,10 +159,23 @@ export async function pdfExport(
   for (const report of reports) {
     // Tabular exports keep every record on one aligned row, never disconnected column panels.
     {
-      const columns = report.columns,
+      const columns = report.groups?.length ? report.columns.filter((c) => !["classCategoryName", "applyingClassCategoryName"].includes(c)) : report.columns,
         rowNumberWidth = 28,
         columnWidth = (width - rowNumberWidth) / columns.length;
-      const heading = () => {
+      const tableHeader = () => {
+        const tableTop = doc.y + 14;
+        doc.font(bold).fontSize(columns.length > 12 ? 7 : 8);
+        const headerHeight = Math.max(30, ...columns.map((c) => doc.heightOfString(reportColumnLabel(report.report, c), { width: columnWidth - 12 }) + 12));
+        doc.rect(margin, tableTop, width, headerHeight).fill("#f1f1ef");
+        doc.fillColor("#171717").font(bold).fontSize(8).text("Row", margin + 4, tableTop + 6, { width: rowNumberWidth - 4 });
+        columns.forEach((c, i) => doc.fillColor("#171717").font(bold).fontSize(columns.length > 12 ? 7 : 8).text(reportColumnLabel(report.report, c), margin + rowNumberWidth + 6 + i * columnWidth, tableTop + 6, { width: columnWidth - 12, height: headerHeight - 8 }));
+        doc.y = tableTop + headerHeight + 6;
+      };
+      const categoryHeading = (category: string, continued = false) => {
+        doc.fillColor(style?.color || "#bd111b").font(bold).fontSize(10).text(`${category} — ${report.title}${continued ? " (continued)" : ""}`, margin, doc.y + 8, { width });
+        tableHeader();
+      };
+      const heading = (category?: string, continued = false) => {
         if (logo)
           doc.image(
             Buffer.from(logo.split(",")[1], "base64"),
@@ -184,53 +202,32 @@ export async function pdfExport(
           .fillColor("#52525b")
           .text(metadata, margin, 96, { width });
         doc.text(report.note, margin, doc.y + 6, { width });
-        const tableTop = doc.y + 14;
-        doc.font(bold).fontSize(columns.length > 12 ? 7 : 8);
-        const headerHeight = Math.max(
-          30,
-          ...columns.map(
-            (c) =>
-              doc.heightOfString(reportColumnLabel(report.report, c), {
-                width: columnWidth - 12,
-              }) + 12,
-          ),
-        );
-        doc.rect(margin, tableTop, width, headerHeight).fill("#f1f1ef");
-        doc
-          .fillColor("#171717")
-          .font(bold)
-          .fontSize(8)
-          .text("Row", margin + 4, tableTop + 6, { width: rowNumberWidth - 4 });
-        columns.forEach((c, i) =>
-          doc
-            .fillColor("#171717")
-            .font(bold)
-            .fontSize(columns.length > 12 ? 7 : 8)
-            .text(
-              reportColumnLabel(report.report, c),
-              margin + rowNumberWidth + 6 + i * columnWidth,
-              tableTop + 6,
-              {
-                width: columnWidth - 12,
-                height: headerHeight - 8,
-              },
-            ),
-        );
-        doc.y = tableTop + headerHeight + 6;
+        if (category) categoryHeading(category, continued);
+        else tableHeader();
       };
       if (!first) doc.addPage();
       first = false;
-      heading();
+      const groups: any[] = report.groups?.length ? report.groups : [{ category: "", count: report.rows.length, rows: report.rows, subtotals: {} }];
+      if (!report.rows.length)
+        heading();
       if (!report.rows.length)
         doc
           .fillColor("#52525b")
           .font(regular)
           .fontSize(10)
           .text("No matching recorded data.", margin, 190);
-      for (let index = 0; index < report.rows.length; index++) {
-        const values = columns.map((c) =>
-          String(cellValue(report.rows[index], c)),
-        );
+      let globalIndex = 0;
+      const monetaryColumns = columns.filter((c) => /(?:AmountPKR|amountPKR|totalAmountPKR|remainingAmountPKR)$/.test(c));
+      for (let groupIndex = 0; groupIndex < groups.length; groupIndex++) {
+        const group = groups[groupIndex];
+        if (groupIndex === 0) heading(group.category || undefined);
+        else {
+          if (doc.y + 70 > bottom) { doc.addPage(); heading(group.category || undefined, true); }
+          else if (group.category) categoryHeading(group.category);
+          else tableHeader();
+        }
+        for (const row of group.rows) {
+        const values = columns.map((c) => String(cellValue(row, c)));
         doc.font(regular).fontSize(columns.length > 12 ? 7 : 8);
         const height = Math.max(
           24,
@@ -247,16 +244,16 @@ export async function pdfExport(
           };
         if (doc.y + height > bottom) {
           doc.addPage();
-          heading();
+          heading(group.category || undefined, true);
         }
         const y = doc.y;
-        if (index % 2 === 0)
+        if (globalIndex % 2 === 0)
           doc.rect(margin, y - 3, width, height).fill("#fafaf8");
         doc
           .fillColor("#52525b")
           .font(regular)
           .fontSize(8)
-          .text(String(index + 1), margin + 4, y + 3, {
+          .text(String(globalIndex + 1), margin + 4, y + 3, {
             width: rowNumberWidth - 6,
           });
         values.forEach((v, i) =>
@@ -274,6 +271,23 @@ export async function pdfExport(
             ),
         );
         doc.y = y + height;
+        globalIndex++;
+        }
+        if (group.category) {
+          const totalText = monetaryColumns.length
+            ? `Category subtotal — ${group.category}: ${monetaryColumns.map((c) => `${reportColumnLabel(report.report, c)} ${Number(group.subtotals?.[c] || 0).toLocaleString("en-PK", { minimumFractionDigits: 2 })}`).join(" · ")} · ${group.count} records`
+            : `${group.category} total: ${group.count} records`;
+          if (doc.y + 30 > bottom) { doc.addPage(); heading(group.category, true); }
+          doc.font(bold).fontSize(8).fillColor("#171717").text(totalText, margin, doc.y + 4, { width });
+          doc.y += 20;
+        }
+      }
+      if (report.groups?.length) {
+        const grand = monetaryColumns.length
+          ? `Grand total — ${monetaryColumns.map((c) => `${reportColumnLabel(report.report, c)} ${(report.groups || []).reduce((n: number, g: any) => n + Number(g.subtotals?.[c] || 0), 0).toLocaleString("en-PK", { minimumFractionDigits: 2 })}`).join(" · ")} · ${report.total} records`
+          : `Grand total: ${report.total} records`;
+        if (doc.y + 30 > bottom) { doc.addPage(); heading(); }
+        doc.font(bold).fontSize(9).fillColor("#171717").text(grand, margin, doc.y + 4, { width });
       }
     }
   }

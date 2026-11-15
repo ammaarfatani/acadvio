@@ -19,6 +19,49 @@ import {
 } from "./workforce.service";
 import { attendanceValues, dateKey, scheduledDate } from "./workforceMath";
 import { expireTrials } from "./trialLifecycle.service";
+
+function isPathWithin(candidate: string, root: string) {
+  const normalizeForComparison = (value: string) => {
+    const absolute = path.resolve(value);
+    return process.platform === "win32" ? absolute.toLowerCase() : absolute;
+  };
+  const relative = path.relative(
+    normalizeForComparison(root),
+    normalizeForComparison(candidate),
+  );
+  return (
+    relative === "" ||
+    (relative !== ".." &&
+      !relative.startsWith(`..${path.sep}`) &&
+      !path.isAbsolute(relative))
+  );
+}
+
+async function credentialPathIsPublic(directory: string) {
+  const publicDirectory = path.resolve(process.cwd(), "public");
+  if (isPathWithin(directory, publicDirectory)) return true;
+
+  // The configured leaf may not exist yet. Resolve the nearest existing parent
+  // so symlinked directories/junctions cannot make a private-looking path land
+  // underneath the web-served public directory.
+  const suffix: string[] = [];
+  let current = path.resolve(directory);
+  while (true) {
+    try {
+      const [realParent, realPublic] = await Promise.all([
+        fs.realpath(current),
+        fs.realpath(publicDirectory),
+      ]);
+      return isPathWithin(path.resolve(realParent, ...suffix.reverse()), realPublic);
+    } catch (error: any) {
+      if (error?.code !== "ENOENT") return true;
+      const parent = path.dirname(current);
+      if (parent === current) return true;
+      suffix.push(path.basename(current));
+      current = parent;
+    }
+  }
+}
 function encrypt(secret: string) {
   const key = process.env.BIOMETRIC_ENCRYPTION_KEY;
   if (!key || !/^[a-f0-9]{64}$/i.test(key))
@@ -52,16 +95,14 @@ export function decrypt(secret: string) {
     cipher.final(),
   ]).toString("utf8");
 }
-export function readiness() {
+export async function readiness() {
   const directory = process.env.BIOMETRIC_PROVISION_DIR;
   const resolved = directory ? path.resolve(directory) : "";
-  const publicDirectory = path.resolve(process.cwd(), "public");
   return {
     credentialStorageConfigured:
       !!directory &&
       path.isAbsolute(directory) &&
-      resolved !== publicDirectory &&
-      !resolved.startsWith(publicDirectory + path.sep),
+      !(await credentialPathIsPublic(resolved)),
     credentialEncryptionConfigured: /^[a-f0-9]{64}$/i.test(
       process.env.BIOMETRIC_ENCRYPTION_KEY || "",
     ),
@@ -615,17 +656,21 @@ export async function provision(actor: any, id: string) {
       message:
         "Configure an absolute private BIOMETRIC_PROVISION_DIR on the backend before provisioning connector credentials.",
     };
-  const directory = path.resolve(configured),
-    publicDirectory = path.resolve(process.cwd(), "public");
-  if (
-    directory === publicDirectory ||
-    directory.startsWith(publicDirectory + path.sep)
-  )
+  const directory = path.resolve(configured);
+  if (await credentialPathIsPublic(directory))
     throw {
       statusCode: 409,
       message: "Credential provisioning directory must not be publicly served.",
     };
   await fs.mkdir(directory, { recursive: true, mode: 0o700 });
+  // Resolve symlinks/junctions after creating the directory and before writing
+  // the secret. Lexical path checks alone can be bypassed by a public-folder
+  // symlink, especially on case-insensitive Windows filesystems.
+  if (await credentialPathIsPublic(directory))
+    throw {
+      statusCode: 409,
+      message: "Credential provisioning directory must not be publicly served.",
+    };
   const filename = "acadivo-connector-" + crypto.randomUUID() + ".env",
     destination = path.join(directory, filename);
   const file = await fs.open(destination, "wx", 0o600);

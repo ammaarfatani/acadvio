@@ -1,3 +1,4 @@
+import { feeStructureEligible } from "../../lib/student-fee-assignment";
 import { literalSearch } from "../utils/search.util";
 import {validateStudentPhoto,storeStudentPhoto,deleteStudentPhoto} from "./studentPhoto.service";
 import { FinanceService } from "./finance.service";
@@ -10,9 +11,11 @@ import { School } from "../models/school.model";
 import { Student } from "../models/student.model";
 import { User } from "../models/user.model";
 import { ClassModel, SectionModel } from "../models/classSection.model";
+import { ClassCategory } from "../models/classCategory.model";
 import { Subject, TimetableSlot } from "../models/subject.model";
 import { StudentAttendance, TeacherAttendance } from "../models/attendance.model";
 import { FeeStructure, FeeChallan, FeePayment, Expense } from "../models/fee.model";
+import { AuditLog } from "../models/auditLog.model";
 import { randomUUID } from "crypto";
 import { ExamSchedule, MarksEntry, ProcessedResult } from "../models/exam.model";
 import { Announcement } from "../models/announcement.model";
@@ -123,16 +126,21 @@ export class SchoolAdminService {
     const sectionLabel = String(section?.name || "A").replace(/^section\s*/i, "").trim().replace(/\s+/g, "-");
     const rollPrefix = `${classLabel}-${sectionLabel}-`;
     const history = await Student.find({ schoolId, classId, sectionId: sectionId || null, academicSessionId: session?._id || null }).select("rollNumber").lean();
-    const next = history.reduce((max, row: any) => {
-      const suffix = String(row.rollNumber || "").startsWith(rollPrefix) ? String(row.rollNumber).slice(rollPrefix.length) : "";
-      return /^\d+$/.test(suffix) ? Math.max(max, Number(suffix)) : max;
-    }, 0) + 1;
+    const compatible = history.map((row:any)=>String(row.rollNumber||""));
+    const numericRolls=compatible.filter((value:string)=>/^\d+$/.test(value));
+    const prefixedRolls=compatible.map((value:string)=>value.startsWith(rollPrefix)?value.slice(rollPrefix.length):"").filter((value:string)=>/^\d+$/.test(value));
+    // Continue a wholly numeric legacy scope (347 -> 348). Mixed formats remain
+    // on Acadivo's class-section format because choosing between them is ambiguous.
+    const numericMode=numericRolls.length>0&&prefixedRolls.length===0;
+    const rollPadding=numericMode?Math.max(...numericRolls.map((value:string)=>value.length)):0;
+    const next=(numericMode?Math.max(...numericRolls.map(Number)):prefixedRolls.reduce((max:number,value:string)=>Math.max(max,Number(value)),0))+1;
+    const formatRoll=(value:number)=>numericMode?String(value).padStart(rollPadding,"0"):`${rollPrefix}${value}`;
     const counters=mongoose.connection.db!.collection("identitysequences");
     const sequenceKey=`${schoolId}:roll:${classId}:${sectionId||""}:${session?._id||""}`;
-    if(!reserve){const counter=await counters.findOne({_id:sequenceKey as any});return `${rollPrefix}${Math.max(next,Number(counter?.value||0)+1)}`;}
+    if(!reserve){const counter=await counters.findOne({_id:sequenceKey as any});return formatRoll(Math.max(next,Number(counter?.value||0)+1));}
     try{await counters.updateOne({_id:sequenceKey as any},{$max:{value:next-1}},{upsert:true});}catch(error:any){if(error.code!==11000)throw error;}
     const counter=await counters.findOneAndUpdate({_id:sequenceKey as any},{$inc:{value:1}},{returnDocument:"after"});
-    return `${rollPrefix}${counter!.value}`;
+    return formatRoll(counter!.value);
   }
 
   static async getStudents(schoolId: string, filterClassId?: string, search?: string, statusFilter?: string) {
@@ -160,9 +168,10 @@ export class SchoolAdminService {
 
     if(data.photoUrl)throw {statusCode:400,message:"Use the Student Photo upload field instead of an image URL."};
     const photoBytes=await validateStudentPhoto(data.photoData);
-    const linkedClass = await ClassModel.findOne({ _id: data.classId, schoolId }).select("_id name numericLevel").session(dbSession || null);
+    const linkedClass = await ClassModel.findOne({ _id: data.classId, schoolId }).select("_id name numericLevel classCategoryName").session(dbSession || null);
     if (!linkedClass) throw { statusCode: 400, message: "Select a class that belongs to your school." };
     data.className = linkedClass.name;
+    if (linkedClass.classCategoryName) data.classCategoryName = linkedClass.classCategoryName;
     const section = data.sectionId ? await SectionModel.findOne({ _id: data.sectionId, schoolId, classId: linkedClass._id }).select("_id name").session(dbSession || null) : null;
     if (!section) throw { statusCode: 400, message: "Select a section belonging to this class and school." };
     if (section) { data.sectionName = section.name; }
@@ -170,11 +179,28 @@ export class SchoolAdminService {
     if (data.academicSessionId && !academicSession) throw { statusCode: 400, message: "Select an academic session belonging to this school." };
     if (!academicSession) throw { statusCode: 400, message: "Create or select an academic session for this school." };
     data.academicSessionId = academicSession._id; data.academicSessionName = academicSession.name;
+
+    // Student-wise Fee Structure & Concession assignment
+    if (data.feeStructureId) {
+      const fs = await FeeStructure.findOne({ _id: data.feeStructureId, schoolId }).session(dbSession || null);
+      if (fs) {
+        if (fs.academicSession && String(fs.academicSession) !== String(academicSession.name)) throw { statusCode: 400, message: "Select a fee structure configured for this academic session." };
+        if (!feeStructureEligible(fs, { classId: linkedClass._id, sectionId: section._id, academicSessionName: academicSession.name })) throw { statusCode: 400, message: "Select an eligible fee structure for this section and session." };
+        data.feeStructureId = fs._id;
+        data.feeStructureTitle = fs.title;
+      } else throw { statusCode: 400, message: "Selected fee structure is unavailable for this school." };
+    }
+    if (data.concessionType) data.concessionType = data.concessionType;
+    if (data.concessionValue !== undefined) data.concessionValue = Number(data.concessionValue) || 0;
+    if (data.concessionReason) data.concessionReason = data.concessionReason;
+
+    if (data.concessionType === "PERCENTAGE" && data.concessionValue > 100) throw { statusCode: 400, message: "Percentage concession cannot exceed 100%." };
+    if (data.feeStructureId) data.feeStructureHistory = [{ newFeeStructureId: data.feeStructureId, newFeeStructureTitle: data.feeStructureTitle, newConcessionType: data.concessionType || "FIXED", newConcessionValue: data.concessionValue || 0, concessionReason: data.concessionReason || "", effectiveDate: data.feeEffectiveDate || data.admissionDate || new Date(), academicSession: academicSession.name, reason: "Initial assignment" }];
     await SubscriptionEntitlementService.checkCapacityLimit(schoolId, "students");
     const {permanentIdentity}=await import("./permanentIdentity.service");
     const allocatedId=new mongoose.Types.ObjectId();
-    const admissionNumber=await permanentIdentity(schoolId,"admission",allocatedId);
-    const studentId=await permanentIdentity(schoolId,"student",allocatedId);
+    const admissionNumber=await permanentIdentity(schoolId,"admission",allocatedId,data.admissionNumber||undefined);
+    const studentId=await permanentIdentity(schoolId,"student",allocatedId,data.studentId||undefined);
 
     // Includes archived students to prevent a deleted/archived number from being reused.
     const rollNumber = await this.getNextStudentRollNumber(schoolId, String(linkedClass._id), section?._id?.toString(), academicSession._id.toString(), true);
@@ -196,17 +222,19 @@ export class SchoolAdminService {
     return student;
   }
 
-  static async updateStudent(schoolId: string, studentId: string, data: any) {
+  static async updateStudent(schoolId: string, studentId: string, data: any, actor?: any) {
     const existing = await Student.findOne({ _id: studentId, schoolId }).select("+photoStorageId");
     if (!existing) throw { statusCode: 404, message: "Student record not found." };
     if(data.photoUrl!==undefined&&data.photoUrl!==existing.photoUrl)throw {statusCode:400,message:"Use the Student Photo upload field instead of an image URL."};
     const photoBytes=await validateStudentPhoto(data.photoData);
     const effectiveClassId = data.classId || existing.classId.toString();
     if (data.classId) {
-      const linkedClass = await ClassModel.findOne({ _id: effectiveClassId, schoolId }).select("name");
+      const linkedClass = await ClassModel.findOne({ _id: effectiveClassId, schoolId }).select("name classCategoryName");
       if (!linkedClass) throw { statusCode: 400, message: "Select a class that belongs to your school." };
       data.className = linkedClass.name;
+      data.classCategoryName = linkedClass.classCategoryName || null;
     }
+    if (data.classId && String(data.classId) !== String(existing.classId) && !data.sectionId) throw { statusCode: 400, message: "Choose a section in the destination class." };
     if (data.sectionId !== undefined) {
       const section = data.sectionId ? await SectionModel.findOne({ _id: data.sectionId, schoolId, classId: effectiveClassId }).select("name") : null;
       if (data.sectionId && !section) throw { statusCode: 400, message: "Select a section belonging to this class and school." };
@@ -219,6 +247,25 @@ export class SchoolAdminService {
     }
     const { schoolId: ignoredSchoolId, studentId: ignoredPermanentId, admissionNumber: ignoredAdmission, photoData, photoStorageId: ignoredStorageId, ...safeData } = data;
     void ignoredStorageId;
+
+    delete safeData.feeStructureTitle;
+    const feeChanged = ["feeStructureId", "concessionType", "concessionValue", "concessionReason"].some(key => data[key] !== undefined && String(data[key]) !== String((existing as any)[key] ?? ""));
+    if (feeChanged) {
+      if (!actor?.permissions?.includes("fees.update")) throw { statusCode: 403, message: "Fee assignment changes require fees.update permission." };
+      const structure = await FeeStructure.findOne({ _id: data.feeStructureId || existing.feeStructureId, schoolId });
+      if (!feeStructureEligible(structure, { classId: effectiveClassId, sectionId: data.sectionId || existing.sectionId, academicSessionName: data.academicSessionName || existing.academicSessionName })) throw { statusCode: 400, message: "Select a fee structure for this class, section and academic session." };
+      const effectiveDate = new Date(data.feeEffectiveDate || new Date());
+      if (isNaN(effectiveDate.getTime())) throw { statusCode: 400, message: "Enter a valid effective date." };
+      const concessionType = data.concessionType || existing.concessionType || "FIXED";
+      const concessionValue = Number(data.concessionValue ?? existing.concessionValue ?? 0);
+      if (concessionValue < 0 || (concessionType === "PERCENTAGE" && concessionValue > 100)) throw { statusCode: 400, message: "Enter a valid concession (0-100 for percentage)." };
+      safeData.feeStructureHistory = [...(existing.feeStructureHistory || []), { previousFeeStructureId: existing.feeStructureId, previousFeeStructureTitle: existing.feeStructureTitle, previousConcessionType: existing.concessionType, previousConcessionValue: existing.concessionValue, newFeeStructureId: structure!._id, newFeeStructureTitle: structure!.title, newConcessionType: concessionType, newConcessionValue: concessionValue, concessionReason: data.concessionReason || "", effectiveDate, academicSession: data.academicSessionName || existing.academicSessionName, reason: data.feeChangeReason || "Student profile fee assignment", changedByUserId: actor.userId, changedByName: actor.email }];
+      for (const key of ["feeStructureId", "feeStructureTitle", "concessionType", "concessionValue", "concessionReason"]) delete safeData[key];
+      if (effectiveDate <= new Date()) Object.assign(safeData, { feeStructureId: structure!._id, feeStructureTitle: structure!.title, concessionType, concessionValue, concessionReason: data.concessionReason || "" });
+    }
+    delete safeData.feeEffectiveDate;
+    delete safeData.feeChangeReason;
+
     let newFileId:string|undefined;
     if(photoData!==undefined){if(photoBytes){newFileId=await storeStudentPhoto(existing,photoBytes);safeData.photoStorageId=newFileId;safeData.photoUrl=`/student-media/${existing._id}/photo`;}else{safeData.photoStorageId=null;safeData.photoUrl="";}}
 
@@ -230,18 +277,284 @@ export class SchoolAdminService {
     return student;
   }
 
-  // 3. CLASSES & SECTIONS
-  static async getClasses(schoolId: string) {
-    return ClassModel.find({ schoolId }).sort({ numericLevel: 1 });
+  static async changeStudentFeeStructure(
+    schoolId: string,
+    studentId: string,
+    data: {
+      feeStructureId: string;
+      concessionType?: "FIXED" | "PERCENTAGE";
+      concessionValue?: number;
+      concessionReason?: string;
+      effectiveDate?: string;
+      reason: string;
+    },
+    actorId?: string,
+    actorName?: string,
+  ) {
+    return this.updateStudent(schoolId, studentId, {
+      feeStructureId: data.feeStructureId,
+      concessionType: data.concessionType || "FIXED",
+      concessionValue: data.concessionValue || 0,
+      concessionReason: data.concessionReason || "",
+      feeEffectiveDate: data.effectiveDate,
+      feeChangeReason: data.reason,
+    }, { userId: actorId, email: actorName || "Administrator", permissions: ["fees.update"] });
   }
 
-  static async createClass(schoolId: string, data: { name: string; code: string; numericLevel?: number; classTeacherId?: string; classTeacherName?: string }) {
+  static async getStudentFeeHistory(schoolId: string, studentId: string) {
+    const student: any = await Student.findOne({ _id: studentId, schoolId })
+      .select("name admissionNumber rollNumber className feeStructureId feeStructureTitle concessionType concessionValue concessionReason feeStructureHistory")
+      .lean();
+    if (!student) throw { statusCode: 404, message: "Student not found." };
+    return {
+      studentId: student._id,
+      studentName: student.name,
+      admissionNumber: student.admissionNumber,
+      currentStructureId: student.feeStructureId,
+      currentStructureTitle: student.feeStructureTitle,
+      currentConcessionType: student.concessionType,
+      currentConcessionValue: student.concessionValue,
+      currentConcessionReason: student.concessionReason,
+      history: (student as any).feeStructureHistory || [],
+    };
+  }
+
+  // 3. CLASS CATEGORIES, CLASSES & SECTIONS
+  static async getClassCategories(schoolId: string, options?: { search?: string; status?: string }) {
+    const filter: any = { schoolId };
+    if (options?.status && options.status !== "ALL") {
+      filter.status = options.status;
+    }
+    if (options?.search && options.search.trim()) {
+      filter.$or = [
+        { name: { $regex: options.search.trim(), $options: "i" } },
+        { description: { $regex: options.search.trim(), $options: "i" } },
+      ];
+    }
+    const categories = await ClassCategory.find(filter).sort({ displayOrder: 1, name: 1 }).lean();
+
+    const classCountAgg = await ClassModel.aggregate([
+      { $match: { schoolId: new mongoose.Types.ObjectId(schoolId) } },
+      { $group: { _id: "$classCategoryId", count: { $sum: 1 } } },
+    ]);
+    const countMap = new Map<string, number>();
+    classCountAgg.forEach((item: any) => {
+      if (item._id) countMap.set(String(item._id), item.count);
+    });
+
+    return categories.map((cat: any) => ({
+      ...cat,
+      classCount: countMap.get(String(cat._id)) || 0,
+    }));
+  }
+
+  static async createClassCategory(schoolId: string, data: { name: string; description?: string; displayOrder?: number; status?: "ACTIVE" | "INACTIVE" }, actorId?: string) {
+    const trimmedName = data.name.trim();
+    const existing = await ClassCategory.findOne({
+      schoolId,
+      name: { $regex: new RegExp(`^${trimmedName.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}$`, "i") },
+    });
+    if (existing) {
+      throw { statusCode: 409, message: `Class category '${trimmedName}' already exists.` };
+    }
+
+    return ClassCategory.create({
+      schoolId,
+      name: trimmedName,
+      description: data.description?.trim() || "",
+      displayOrder: Number(data.displayOrder) || 0,
+      status: data.status || "ACTIVE",
+      createdBy: actorId,
+    });
+  }
+
+  static async updateClassCategory(schoolId: string, categoryId: string, data: { name?: string; description?: string; displayOrder?: number; status?: "ACTIVE" | "INACTIVE" }) {
+    const category = await ClassCategory.findOne({ _id: categoryId, schoolId });
+    if (!category) throw { statusCode: 404, message: "Class category not found." };
+
+    if (data.name && data.name.trim() && data.name.trim().toLowerCase() !== category.name.toLowerCase()) {
+      const duplicate = await ClassCategory.findOne({
+        schoolId,
+        _id: { $ne: category._id },
+        name: { $regex: new RegExp(`^${data.name.trim().replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}$`, "i") },
+      });
+      if (duplicate) {
+        throw { statusCode: 409, message: `Another category with the name '${data.name.trim()}' already exists.` };
+      }
+      category.name = data.name.trim();
+    }
+
+    if (data.description !== undefined) category.description = data.description.trim();
+    if (data.displayOrder !== undefined) category.displayOrder = Number(data.displayOrder) || 0;
+    if (data.status !== undefined) category.status = data.status;
+
+    await category.save();
+
+    if (data.name && data.name.trim()) {
+      await ClassModel.updateMany(
+        { schoolId, classCategoryId: category._id },
+        { $set: { classCategoryName: category.name } }
+      );
+      await Student.updateMany(
+        { schoolId, classId: { $in: await ClassModel.find({ classCategoryId: category._id }).distinct("_id") } },
+        { $set: { classCategoryName: category.name } }
+      );
+    }
+
+    return category;
+  }
+
+  static async deleteClassCategory(schoolId: string, categoryId: string) {
+    const category = await ClassCategory.findOne({ _id: categoryId, schoolId });
+    if (!category) throw { statusCode: 404, message: "Class category not found." };
+
+    const assignedCount = await ClassModel.countDocuments({ schoolId, classCategoryId: category._id });
+    if (assignedCount > 0) {
+      throw {
+        statusCode: 400,
+        message: `Cannot delete category '${category.name}' because ${assignedCount} class(es) are currently assigned to it. Reassign or remove those classes first.`,
+      };
+    }
+
+    await ClassCategory.deleteOne({ _id: category._id, schoolId });
+    return { success: true, message: `Class category '${category.name}' deleted successfully.` };
+  }
+
+  static async bulkAssignCategoryToClasses(schoolId: string, classIds: string[], categoryId: string) {
+    const category = await ClassCategory.findOne({ _id: categoryId, schoolId });
+    if (!category) throw { statusCode: 404, message: "Class category not found." };
+    if (category.status !== "ACTIVE") throw { statusCode: 400, message: "Cannot assign an inactive category." };
+
+    await ClassModel.updateMany(
+      { schoolId, _id: { $in: classIds } },
+      { $set: { classCategoryId: category._id, classCategoryName: category.name } }
+    );
+
+    await Student.updateMany(
+      { schoolId, classId: { $in: classIds } },
+      { $set: { classCategoryName: category.name } }
+    );
+
+    return {
+      success: true,
+      message: `Assigned category '${category.name}' to ${classIds.length} class(es).`,
+      category,
+    };
+  }
+
+  static async getClasses(schoolId: string) {
+    return ClassModel.find({ schoolId })
+      .populate("classCategoryId", "name description status displayOrder")
+      .sort({ numericLevel: 1, name: 1 })
+      .lean();
+  }
+
+  static async createClass(
+    schoolId: string,
+    data: {
+      name: string;
+      code: string;
+      numericLevel?: number;
+      classTeacherId?: string;
+      classTeacherName?: string;
+      classCategoryId?: string | null;
+    }
+  ) {
     if (data.classTeacherId) {
       const classTeacher = await User.findOne({ _id: data.classTeacherId, schoolId, userType: UserType.TEACHER }).select("name");
       if (!classTeacher) throw { statusCode: 400, message: "Select a teacher account from your school." };
       data.classTeacherName = classTeacher.name;
     }
-    return ClassModel.create({ ...data, schoolId });
+
+    let categoryName: string | undefined;
+    if (data.classCategoryId) {
+      const cat = await ClassCategory.findOne({ _id: data.classCategoryId, schoolId });
+      if (!cat) throw { statusCode: 400, message: "Selected class category does not belong to this school." };
+      if (cat.status !== "ACTIVE") throw { statusCode: 400, message: "Cannot assign an inactive class category." };
+      categoryName = cat.name;
+    }
+
+    return ClassModel.create({
+      ...data,
+      classCategoryName: categoryName,
+      schoolId,
+    });
+  }
+
+  static async updateClass(
+    schoolId: string,
+    classId: string,
+    data: {
+      name?: string;
+      code?: string;
+      numericLevel?: number;
+      classTeacherId?: string | null;
+      classTeacherName?: string | null;
+      classCategoryId?: string | null;
+    }
+  ) {
+    const existing = await ClassModel.findOne({ _id: classId, schoolId });
+    if (!existing) throw { statusCode: 404, message: "Class not found." };
+
+    if (data.classTeacherId) {
+      const classTeacher = await User.findOne({ _id: data.classTeacherId, schoolId, userType: UserType.TEACHER }).select("name");
+      if (!classTeacher) throw { statusCode: 400, message: "Select a teacher account from your school." };
+      existing.classTeacherId = classTeacher._id;
+      existing.classTeacherName = classTeacher.name;
+    } else if (data.classTeacherId === null) {
+      existing.classTeacherId = undefined;
+      existing.classTeacherName = undefined;
+    }
+
+    if (data.classCategoryId !== undefined) {
+      if (data.classCategoryId) {
+        const cat = await ClassCategory.findOne({ _id: data.classCategoryId, schoolId });
+        if (!cat) throw { statusCode: 400, message: "Selected class category does not belong to this school." };
+        if (cat.status !== "ACTIVE" && String(existing.classCategoryId) !== String(cat._id)) {
+          throw { statusCode: 400, message: "Cannot assign an inactive class category." };
+        }
+        existing.classCategoryId = cat._id;
+        existing.classCategoryName = cat.name;
+      } else {
+        existing.classCategoryId = undefined;
+        existing.classCategoryName = undefined;
+      }
+    }
+
+    if (data.name) existing.name = data.name.trim();
+    if (data.code) existing.code = data.code.trim();
+    if (data.numericLevel !== undefined) existing.numericLevel = Number(data.numericLevel) || 1;
+
+    await existing.save();
+
+    if (data.name || data.classCategoryId !== undefined) {
+      if (data.name) {
+        await SectionModel.updateMany({ classId: existing._id, schoolId }, { $set: { className: existing.name } });
+      }
+      await Student.updateMany(
+        { classId: existing._id, schoolId },
+        { $set: { className: existing.name, classCategoryName: existing.classCategoryName } }
+      );
+    }
+
+    return existing;
+  }
+
+  static async deleteClass(schoolId: string, classId: string) {
+    const existing = await ClassModel.findOne({ _id: classId, schoolId });
+    if (!existing) throw { statusCode: 404, message: "Class not found." };
+
+    const studentCount = await Student.countDocuments({ schoolId, classId });
+    if (studentCount > 0) {
+      throw { statusCode: 400, message: `Cannot delete class '${existing.name}' because ${studentCount} student(s) are enrolled in it.` };
+    }
+    const sectionCount = await SectionModel.countDocuments({ schoolId, classId });
+    if (sectionCount > 0) {
+      throw { statusCode: 400, message: `Cannot delete class '${existing.name}' because ${sectionCount} section(s) exist under it. Remove sections first.` };
+    }
+
+    await ClassModel.deleteOne({ _id: classId, schoolId });
+    return { success: true, message: `Class '${existing.name}' deleted successfully.` };
   }
 
   static async getSections(schoolId: string, classId?: string) {
@@ -496,45 +809,19 @@ export class SchoolAdminService {
   }
 
   static async createFeeStructure(schoolId: string, data: any) {
-    const linkedClass = await ClassModel.findOne({ _id: data.classId, schoolId }).select("name");
-    if (!linkedClass) throw { statusCode: 400, message: "Select a class belonging to this school." };
-    data.className = linkedClass.name;
-    if (data.sectionId && !await SectionModel.exists({ _id: data.sectionId, schoolId, classId: data.classId })) throw { statusCode: 400, message: "Select a section belonging to this class and school." };
-    const totalMonthlyFee = (data.tuitionFee || 0) + (data.examFee || 0) + (data.transportFee || 0) + (data.libraryFee || 0) + (data.computerFee || 0) + (data.otherCharges || 0);
-    return FeeStructure.create({ ...data, schoolId, totalMonthlyFee });
+    return FinanceService.createFeeStructure(schoolId, data);
   }
 
-  static async generateFeeChallansBatch(schoolId: string, classId: string, className: string, month: string, dueDateStr: string) {
-    const students = await Student.find({ schoolId, classId, status: "ACTIVE" });
-    const feeStructure = await FeeStructure.findOne({ schoolId, classId });
-    if (!feeStructure) throw { statusCode: 400, message: "Create a fee structure for this class before generating challans." };
-    const tuitionFee = feeStructure.tuitionFee || 0;
-    const dueDate = new Date(dueDateStr);
-
-    const generated: any[] = [];
-    for (const s of students) {
-      const existing = await FeeChallan.findOne({ schoolId, studentId: s._id, month });
-      if (existing) continue;
-      const challanNumber = `CH-${new Date().getFullYear()}-${month.replace(/[^A-Z0-9]/gi, "").slice(0, 8).toUpperCase()}-${String(s._id).slice(-8).toUpperCase()}`;
-      const examFee = feeStructure.examFee || 0;
-      const transportFee = feeStructure.transportFee || 0;
-      const libraryFee = feeStructure.libraryFee || 0;
-      const computerFee = feeStructure.computerFee || 0;
-      const otherCharges = feeStructure.otherCharges || 0;
-      const totalAmountPKR = Math.max(0, tuitionFee + examFee + transportFee + libraryFee + computerFee + otherCharges - (feeStructure.defaultDiscount || 0));
-
-      const challan = await FeeChallan.create({ schoolId, challanNumber, studentId: s._id, studentName: s.name, rollNumber: s.rollNumber, classId: s.classId, className: s.className, sectionName: s.sectionName, academicSession: s.academicSessionName, month, dueDate, feeBreakdown: { tuitionFee, examFee, transportFee, libraryFee, computerFee, otherCharges, discount: feeStructure.defaultDiscount || 0 }, totalAmountPKR, paidAmountPKR: 0, remainingAmountPKR: totalAmountPKR, status: "PENDING" });
-      generated.push(challan);
-    }
-    return { count: generated.length, message: `Generated ${generated.length} fee challans for ${className} (${month}).` };
+  static async generateFeeChallansBatch(schoolId: string, classId: string, month: string, options: { academicSessionId?: string; sectionId?: string; studentIds?: string[] } = {}) {
+    return FinanceService.generateBulkChallans(schoolId, classId, month, options);
   }
 
   static async getFeeChallans(schoolId: string, statusFilter?: string) {
     return FinanceService.getChallans(schoolId, statusFilter);
   }
 
-  static async collectFeePayment(schoolId: string, challanId: string, paidAmount: number, paymentMethod: any, cashierName: string, requestId?: string, transactionReference?: string) {
-    return FinanceService.collectPayment(schoolId, challanId, { amountPKR: paidAmount, paymentMethod, requestId, transactionReference }, cashierName);
+  static async collectFeePayment(schoolId: string, challanId: string, paidAmount: number, paymentMethod: any, cashierName: string, requestId?: string, transactionReference?: string, paymentDate?: string) {
+    return FinanceService.collectPayment(schoolId, challanId, { amountPKR: paidAmount, paymentMethod, requestId, transactionReference, paymentDate }, cashierName);
   }
 
   static async getExpenses(schoolId: string) {

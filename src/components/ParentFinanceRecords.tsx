@@ -50,11 +50,11 @@ export default function ParentFinanceRecords({
     (a: any, f: any) => ({
       issued: a.issued + Number(f.totalAmountPKR || 0),
       paid: a.paid + Number(f.paidAmountPKR || 0),
-      remaining: a.remaining + Number(f.remainingAmountPKR || 0),
+      remaining: a.remaining + Number(f.currentPayablePKR ?? f.remainingAmountPKR ?? 0),
       overdue:
         a.overdue +
         (overdue(f.dueDate)
-          ? Number(f.remainingAmountPKR || 0)
+          ? Number(f.currentPayablePKR ?? f.remainingAmountPKR ?? 0)
           : 0),
     }),
     { issued: 0, paid: 0, remaining: 0, overdue: 0 },
@@ -130,7 +130,7 @@ export default function ParentFinanceRecords({
                     </div>
                     <div>
                       <dt>Balance due</dt>
-                      <dd>{money(f.remainingAmountPKR)}</dd>
+                      <dd>{money(f.currentPayablePKR ?? f.remainingAmountPKR)}</dd>
                     </div>
                   </dl>
                   <div className="family-breakdown">

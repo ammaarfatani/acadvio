@@ -1,4 +1,5 @@
 "use client";
+import { StudentFeeFields, emptyStudentFee } from "@/components/StudentFeeFields";
 import {TableScroll} from "@/components/TableScroll";
 
 import { useRecordRefresh } from "@/lib/use-record-refresh";
@@ -43,12 +44,16 @@ export default function StudentsPage() {
   const { user } = useAuth();
   const [students, setStudents] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [sections, setSections] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [rollLoading, setRollLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [classFilter, setClassFilter] = useState("ALL");
+  const [formCategoryId, setFormCategoryId] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [studentFee, setStudentFee] = useState(emptyStudentFee);
   const [editingStudent, setEditingStudent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -103,10 +108,60 @@ export default function StudentsPage() {
     emergencyRelation: "",
   });
 
+  function openStudentEditor(s: any) {
+                            setEditingStudent(s);
+                            setStudentFee({ ...emptyStudentFee(), feeStructureId: s.feeStructureId || "", concessionType: s.concessionType || "FIXED", concessionValue: s.concessionValue || 0, concessionReason: s.concessionReason || "" });
+                            setOptionalDetails(
+                              Object.fromEntries(
+                                OPTIONAL_STUDENT_FIELDS.map(([key]) => [
+                                  key,
+                                  s[key] || "",
+                                ]),
+                              ),
+                            );
+                            setPhotoData(undefined);
+                            setFormData({
+                              bFormNumber: s.bFormNumber || "",
+                              name: s.name || "",
+                              dob: s.dob
+                                ? new Date(s.dob).toISOString().slice(0, 10)
+                                : "",
+                              gender: s.gender || "Male",
+                              className: s.className || "",
+                              classId: s.classId,
+                              rollNumber: s.rollNumber || "",
+                              sectionId: s.sectionId || "",
+                              academicSessionId: s.academicSessionId || "",
+                              address: s.address || "",
+                              phone: s.phone || "",
+                              fatherName: s.parentInfo?.fatherName || "",
+                              fatherPhone: s.parentInfo?.fatherPhone || "",
+                              fatherCnic: s.parentInfo?.fatherCnic || "",
+                              fatherOccupation:
+                                s.parentInfo?.fatherOccupation || "",
+                              guardianEmail: s.parentInfo?.guardianEmail || "",
+                              motherName: s.parentInfo?.motherName || "",
+                              motherPhone: s.parentInfo?.motherPhone || "",
+                              parentPassword: "",
+                              emergencyName: s.emergencyContact?.name || "",
+                              emergencyPhone: s.emergencyContact?.phone || "",
+                              emergencyRelation:
+                                s.emergencyContact?.relation || "",
+                            });
+                            if (s.classId)
+                              schoolAdminApi
+                                .getSections(s.classId)
+                                .then((res: any) =>
+                                  setSections(res?.data || []),
+                                );
+                            setAdmissionError("");
+                            setModalOpen(true);
+  }
+
   const fetchStudents = async () => {
     setLoading(true);
     try {
-      const [resStudents, resClasses, resSessions] = await Promise.all([
+      const [resStudents, resClasses, resSessions, resCategories] = await Promise.all([
         schoolAdminApi.getStudents(
           classFilter !== "ALL" ? classFilter : undefined,
           search,
@@ -114,9 +169,11 @@ export default function StudentsPage() {
         ),
         schoolAdminApi.getClasses(),
         schoolAdminApi.getAcademicSessions(),
+        schoolAdminApi.getClassCategories(),
       ]);
       if (resStudents?.data) setStudents(resStudents.data);
       if (resClasses?.data) setClasses(resClasses.data);
+      if (resCategories?.data) setCategories(resCategories.data);
       if (resSessions?.data) {
         setSessions(resSessions.data);
         if (!formData.academicSessionId)
@@ -142,6 +199,7 @@ export default function StudentsPage() {
   }, [classFilter, search, statusFilter]);
 
   useEffect(() => {
+    if (editingStudent) return;
     if (!modalOpen || !formData.classId) {
       setFormData((current) => ({ ...current, rollNumber: "" }));
       return;
@@ -187,6 +245,7 @@ export default function StudentsPage() {
     setSavingAdmission(true);
     try {
       const payload = {
+        ...(studentFee.feeStructureId && (!editingStudent || user?.permissions?.includes("fees.update")) ? studentFee : {}),
         ...optionalDetails,
         bFormNumber: formData.bFormNumber,
         ...(photoData !== undefined ? { photoData } : {}),
@@ -225,6 +284,7 @@ export default function StudentsPage() {
         },
       };
 
+      if (editingStudent && studentFee.feeStructureId && ["feeStructureId", "concessionType", "concessionValue", "concessionReason"].some(key => String((studentFee as any)[key]) !== String(editingStudent[key] ?? "")) && !(await confirmAction("Save this effective-dated fee assignment? Previously issued challans will remain unchanged.", { title: "Confirm fee change", confirmLabel: "Save" }))) return;
       if (editingStudent)
         await schoolAdminApi.updateStudent(editingStudent._id, payload);
       else {
@@ -296,12 +356,23 @@ export default function StudentsPage() {
     }
   };
 
-  const filteredStudents = students.filter(
-    (s) =>
+  const filteredStudents = students.filter((s) => {
+    const matchesSearch =
       s.name.toLowerCase().includes(search.toLowerCase()) ||
       s.rollNumber.toLowerCase().includes(search.toLowerCase()) ||
-      s.admissionNumber.toLowerCase().includes(search.toLowerCase()),
-  );
+      s.admissionNumber.toLowerCase().includes(search.toLowerCase());
+    if (!matchesSearch) return false;
+
+    if (categoryFilter !== "ALL") {
+      const cls = classes.find((c) => c._id === s.classId);
+      const catId = typeof cls?.classCategoryId === "object" ? cls?.classCategoryId?._id : cls?.classCategoryId;
+      const targetCategory = categories.find((c) => c._id === categoryFilter);
+      if (catId !== categoryFilter && s.classCategoryName !== targetCategory?.name) {
+        return false;
+      }
+    }
+    return true;
+  });
 
   return (
     <div className="space-y-6 pb-12">
@@ -331,6 +402,7 @@ export default function StudentsPage() {
             <button
               onClick={() => {
                 setEditingStudent(null);
+                setStudentFee(emptyStudentFee());
                 setOptionalDetails({});
                 setPhotoData(undefined);
                 setFormData({
@@ -403,7 +475,26 @@ export default function StudentsPage() {
 
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <span className="text-xs text-zinc-500 font-semibold shrink-0">
-            Class Filter:
+            Category:
+          </span>
+          <select
+            value={categoryFilter}
+            onChange={(e) => {
+              setCategoryFilter(e.target.value);
+              setClassFilter("ALL");
+            }}
+            className="px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-semibold text-zinc-800"
+          >
+            <option value="ALL">All Categories</option>
+            {categories.map((cat) => (
+              <option key={cat._id} value={cat._id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+
+          <span className="text-xs text-zinc-500 font-semibold shrink-0">
+            Class:
           </span>
           <select
             value={classFilter}
@@ -411,11 +502,17 @@ export default function StudentsPage() {
             className="px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-semibold text-zinc-800"
           >
             <option value="ALL">All Classes</option>
-            {classes.map((c) => (
-              <option key={c._id} value={c._id}>
-                {c.name}
-              </option>
-            ))}
+            {classes
+              .filter((c) => {
+                if (categoryFilter === "ALL") return true;
+                const catId = typeof c.classCategoryId === "object" ? c.classCategoryId?._id : c.classCategoryId;
+                return catId === categoryFilter;
+              })
+              .map((c) => (
+                <option key={c._id} value={c._id}>
+                  {c.name}
+                </option>
+              ))}
           </select>
           <select
             value={statusFilter}
@@ -489,11 +586,18 @@ export default function StudentsPage() {
                     </td>
                     <td className="p-3.5 font-mono">{s.bFormNumber || "—"}</td>
                     <td className="p-3.5">
-                      <span className="font-semibold text-zinc-900">
-                        {s.className}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-semibold text-zinc-900">
+                          {s.className}
+                        </span>
+                        {(s.classCategoryName || classes.find((c) => c._id === s.classId)?.classCategoryName) && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-50 text-red-700 border border-red-200">
+                            {s.classCategoryName || classes.find((c) => c._id === s.classId)?.classCategoryName}
+                          </span>
+                        )}
+                      </div>
                       <span className="text-[10px] font-mono text-zinc-500 block">
-                        Roll: {s.rollNumber}
+                        Roll: {s.rollNumber} {s.sectionName ? `· ${s.sectionName}` : ""}
                       </span>
                     </td>
                     <td className="p-3.5 text-zinc-700">
@@ -523,52 +627,7 @@ export default function StudentsPage() {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => {
-                            setEditingStudent(s);
-                            setOptionalDetails(
-                              Object.fromEntries(
-                                OPTIONAL_STUDENT_FIELDS.map(([key]) => [
-                                  key,
-                                  s[key] || "",
-                                ]),
-                              ),
-                            );
-                            setPhotoData(undefined);
-                            setFormData({
-                              bFormNumber: s.bFormNumber || "",
-                              name: s.name || "",
-                              dob: s.dob
-                                ? new Date(s.dob).toISOString().slice(0, 10)
-                                : "",
-                              gender: s.gender || "Male",
-                              className: s.className || "",
-                              classId: s.classId,
-                              rollNumber: s.rollNumber || "",
-                              sectionId: s.sectionId || "",
-                              academicSessionId: s.academicSessionId || "",
-                              address: s.address || "",
-                              phone: s.phone || "",
-                              fatherName: s.parentInfo?.fatherName || "",
-                              fatherPhone: s.parentInfo?.fatherPhone || "",
-                              fatherCnic: s.parentInfo?.fatherCnic || "",
-                              fatherOccupation:
-                                s.parentInfo?.fatherOccupation || "",
-                              guardianEmail: s.parentInfo?.guardianEmail || "",
-                              motherName: s.parentInfo?.motherName || "",
-                              motherPhone: s.parentInfo?.motherPhone || "",
-                              parentPassword: "",
-                              emergencyName: s.emergencyContact?.name || "",
-                              emergencyPhone: s.emergencyContact?.phone || "",
-                              emergencyRelation:
-                                s.emergencyContact?.relation || "",
-                            });
-                            if (s.classId)
-                              schoolAdminApi
-                                .getSections(s.classId)
-                                .then((res: any) =>
-                                  setSections(res?.data || []),
-                                );
-                            setAdmissionError("");
-                            setModalOpen(true);
+                            openStudentEditor(s);
                           }}
                           className="p-1.5 text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100 rounded-lg"
                           title="Edit student"
@@ -691,6 +750,47 @@ export default function StudentsPage() {
                     </div>
                     <div>
                       <label className="block text-[11px] font-semibold text-zinc-700 mb-1">
+                        Class Category
+                      </label>
+                      <select
+                        value={formCategoryId}
+                        onChange={(e) => {
+                          const catId = e.target.value;
+                          setFormCategoryId(catId);
+                          if (catId) {
+                            const availableClasses = classes.filter(
+                              (c) =>
+                                (typeof c.classCategoryId === "object"
+                                  ? c.classCategoryId?._id
+                                  : c.classCategoryId) === catId,
+                            );
+                            if (
+                              !availableClasses.some(
+                                (c) => c._id === formData.classId,
+                              )
+                            ) {
+                              setFormData({
+                                ...formData,
+                                classId: "",
+                                className: "",
+                                sectionId: "",
+                              });
+                              setSections([]);
+                            }
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-semibold text-zinc-900"
+                      >
+                        <option value="">All Categories</option>
+                        {categories.map((cat) => (
+                          <option key={cat._id} value={cat._id}>
+                            {cat.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-zinc-700 mb-1">
                         Class / Grade Allocation *
                       </label>
                       <select
@@ -700,6 +800,10 @@ export default function StudentsPage() {
                           const selected = classes.find(
                             (c) => c._id === e.target.value,
                           );
+                          const matchedCatId = typeof selected?.classCategoryId === "object" ? selected?.classCategoryId?._id : selected?.classCategoryId;
+                          if (matchedCatId && !formCategoryId) {
+                            setFormCategoryId(matchedCatId);
+                          }
                           setFormData({
                             ...formData,
                             classId: e.target.value,
@@ -720,11 +824,17 @@ export default function StudentsPage() {
                         className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold text-zinc-900"
                       >
                         <option value="">Select a class</option>
-                        {classes.map((c) => (
-                          <option key={c._id} value={c._id}>
-                            {c.name}
-                          </option>
-                        ))}
+                        {classes
+                          .filter((c) => {
+                            if (!formCategoryId) return true;
+                            const catId = typeof c.classCategoryId === "object" ? c.classCategoryId?._id : c.classCategoryId;
+                            return catId === formCategoryId;
+                          })
+                          .map((c) => (
+                            <option key={c._id} value={c._id}>
+                              {c.name} {c.classCategoryName ? `(${c.classCategoryName})` : ""}
+                            </option>
+                          ))}
                       </select>
                     </div>
                     <div>
@@ -792,6 +902,8 @@ export default function StudentsPage() {
                     </div>
                   </div>
                 </div>
+
+                {(!editingStudent || user?.permissions?.includes("fees.update")) && <StudentFeeFields value={studentFee} onChange={setStudentFee} classId={formData.classId} sectionId={formData.sectionId} sessionName={sessions.find(s => s._id === formData.academicSessionId)?.name} studentId={editingStudent?._id} />}
 
                 <div className="space-y-3 pt-2">
                   <h4 className="text-xs font-bold text-school-primary uppercase tracking-wider">
@@ -1031,6 +1143,7 @@ export default function StudentsPage() {
       <Presence show={Boolean(viewStudent)} kind="modal">
         {viewStudent && (
           <StudentHistoryModal
+            onEdit={user?.permissions?.includes("students.update") ? () => { openStudentEditor(viewStudent); setViewStudent(null); } : undefined}
             studentId={viewStudent._id}
             isOpen={!!viewStudent}
             onClose={() => setViewStudent(null)}

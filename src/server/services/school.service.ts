@@ -23,8 +23,12 @@ export class SchoolService {
 
   static async updateSchoolBranding(schoolId: string, data: {
     name?: string;
+    email?: string;
     phone?: string;
+    alternativePhone?: string;
     address?: string;
+    city?: string;
+    website?: string;
     logoUrl?: string;
     domain?: string;
     currency?: string;
@@ -38,6 +42,7 @@ export class SchoolService {
       instructions?: string;
       enabled?: boolean;
     };
+    feePolicy?: any;
   }) {
     const scope = branchContext.getStore();
     const current = await School.findById(schoolId);

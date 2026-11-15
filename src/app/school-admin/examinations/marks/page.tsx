@@ -13,7 +13,9 @@ import {
   Sparkles,
   Filter,
   FileText,
+  FileSpreadsheet,
 } from "lucide-react";
+import { BulkImportModal } from "@/components/BulkImportModal";
 import { schoolAdminApi } from "@/lib/schoolAdminApi";
 
 interface StudentMark {
@@ -28,12 +30,15 @@ interface StudentMark {
 }
 
 export default function MarksEntryPage() {
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [exams, setExams] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [sections, setSections] = useState<any[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
 
   const [selectedExam, setSelectedExam] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [selectedSection, setSelectedSection] = useState<string>("");
   const [selectedSubject, setSelectedSubject] = useState<string>("");
@@ -54,16 +59,19 @@ export default function MarksEntryPage() {
       setLoadingInitial(true);
       setError("");
       try {
-        const [examRes, classRes] = await Promise.all([
+        const [examRes, classRes, catRes] = await Promise.all([
           schoolAdminApi.getExamSchedules(),
           schoolAdminApi.getClasses(),
+          schoolAdminApi.getClassCategories(),
         ]);
 
         const examList = examRes?.data || [];
         const classList = classRes?.data || [];
+        const catList = catRes?.data || [];
 
         setExams(examList);
         setClasses(classList);
+        setCategories(catList);
 
         if (examList.length > 0) {
           setSelectedExam(examList[0]._id);
@@ -232,6 +240,13 @@ export default function MarksEntryPage() {
 
   return (
     <div className="space-y-6 pb-12">
+      {bulkOpen && (
+        <BulkImportModal
+          entity="marksEntries"
+          onClose={() => setBulkOpen(false)}
+          onImported={() => {}}
+        />
+      )}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200 pb-4">
         <div>
@@ -246,6 +261,14 @@ export default function MarksEntryPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setBulkOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold bg-white border border-zinc-300 text-zinc-800 rounded-lg shadow-sm hover:bg-zinc-50 transition-colors"
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+            Bulk Upload Marks
+          </button>
           <button
             onClick={handleAutoFillPassing}
             disabled={students.length === 0}
@@ -287,7 +310,7 @@ export default function MarksEntryPage() {
       )}
 
       {/* Filter Bar */}
-      <div className="bg-white border border-zinc-200 p-4 rounded-xl shadow-xs grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <div className="bg-white border border-zinc-200 p-4 rounded-xl shadow-xs grid grid-cols-1 sm:grid-cols-5 gap-4">
         <div>
           <label className="block text-[11px] font-bold text-zinc-600 uppercase tracking-wider mb-1">
             Exam Term *
@@ -311,20 +334,62 @@ export default function MarksEntryPage() {
 
         <div>
           <label className="block text-[11px] font-bold text-zinc-600 uppercase tracking-wider mb-1">
+            Class Category
+          </label>
+          <select
+            value={selectedCategory}
+            onChange={(e) => {
+              const catId = e.target.value;
+              setSelectedCategory(catId);
+              if (catId) {
+                const avail = classes.filter((c) => (typeof c.classCategoryId === "object" ? c.classCategoryId?._id : c.classCategoryId) === catId);
+                if (!avail.some((c) => c._id === selectedClass) && avail.length > 0) {
+                  setSelectedClass(avail[0]._id);
+                }
+              }
+            }}
+            disabled={loadingInitial || categories.length === 0}
+            className="w-full text-xs font-semibold border border-zinc-300 rounded-lg p-2.5 bg-zinc-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 disabled:opacity-60"
+          >
+            <option value="">All Categories</option>
+            {categories.map((cat) => (
+              <option key={cat._id} value={cat._id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-[11px] font-bold text-zinc-600 uppercase tracking-wider mb-1">
             Class *
           </label>
           <select
             value={selectedClass}
-            onChange={(e) => setSelectedClass(e.target.value)}
+            onChange={(e) => {
+              const clsId = e.target.value;
+              setSelectedClass(clsId);
+              const matched = classes.find((c) => c._id === clsId);
+              const matchedCat = typeof matched?.classCategoryId === "object" ? matched?.classCategoryId?._id : matched?.classCategoryId;
+              if (matchedCat && !selectedCategory) {
+                setSelectedCategory(matchedCat);
+              }
+            }}
             disabled={loadingInitial || classes.length === 0}
             className="w-full text-xs font-semibold border border-zinc-300 rounded-lg p-2.5 bg-zinc-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 disabled:opacity-60"
           >
             {classes.length === 0 && <option value="">No classes found</option>}
-            {classes.map((cls) => (
-              <option key={cls._id} value={cls._id}>
-                {cls.name}
-              </option>
-            ))}
+            {classes
+              .filter((cls) => {
+                if (!selectedCategory) return true;
+                const catId = typeof cls.classCategoryId === "object" ? cls.classCategoryId?._id : cls.classCategoryId;
+                return catId === selectedCategory;
+              })
+              .map((cls) => (
+                <option key={cls._id} value={cls._id}>
+                  {cls.name} {cls.classCategoryName ? `(${cls.classCategoryName})` : ""}
+                </option>
+              ))}
           </select>
         </div>
 

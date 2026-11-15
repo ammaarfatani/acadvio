@@ -42,6 +42,19 @@ export interface ISchool extends Document {
     instructions?: string;
     enabled?: boolean;
   };
+  feePolicy?: {
+    earlyDiscountEnabled?: boolean;
+    earlyDiscountAmount?: number;
+    earlyDiscountType?: "FIXED" | "PERCENTAGE";
+    earlyDiscountDaysBeforeDue?: number;
+    lateFineModel?: "ONE_TIME" | "STAGES" | "RECURRING" | "DISABLED";
+    lateFineAmount?: number;
+    lateFineGraceDays?: number;
+    lateFineCap?: number;
+    lateFineStages?: Array<{ afterDays: number; fineAmount: number }>;
+    lateFineDailyRate?: number;
+    unpaidBalancesCarryForward?: boolean;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -94,6 +107,19 @@ const SchoolSchema = new Schema<ISchool>(
       accountNumber: { type: String },
       iban: { type: String },
       branch: String, instructions: String, enabled: { type: Boolean, default: false },
+    },
+    feePolicy: {
+      earlyDiscountEnabled: { type: Boolean, default: false },
+      earlyDiscountAmount: { type: Number, default: 0 },
+      earlyDiscountType: { type: String, enum: ["FIXED", "PERCENTAGE"], default: "FIXED" },
+      earlyDiscountDaysBeforeDue: { type: Number, default: 0 },
+      lateFineModel: { type: String, enum: ["ONE_TIME", "STAGES", "RECURRING", "DISABLED"], default: "DISABLED" },
+      lateFineAmount: { type: Number, default: 0 },
+      lateFineGraceDays: { type: Number, default: 0 },
+      lateFineCap: { type: Number, default: 0 },
+      lateFineStages: [{ afterDays: Number, fineAmount: Number }],
+      lateFineDailyRate: { type: Number, default: 0 },
+      unpaidBalancesCarryForward: { type: Boolean, default: true },
     },
   },
   { timestamps: true }

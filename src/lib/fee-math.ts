@@ -23,6 +23,35 @@ export function feeMonth(value: string) {
   }
   throw Error("Choose a valid fee month.");
 }
+export function feeMonthFromRecord(value: unknown, dueDate?: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const raw = value.trim();
+  if (/^\d{4}-(0[1-9]|1[0-2])$/.test(raw)) return raw;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const date = new Date(`${raw}T00:00:00.000Z`);
+    if (Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === raw) return raw.slice(0, 7);
+    return undefined;
+  }
+  try { return feeMonth(raw); } catch { /* Normalize only known legacy values below. */ }
+  const monthNames = months.map((name) => name.toLowerCase());
+  const monthIndex = monthNames.findIndex((name) => name === raw.toLowerCase() || name.slice(0, 3) === raw.toLowerCase());
+  if (monthIndex < 0) return undefined;
+  let contextYear: number | undefined;
+  if (dueDate instanceof Date && Number.isFinite(dueDate.getTime())) contextYear = dueDate.getUTCFullYear();
+  else if (typeof dueDate === "string") {
+    const datePart = /^\d{4}-\d{2}-\d{2}/.exec(dueDate)?.[0];
+    if (datePart) {
+      const date = new Date(`${datePart}T00:00:00.000Z`);
+      if (Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === datePart) contextYear = date.getUTCFullYear();
+    }
+  }
+  return contextYear ? `${contextYear}-${String(monthIndex + 1).padStart(2, "0")}` : undefined;
+}
+export function feeMonthLabel(value: string) {
+  const key = feeMonth(value);
+  const [year, month] = key.split("-").map(Number);
+  return new Intl.DateTimeFormat("en", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(year, month - 1, 1)));
+}
 export function feeMonthVariants(value: string) {
   const key = feeMonth(value),
     [year, month] = key.split("-");

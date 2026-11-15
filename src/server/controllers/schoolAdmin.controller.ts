@@ -55,14 +55,108 @@ export class SchoolAdminController {
     try {
       const schoolId = req.user?.schoolId;
       if (!schoolId) throw { statusCode: 400, message: "No school tenant context." };
-      const student = await SchoolAdminService.updateStudent(schoolId, req.params.studentId as string, req.body);
+      const student = await SchoolAdminService.updateStudent(schoolId, req.params.studentId as string, req.body, req.user);
       return sendSuccess(res, student, "Student profile updated.");
     } catch (error) {
       next(error);
     }
   }
 
-  // Classes & Sections
+  static async changeStudentFeeStructure(req: Request, res: Response, next: NextFunction) {
+    try {
+      const schoolId = req.user?.schoolId;
+      if (!schoolId) throw { statusCode: 400, message: "No school tenant context." };
+      const studentId = req.params.studentId as string;
+      const student = await SchoolAdminService.changeStudentFeeStructure(
+        schoolId,
+        studentId,
+        req.body,
+        req.user?.userId,
+        req.user?.email,
+      );
+      return sendSuccess(res, student, "Student fee structure updated successfully.");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getStudentFeeHistory(req: Request, res: Response, next: NextFunction) {
+    try {
+      const schoolId = req.user?.schoolId;
+      if (!schoolId) throw { statusCode: 400, message: "No school tenant context." };
+      const studentId = req.params.studentId as string;
+      const history = await SchoolAdminService.getStudentFeeHistory(schoolId, studentId);
+      return sendSuccess(res, history, "Student fee history retrieved.");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Class Categories, Classes & Sections
+  static async getClassCategories(req: Request, res: Response, next: NextFunction) {
+    try {
+      const schoolId = req.user?.schoolId;
+      if (!schoolId) throw { statusCode: 400, message: "No school tenant context." };
+      const categories = await SchoolAdminService.getClassCategories(schoolId, {
+        search: typeof req.query.search === "string" ? req.query.search : undefined,
+        status: typeof req.query.status === "string" ? req.query.status : undefined,
+      });
+      return sendSuccess(res, categories, "Class categories retrieved.");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async createClassCategory(req: Request, res: Response, next: NextFunction) {
+    try {
+      const schoolId = req.user?.schoolId;
+      if (!schoolId) throw { statusCode: 400, message: "No school tenant context." };
+      const category = await SchoolAdminService.createClassCategory(schoolId, req.body, req.user?.userId);
+      return sendSuccess(res, category, "Class category created.", 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updateClassCategory(req: Request, res: Response, next: NextFunction) {
+    try {
+      const schoolId = req.user?.schoolId;
+      if (!schoolId) throw { statusCode: 400, message: "No school tenant context." };
+      const categoryId = Array.isArray(req.params.categoryId) ? req.params.categoryId[0] : req.params.categoryId;
+      const category = await SchoolAdminService.updateClassCategory(schoolId, categoryId, req.body);
+      return sendSuccess(res, category, "Class category updated.");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteClassCategory(req: Request, res: Response, next: NextFunction) {
+    try {
+      const schoolId = req.user?.schoolId;
+      if (!schoolId) throw { statusCode: 400, message: "No school tenant context." };
+      const categoryId = Array.isArray(req.params.categoryId) ? req.params.categoryId[0] : req.params.categoryId;
+      const result = await SchoolAdminService.deleteClassCategory(schoolId, categoryId);
+      return sendSuccess(res, result, result.message);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async bulkAssignCategoryToClasses(req: Request, res: Response, next: NextFunction) {
+    try {
+      const schoolId = req.user?.schoolId;
+      if (!schoolId) throw { statusCode: 400, message: "No school tenant context." };
+      const result = await SchoolAdminService.bulkAssignCategoryToClasses(
+        schoolId,
+        req.body.classIds,
+        req.body.classCategoryId
+      );
+      return sendSuccess(res, result, result.message);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async getClasses(req: Request, res: Response, next: NextFunction) {
     try {
       const schoolId = req.user?.schoolId;
@@ -80,6 +174,30 @@ export class SchoolAdminController {
       if (!schoolId) throw { statusCode: 400, message: "No school tenant context." };
       const newClass = await SchoolAdminService.createClass(schoolId, req.body);
       return sendSuccess(res, newClass, "Class created.", 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updateClass(req: Request, res: Response, next: NextFunction) {
+    try {
+      const schoolId = req.user?.schoolId;
+      if (!schoolId) throw { statusCode: 400, message: "No school tenant context." };
+      const classId = Array.isArray(req.params.classId) ? req.params.classId[0] : req.params.classId;
+      const updatedClass = await SchoolAdminService.updateClass(schoolId, classId, req.body);
+      return sendSuccess(res, updatedClass, "Class updated.");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteClass(req: Request, res: Response, next: NextFunction) {
+    try {
+      const schoolId = req.user?.schoolId;
+      if (!schoolId) throw { statusCode: 400, message: "No school tenant context." };
+      const classId = Array.isArray(req.params.classId) ? req.params.classId[0] : req.params.classId;
+      const result = await SchoolAdminService.deleteClass(schoolId, classId);
+      return sendSuccess(res, result, result.message);
     } catch (error) {
       next(error);
     }
@@ -209,9 +327,8 @@ export class SchoolAdminController {
       const result = await SchoolAdminService.generateFeeChallansBatch(
         schoolId,
         req.body.classId,
-        req.body.className,
         req.body.month,
-        req.body.dueDate
+        req.body
       );
       return sendSuccess(res, result, result.message);
     } catch (error) {
@@ -243,7 +360,8 @@ export class SchoolAdminController {
         req.body.paymentMethod,
         cashierName,
         req.body.requestId,
-        req.body.transactionReference
+        req.body.transactionReference,
+        req.body.paymentDate
       );
       return sendSuccess(res, result, "Payment collected & receipt generated.");
     } catch (error) {

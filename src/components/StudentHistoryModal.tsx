@@ -11,10 +11,11 @@ interface StudentHistoryModalProps {
   studentId: string;
   isOpen: boolean;
   onClose: () => void;
+  onEdit?: () => void;
   portalType?: "admin" | "teacher";
 }
 
-export function StudentHistoryModal({ studentId, isOpen, onClose, portalType = "admin" }: StudentHistoryModalProps) {
+export function StudentHistoryModal({ studentId, isOpen, onClose, onEdit, portalType = "admin" }: StudentHistoryModalProps) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"profile" | "academic" | "exams" | "attendance">("profile");
@@ -64,7 +65,7 @@ export function StudentHistoryModal({ studentId, isOpen, onClose, portalType = "
                 </span>
               </h2>
               <p className="text-xs text-zinc-400 font-mono">
-                Student ID: {student?.studentId || "Not recorded"} | Admission No: {student?.admissionNumber || "N/A"} | Roll No: {student?.rollNumber || "N/A"} | Class: {student?.className} ({student?.sectionName || "Sec A"})
+                Student ID: {student?.studentId || "Not recorded"} | Admission No: {student?.admissionNumber || "N/A"} | Roll No: {student?.rollNumber || "N/A"} | Class: {student?.className}{student?.classCategoryName ? ` (${student.classCategoryName})` : ""} ({student?.sectionName || "Sec A"})
               </p>
             </div>
           </div>
@@ -77,6 +78,7 @@ export function StudentHistoryModal({ studentId, isOpen, onClose, portalType = "
           </button>
         </div>
 
+        {onEdit && <button onClick={onEdit} className="m-3 self-start rounded border px-4 py-2 text-sm">Edit Student</button>}
         {/* Tab Header Navigation */}
         <div className="flex border-b border-zinc-200 bg-zinc-50 px-6 gap-2 text-xs font-bold text-zinc-600 overflow-x-auto">
           <button

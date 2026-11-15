@@ -1,3 +1,4 @@
+import { FeeCalculationService } from "./feeCalculation.service";
 import {notifyFeeEvent} from "./financeReminder.service";
 import {defaultDocumentStyle} from "../../lib/document-templates";
 import {Student} from "../models/student.model";
@@ -19,7 +20,7 @@ export async function submitFee(actor:AuthenticatedUser,studentId:string,input:a
  if(!bank?.enabled||!bank.bankName?.trim()||!bank.accountTitle?.trim()||!bank.accountNumber?.trim())throw{statusCode:400,message:"Your school has not enabled bank payment submissions."};
  const challan=await FeeChallan.findOne({_id:input.challanId,schoolId:actor.schoolId,studentId,isVoided:{$ne:true}});
  if(!challan||challan.status==="VOIDED")throw{statusCode:404,message:"Payable invoice not found."};
- if(input.amountPKR>challan.remainingAmountPKR||challan.remainingAmountPKR<=0)throw{statusCode:400,message:"Payment exceeds the current outstanding balance."};
+ if(input.amountPKR>FeeCalculationService.evaluateCurrentPayable(challan).payableAmount||challan.remainingAmountPKR<=0)throw{statusCode:400,message:"Payment exceeds the current outstanding balance."};
  const image=decodePaymentImage(input.screenshot),hash=createHash("sha256").update(image.bytes).digest("hex");
  if(await FeeSubmission.exists({schoolId:actor.schoolId,challanId:challan._id,screenshotHash:hash,status:{$in:["PENDING","APPROVED"]}}))throw{statusCode:409,message:"This payment proof has already been submitted."};
  try{const saved=await FeeSubmission.create({schoolId:actor.schoolId,parentId:actor.userId,studentId,challanId:challan._id,amountPKR:input.amountPKR,reference:input.reference,paymentMethod:"Bank Transfer",idempotencyKey:input.idempotencyKey,screenshot:image.bytes,screenshotMime:image.mime,screenshotHash:hash});const publicRow=saved.toObject();delete publicRow.screenshot;return publicRow;}catch(e:any){if(e.code===11000)throw{statusCode:409,message:"A payment is already pending for this invoice. Refresh its status."};throw e;}
@@ -33,12 +34,12 @@ export async function reviewFee(actor:AuthenticatedUser,id:string,status:"APPROV
  if(status==="REJECTED"&&!reason?.trim())throw{statusCode:400,message:"Rejection reason is required."};
  if(status==="APPROVED"){
  const challan=await FeeChallan.findOne({_id:request.challanId,studentId:request.studentId,schoolId:actor.schoolId,isVoided:{$ne:true}}).session(session);
- if(!challan||challan.status==="VOIDED"||request.amountPKR>challan.remainingAmountPKR)throw{statusCode:409,message:"Invoice balance changed. Reject this request and ask for an updated payment."};
+ if(!challan||challan.status==="VOIDED"||request.amountPKR>FeeCalculationService.evaluateCurrentPayable(challan, request.createdAt).payableAmount)throw{statusCode:409,message:"Invoice balance changed. Reject this request and ask for an updated payment."};
  const receiptNumber="REC-"+new Date().getFullYear()+"-"+randomUUID().replace(/-/g,"").toUpperCase();
- challan.paidAmountPKR+=request.amountPKR;challan.remainingAmountPKR=Math.max(0,challan.totalAmountPKR-challan.paidAmountPKR);challan.status=challan.remainingAmountPKR===0?"PAID":"PARTIAL";challan.paymentMethod="Bank Transfer";challan.paidDate=new Date();challan.receiptNumber=receiptNumber;challan.collectedByUserName=actor.email;await challan.save({session});
+ FeeCalculationService.applyPayment(challan, request.amountPKR, request.createdAt);challan.paymentMethod="Bank Transfer";challan.paidDate=new Date();challan.receiptNumber=receiptNumber;challan.collectedByUserName=actor.email;await challan.save({session});
  const profile=await SchoolService.getSchoolProfile(actor.schoolId!);
  const studentProfile:any=await Student.findOne({_id:challan.studentId,schoolId:actor.schoolId}).select("parentInfo sectionName admissionNumber").session(session).lean();
- const documentSnapshot={documentStyle:profile.documentSettings?.templates?.["fee-receipt"]||defaultDocumentStyle("fee-receipt"),school:{name:profile.name,address:profile.address,phone:profile.phone,email:profile.email,logoUrl:profile.logoUrl,...profile.documentSettings?.branding},feeBreakdown:challan.feeBreakdown,month:challan.month,student:{name:challan.studentName,admissionNumber:challan.admissionNumber||studentProfile?.admissionNumber,rollNumber:challan.rollNumber,className:challan.className,sectionName:studentProfile?.sectionName,parentInfo:studentProfile?.parentInfo}};
+ const documentSnapshot={challan:{challanNumber:challan.challanNumber,month:challan.month,dueDate:challan.dueDate,feeBreakdown:challan.feeBreakdown,totalAmountPKR:challan.totalAmountPKR,paidAmountPKR:challan.paidAmountPKR,remainingAmountPKR:challan.remainingAmountPKR,status:challan.status},documentStyle:profile.documentSettings?.templates?.["fee-receipt"]||defaultDocumentStyle("fee-receipt"),school:{name:profile.name,address:profile.address,phone:profile.phone,email:profile.email,logoUrl:profile.logoUrl,...profile.documentSettings?.branding},feeBreakdown:challan.feeBreakdown,month:challan.month,student:{name:challan.studentName,admissionNumber:challan.admissionNumber||studentProfile?.admissionNumber,rollNumber:challan.rollNumber,className:challan.className,sectionName:studentProfile?.sectionName,parentInfo:studentProfile?.parentInfo}};
  const [payment]=await FeePayment.create([{schoolId:actor.schoolId,challanId:challan._id,studentId:challan.studentId,studentName:challan.studentName,rollNumber:challan.rollNumber,className:challan.className,amountPKR:request.amountPKR,paymentMethod:"Bank Transfer",paidAt:new Date(),receiptNumber,collectedByUserName:actor.email,documentSnapshot,balanceAfterPKR:challan.remainingAmountPKR,transactionReference:request.reference}],{session});request.paymentId=payment._id;request.receiptNumber=receiptNumber;await notifyFeeEvent(challan,"payment",payment,session);
  }
  request.status=status;request.rejectionReason=status==="REJECTED"?reason?.trim():undefined;request.reviewedBy=actor.userId;request.reviewedAt=new Date();await request.save({session});

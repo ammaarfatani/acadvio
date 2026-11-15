@@ -6,12 +6,17 @@ import { apiFetch } from "@/lib/api";
 import { financeApi } from "@/lib/financeApi";
 import { useAuth } from "@/lib/auth-context";
 import { confirmAction } from "./ConfirmationHost";
-import { FeeDocument } from "./SchoolDocuments";
 import { StudentAvatar } from "./StudentAvatar";
 import { PhotoRecordPicker } from "./PhotoRecordPicker";
-import { ClassFeeLedger } from "./ClassFeeLedger";
-import { printSchoolDocument } from "@/lib/print-school-document";
+import { BulkImportModal } from "./BulkImportModal";
+import { FileSpreadsheet } from "lucide-react";
+import { Printer, Download } from "lucide-react";
+import { ChallanDocumentPreview } from "./ChallanDocumentPreview";
+import { printChallanDocument } from "@/lib/print-challan-document";
 export default function ChallanWorkspace() {
+  const [pdfUrl, setPdfUrl] = useState("");
+  useEffect(() => () => { if (pdfUrl) URL.revokeObjectURL(pdfUrl); }, [pdfUrl]);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const { user } = useAuth();
   const [search,setSearch]=useState("");
   const [options, setOptions] = useState<any>({
@@ -27,10 +32,6 @@ export default function ChallanWorkspace() {
         .toLocaleDateString("en-CA", { timeZone: "Asia/Karachi" })
         .slice(0, 7),
     }),
-    [due, setDue] = useState(
-      new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Karachi" }),
-    ),
-    [fine, setFine] = useState(0),
     [rows, setRows] = useState<any[]>([]),
     [bills, setBills] = useState<any[]>([]),
     [checked, setChecked] = useState<string[]>([]),
@@ -40,7 +41,7 @@ export default function ChallanWorkspace() {
     [progress, setProgress] = useState(""),
     [error, setError] = useState(""),
     [notice, setNotice] = useState("");
-  const root = useRef<HTMLDivElement>(null);
+  const challanPreviewRoot = useRef<HTMLDivElement>(null);
   const visibleRows=rows.filter(s=>matchesRecordSearch([s.name,s.admissionNumber,s.studentId,s.rollNumber,s.className,s.sectionName],search));
   const canGenerate = user?.permissions?.includes("fees.update");
   useEffect(() => {
@@ -76,6 +77,7 @@ export default function ChallanWorkspace() {
     setBusy(true);
     setError("");
     setDocuments([]);
+    setPdfUrl("");
     try {
       let after = "",
         all: any[] = [],
@@ -93,6 +95,7 @@ export default function ChallanWorkspace() {
       } while (after);
       setRows(all);
       setBills(saved);
+      setDocuments([]);
       setChecked(all.map((s) => s._id));
       if (!all.length)
         setNotice("No eligible active students match these filters.");
@@ -106,6 +109,11 @@ export default function ChallanWorkspace() {
   async function generate(individual = false) {
     const ids = individual ? [student] : checked;
     if (busy || !ids.length) return;
+    const existingSelected = selectedBills(ids);
+    if (existingSelected.length === ids.length) {
+      setNotice("Challans already exist for all selected students. Existing challans and payments were preserved.");
+      return;
+    }
     if (
       !(await confirmAction(
         `Generate missing challans for ${ids.length} selected student(s)? Existing invoices and payments will be preserved.`,
@@ -116,22 +124,13 @@ export default function ChallanWorkspace() {
     setBusy(true);
     setError("");
     try {
-      for (let i = 0; i < ids.length; i += 100) {
-        setProgress(
-          `Generating ${Math.min(i + 100, ids.length)} / ${ids.length}…`,
-        );
-        await financeApi.generateBulkChallans({
-          ...form,
-          sectionId: form.sectionId || undefined,
-          studentIds: ids.slice(i, i + 100),
-          dueDate: due,
-          lateFeeFine: fine,
-        });
-      }
+      const result = await financeApi.generateBulkChallans({
+        ...form,
+        sectionId: form.sectionId || undefined,
+        studentIds: ids,
+      });
       await load();
-      setNotice(
-        "Challans saved. Printing uses these saved invoices and creates no payments.",
-      );
+      setNotice(`${result.data?.message || "Challans saved."} Printing uses saved invoices and creates no payments.`);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -143,7 +142,7 @@ export default function ChallanWorkspace() {
     ids
       .map((id) => bills.find((b) => String(b.studentId) === id))
       .filter(Boolean);
-  function prepare(individual = false) {
+  async function prepare(individual = false) {
     setError("");
     const ids = individual ? [student] : checked;
     const chosen = selectedBills(ids);
@@ -153,30 +152,51 @@ export default function ChallanWorkspace() {
       );
       return;
     }
-    setDocuments(chosen);
+    setBusy(true);
+    setPdfUrl("");
+    try {
+      challanPrintGroups(chosen);
+      const r = await financeApi.downloadBulkChallansPdf({ challanIds: chosen.map(c => c._id) });
+      setPdfUrl(URL.createObjectURL(new Blob([Uint8Array.from(atob(r.data.file), c => c.charCodeAt(0))], { type: "application/pdf" })));
+      setDocuments(chosen);
+    } catch (e: any) { setError(e.message); } finally { setBusy(false); }
   }
   async function print() {
     if (busy) return;
-    setBusy(true);
     setError("");
     try {
-      await printSchoolDocument(root.current);
+      await printChallanDocument(challanPreviewRoot.current);
     } catch (e: any) {
       setError(e.message);
-    } finally {
-      setBusy(false);
     }
   }
   return (
     <main className="space-y-5">
-      <header className="border-l-4 border-red-600 bg-[#f2f0ed] px-5 py-6 sm:px-7">
+      {bulkOpen && (
+        <BulkImportModal
+          entity="feeChallans"
+          onClose={() => setBulkOpen(false)}
+          onImported={() => {}}
+        />
+      )}
+      <header className="border-l-4 border-red-600 bg-[#f2f0ed] px-5 py-6 sm:px-7 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-red-700">
           Finance  -  Fee collection
         </p>
         <h1 className="text-3xl font-semibold tracking-tight">Fee challans</h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          Individual and class printing · Three official copies per student
-        </p>
+        <div>
+          <p className="mt-1 text-sm text-zinc-500">
+            Individual and class printing · Three official copies per student
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setBulkOpen(true)}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-300 bg-white px-3.5 py-2 text-xs font-bold text-zinc-800 shadow-sm hover:bg-zinc-50"
+        >
+          <FileSpreadsheet size={15} className="text-emerald-600" />
+          Bulk Upload Challans
+        </button>
       </header>
       {error && (
         <p
@@ -261,28 +281,9 @@ export default function ChallanWorkspace() {
                 value={student}
                 onChange={setStudent}
               />
-              <label className="grid gap-1 text-xs">
-                Due date for new invoices
-                <input
-                  type="date"
-                  value={due}
-                  onChange={(e) => setDue(e.target.value)}
-                  disabled={busy}
-                  className="min-h-11 min-w-0 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100"
-                />
-              </label>
-              <label className="grid gap-1 text-xs">
-                Fine for new invoices (PKR)
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={fine}
-                  onChange={(e) => setFine(Number(e.target.value))}
-                  disabled={busy}
-                  className="min-h-11 min-w-0 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100"
-                />
-              </label>
+              <p className="self-center text-xs text-zinc-600 sm:col-span-2 xl:col-span-3">
+                Due dates, discounts, concessions, and late fine rules are taken from each student’s assigned fee structure for the selected fee month.
+              </p>
             </div>
             <div className="flex flex-wrap gap-3">
               {canGenerate && (
@@ -378,38 +379,13 @@ export default function ChallanWorkspace() {
             <strong>
               {documents.length} students · {documents.length * 3} copies
             </strong>
-            <button
-              disabled={busy}
-              onClick={() => void print()}
-              className="rounded-lg border bg-white px-4 py-2 text-sm"
-            >
-              Print all prepared copies / Save PDF
-            </button>
+            <button disabled={busy} onClick={() => void print()} className="inline-flex items-center gap-2 rounded-lg border bg-white px-4 py-2 text-sm"><Printer size={16}/>Print Challan</button>
           </div>
-          <div className="max-h-[70vh] overflow-auto rounded-lg border bg-zinc-100 p-3">
-            <div ref={root} className="school-document-bulk">
-              {challanPrintGroups(documents).map(({ invoice: b, copies }) => (
-                <section className="challan-student-group" key={b._id}>
-                  {copies.map((copy) => (
-                    <section className="document-copy" key={copy}>
-                      <p className="document-copy-label">{copy}</p>
-                      <FeeDocument challan={b} />
-                    </section>
-                  ))}
-                </section>
-              ))}
-            </div>
-          </div>
+          {pdfUrl && <a className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm" href={pdfUrl} download="fee-challans.pdf"><Download size={16}/>Download PDF</a>}
+          <div ref={challanPreviewRoot} className="challan-print-root max-h-[75vh] overflow-auto rounded border bg-zinc-100 p-4"><ChallanDocumentPreview challans={documents}/></div>
+
         </section>
       )}
-      <details className="rounded-lg border bg-white p-4">
-        <summary className="cursor-pointer font-semibold">
-          Individual & class fee ledgers
-        </summary>
-        <div className="mt-4">
-          <ClassFeeLedger />
-        </div>
-      </details>
     </main>
   );
 }

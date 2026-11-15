@@ -1,4 +1,6 @@
 import {studentLookup} from "../services/studentLookup.service";
+import { challanTemplateSchema } from "../../lib/challan-template";
+import { ChallanPdfService } from "../services/challanPdf.service";
 import { SchoolService } from "../services/school.service";
 import { ClassModel, SectionModel } from "../models/classSection.model";
 import { AcademicSession } from "../models/academicSession.model";
@@ -124,6 +126,29 @@ router.get(
     }
   },
 );
+router.post("/challan-preview", requireExactUserType(UserType.SCHOOL_ADMIN), requirePermission("settings.update"), async (req, res, next) => {
+  try {
+    const template = challanTemplateSchema.parse(req.body);
+    const school = await SchoolService.getSchoolProfile(req.user!.schoolId!);
+    const pdf = await ChallanPdfService.generateStudentChallanPdf(req.user!.schoolId!, {
+      challanNumber: "PREVIEW-001", studentName: "Sample Student", fatherName: "Sample Guardian",
+      admissionNumber: "SAMPLE-001", rollNumber: "14", className: "Class 2", sectionName: "A",
+      academicSession: "Sample session", month: "November 2026", createdAt: "2026-11-01", dueDate: "2026-11-20",
+      feeStructureTitle: "Sample Basic Fee", totalAmountPKR: 3500, remainingAmountPKR: 3500,
+      status: "PREVIEW", feeBreakdown: { tuitionFee: 3500 }, documentSnapshot: { school },
+    }, { template });
+    return sendSuccess(res, {
+      file: pdf.toString("base64"), mime: "application/pdf", template,
+      challan: {
+        challanNumber: "PREVIEW-001", studentName: "Sample Student", fatherName: "Sample Guardian",
+        admissionNumber: "SAMPLE-001", rollNumber: "14", className: "Class 2", sectionName: "A",
+        academicSession: "Sample session", month: "2026-11", createdAt: "2026-11-01", dueDate: "2026-11-20",
+        feeStructureTitle: "Sample Basic Fee", totalAmountPKR: 3500, paidAmountPKR: 0, remainingAmountPKR: 3500,
+        status: "PREVIEW", feeBreakdown: { tuitionFee: 3500 }, documentSnapshot: { school, challanTemplate: template, bank: school.bankDetails },
+      },
+    });
+  } catch (e) { next(e); }
+});
 router.put(
   "/settings",
   requireExactUserType(UserType.SCHOOL_ADMIN),
@@ -183,6 +208,7 @@ router.put(
       const body = z
         .object({
           revision: z.number().int().nonnegative(),
+          challanTemplate: challanTemplateSchema.optional(),
           type: type.optional(),
           style: style.optional(),
           branding: branding.optional(),
@@ -207,6 +233,7 @@ router.put(
           }
         }
       const changes: any = {};
+      if (body.challanTemplate) changes["documentSettings.challanTemplate"] = body.challanTemplate;
       if (body.type && body.style)
         for (const [key, value] of Object.entries(body.style))
           if (value !== undefined)
@@ -251,7 +278,7 @@ router.put(
                   action: "DOCUMENT_STYLE_UPDATED",
                   resource: "School",
                   entityId: req.user!.schoolId,
-                  details: body.type
+                  details: body.challanTemplate ? "Updated fee challan template." : body.type
                     ? `Updated ${body.type} document settings.`
                     : "Completed document setup.",
                 },

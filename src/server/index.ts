@@ -76,7 +76,7 @@ const startServer = async () => {
       console.log(`=======================================================`);
     });
   } catch (error) {
-    console.error("Server startup failed. Check the configured database and server settings.");
+    console.error("Server startup failed:", error);
     process.exit(1);
   }
 };

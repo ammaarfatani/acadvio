@@ -75,8 +75,10 @@ router.patch("/requests/:requestId", ReceptionistController.updateRequest);
 router.get("/notifications", ReceptionistController.getNotifications);
 
 // 8. Academic Lookups
+router.get("/class-categories", ReceptionistController.getClassCategories);
 router.get("/classes", ReceptionistController.getClasses);
 router.get("/classes/:classId/sections", ReceptionistController.getSections);
 router.get("/academic-sessions", ReceptionistController.getAcademicSessions);
+router.get("/fee-structure-choices", requirePermission("admissions.manage"), ReceptionistController.getFeeStructureChoices);
 
 export default router;

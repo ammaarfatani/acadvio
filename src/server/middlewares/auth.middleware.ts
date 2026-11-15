@@ -105,8 +105,10 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       const plan = school.status === "TRIAL" ? "FREE_TRIAL" : school.plan;
       scope.plan = plan;
       Object.assign(req.user, { plan, billingPlan: school.plan, organizationId: scope.organizationId, branchId: scope.branchId, isOrganizationOwner: scope.owner });
-      const feature = routeFeature(req.originalUrl.split("?")[0]);
-      if (feature && !hasFeature(plan, feature)) return sendError(res, `Your subscription does not include ${feature.toLowerCase().replaceAll("_", " ")}.`, 403);
+      const requestPath = req.originalUrl.split("?")[0];
+      const schoolAdminCoreAdmissions = user.userType === UserType.SCHOOL_ADMIN && /^\/api\/receptionist\/(?:admissions(?:\/|$)|fee-structure-choices(?:\/|$)|class-categories(?:\/|$)|classes(?:\/|$)|academic-sessions(?:\/|$))/.test(requestPath);
+      const feature = routeFeature(requestPath);
+      if (feature && !schoolAdminCoreAdmissions && !hasFeature(plan, feature)) return sendError(res, `Your subscription does not include ${feature.toLowerCase().replaceAll("_", " ")}.`, 403);
       return branchContext.run(scope, next);
     }
     next();
