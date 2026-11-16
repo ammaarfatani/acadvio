@@ -13,6 +13,7 @@ import {
 import DataChart from "./DataChart";
 import FeeDefaultersWorkspace from "./FeeDefaultersWorkspace";
 import SchoolFeeCollectionReport from "./SchoolFeeCollectionReport";
+import FeeCollectionMatrixReport from "./FeeCollectionMatrixReport";
 import { useAuth } from "@/lib/auth-context";
 type Report = {
   key: string;
@@ -43,6 +44,7 @@ export default function SchoolReportCenter({
   const { user } = useAuth();
   const [catalogue, setCatalogue] = useState<Report[]>([]),
     [showFeeDefaulters, setShowFeeDefaulters] = useState(false),
+    [showFeeCollectionMatrix, setShowFeeCollectionMatrix] = useState(false),
     [showFeeCollection, setShowFeeCollection] = useState(false),
     [selected, setSelected] = useState<Record<string, string[]>>({}),
     [filters, setFilters] = useState<any>(() => {
@@ -731,10 +733,24 @@ export default function SchoolReportCenter({
                 </article>
               ))}
               {user?.permissions?.includes("fees.view") && (
+                <article className={`rounded-md border p-4 ${showFeeCollectionMatrix ? "border-red-300 bg-red-50/40" : "border-zinc-200"}`}>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <span className="block text-[10px] uppercase tracking-wider text-red-700">Finance / Fee Reports · Primary</span>
+                      <h3 className="mt-1 text-sm font-semibold">Fee Collection Report — Monthly Matrix</h3>
+                      <p className="mt-2 max-w-2xl text-xs leading-5 text-zinc-600">Student-wise collections by saved billing month, with receipt-date filters, category subtotals and ledger reconciliation. Detailed Collection Transactions remains available in the report catalogue above.</p>
+                    </div>
+                    <button type="button" aria-expanded={showFeeCollectionMatrix} onClick={() => setShowFeeCollectionMatrix((open) => !open)} className={`${button} border-red-700 text-red-700 hover:bg-red-50`}>
+                      {showFeeCollectionMatrix ? "Close report" : "Select report"}
+                    </button>
+                  </div>
+                </article>
+              )}
+              {user?.permissions?.includes("fees.view") && (
                 <article className={`rounded-md border p-4 ${showFeeCollection ? "border-red-300 bg-red-50/40" : "border-zinc-200"}`}>
                   <label className="flex items-start gap-3 text-sm font-semibold">
                     <input type="checkbox" checked={showFeeCollection} onChange={(e) => setShowFeeCollection(e.target.checked)} className="mt-1 accent-red-600" />
-                    <span><span className="block text-[10px] uppercase tracking-wider text-zinc-500">Finance / Fee Reports</span>Student Strength & Fee Collection Report</span>
+                    <span><span className="block text-[10px] uppercase tracking-wider text-zinc-500">Finance / Fee Reports</span>Student Strength & Fee Status</span>
                   </label>
                   <p className="mt-3 text-xs leading-5 text-zinc-500">Compact category-wise student strength, fee status, collections and outstanding balances for an academic session.</p>
                 </article>
@@ -750,6 +766,7 @@ export default function SchoolReportCenter({
                 </article>
               )}
             </div>
+            {showFeeCollectionMatrix && user?.permissions?.includes("fees.view") && <section className="mt-5 border-t pt-5"><FeeCollectionMatrixReport /></section>}
             {showFeeCollection && user?.permissions?.includes("fees.view") && <section className="mt-5 border-t pt-5"><SchoolFeeCollectionReport /></section>}
             <p className="mt-4 text-xs text-zinc-500">
               Unavailable: transport operations, inventory, historical capacity.
@@ -980,7 +997,7 @@ export default function SchoolReportCenter({
         </>
       )}
     </fieldset>
-    <style jsx global>{`@media print { body * { visibility: hidden !important; } #school-report-print-area, #school-report-print-area *, #fee-collection-print-area, #fee-collection-print-area * { visibility: visible !important; } #school-report-print-area, #fee-collection-print-area { position: absolute; inset: 0; width: 100%; padding: 12mm; color: #111; background: #fff; } #school-report-print-area section { break-inside: auto; border: 0; overflow: visible !important; } #school-report-print-area table, #fee-collection-print-area table { width: 100%; border-collapse: collapse; font-size: 9pt; } #school-report-print-area th, #school-report-print-area td, #fee-collection-print-area th, #fee-collection-print-area td { border: 1px solid #777; padding: 4px; white-space: normal; } #school-report-print-area thead, #fee-collection-print-area thead { display: table-header-group; } #school-report-print-area tr, #fee-collection-print-area tr { break-inside: avoid; } #fee-collection-print-area article { break-inside: auto; } @page { size: A4 landscape; margin: 10mm; } }`}</style>
+    <style jsx global>{`@media print { body * { visibility: hidden !important; } #school-report-print-area, #school-report-print-area *, #fee-collection-print-area, #fee-collection-print-area *, #fee-matrix-print-area, #fee-matrix-print-area * { visibility: visible !important; } #school-report-print-area, #fee-collection-print-area, #fee-matrix-print-area { position: absolute; inset: 0; width: 100%; padding: 12mm; color: #111; background: #fff; } #school-report-print-area section { break-inside: auto; border: 0; overflow: visible !important; } #school-report-print-area table, #fee-collection-print-area table { width: 100%; border-collapse: collapse; font-size: 9pt; } #school-report-print-area th, #school-report-print-area td, #fee-collection-print-area th, #fee-collection-print-area td { border: 1px solid #777; padding: 4px; white-space: normal; } #school-report-print-area thead, #fee-collection-print-area thead { display: table-header-group; } #school-report-print-area tr, #fee-collection-print-area tr { break-inside: avoid; } #fee-collection-print-area article { break-inside: auto; } @page { size: A4 landscape; margin: 10mm; } }`}</style>
     </>
   );
 }

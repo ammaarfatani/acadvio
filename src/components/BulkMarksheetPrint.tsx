@@ -3,19 +3,34 @@ import { useEffect, useRef, useState } from "react";
 import { apiFetch, privateFile } from "@/lib/api";
 import { printSchoolDocument } from "@/lib/print-school-document";
 import AnnualMarksheet from "./AnnualMarksheet";
+import { MarksheetPdfPreview } from "./MarksheetPrintOptions";
+import type { MarksheetPrintSettings } from "@/lib/marksheet-print-settings";
 export function BulkMarksheetPrint({
   session,
   classId,
   section,
   exam,
   view,
+  format,
+  paper,
+  orientation,
+  customPaper,
+  pageWidth,
+  pageHeight,
 }: {
   session: string;
   classId: string;
   section: string;
   exam: string;
   view: string;
+  format: MarksheetPrintSettings["format"];
+  paper: MarksheetPrintSettings["paper"];
+  orientation: "portrait" | "landscape";
+  customPaper: boolean;
+  pageWidth: number;
+  pageHeight: number;
 }) {
+  const builtIn = format === "default";
   const [documents, setDocuments] = useState<any[]>([]),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -163,7 +178,7 @@ export function BulkMarksheetPrint({
         >
           Prepare class marksheets
         </button>
-        {!!documents.length && (
+        {builtIn && !!documents.length && (
           <button
             disabled={busy}
             onClick={() => void print()}
@@ -172,7 +187,7 @@ export function BulkMarksheetPrint({
             Print preview ({documents.length})
           </button>
         )}
-        {!!documents.length && (
+        {builtIn && !!documents.length && (
           <button
             disabled={busy}
             onClick={() => void download()}
@@ -182,7 +197,11 @@ export function BulkMarksheetPrint({
           </button>
         )}
       </div>
-      {!!documents.length && (
+      {!builtIn && !!documents.length && <MarksheetPdfPreview endpoint="/exams/marksheets/preprinted-pdf" paper={paper} orientation={orientation} customPaper={customPaper} pageWidth={pageWidth} pageHeight={pageHeight}
+        payload={JSON.stringify({ studentIds: documents.map(d => d.student._id), query: {
+          academicSessionId: session, classId, view, ...(exam ? { examId: exam } : {}),
+        } })} />}
+      {builtIn && !!documents.length && (
         <div className="max-h-[65vh] overflow-auto border bg-zinc-100 p-2">
           <div ref={root} className="school-document-bulk">
             {documents.map((d) => (

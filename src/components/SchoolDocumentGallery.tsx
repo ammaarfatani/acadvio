@@ -172,7 +172,11 @@ export default function SchoolDocumentGallery() {
         <Link href={certificatesHref} className="group rounded-lg border border-zinc-200 bg-white p-4 transition hover:border-red-300 hover:shadow-sm"><span className="text-xs font-semibold uppercase tracking-wide text-red-700">Student records</span><strong className="mt-1 block text-base text-zinc-900">School certificates</strong><span className="mt-1 block text-sm text-zinc-600">Issue, review and print student certificates and awards.</span><span className="mt-3 inline-block text-sm font-semibold text-red-700">Open school certificates →</span></Link>
         <Link href={portalRoot+"/staff-certificates"} className="group rounded-lg border border-zinc-200 bg-white p-4 transition hover:border-red-300 hover:shadow-sm"><span className="text-xs font-semibold uppercase tracking-wide text-red-700">Staff records</span><strong className="mt-1 block text-base text-zinc-900">Staff certificates</strong><span className="mt-1 block text-sm text-zinc-600">Manage approved templates, employment certificates and issue history.</span><span className="mt-3 inline-block text-sm font-semibold text-red-700">Open staff certificates →</span></Link>
       </section>}
-      <details className="rounded-lg border bg-zinc-50 px-4 py-3 text-sm text-zinc-600"><summary className="cursor-pointer font-semibold">Which document workflow should I use?</summary><p className="mt-3 leading-6">Use Individual for one student&apos;s form, Class / bulk for a complete class, and Archive for saved copies. Official certificates are issued in Examinations; marksheets and fee receipts stay in their own modules.</p>{isAdmin&&<div className="mt-3 flex flex-wrap gap-4 font-semibold text-school-primary"><Link href={certificatesHref}>Certificates</Link><Link href={marksheetsHref}>Marksheets</Link><Link href={portalRoot+"/id-cards"}>ID cards</Link></div>}</details>
+      <div className="flex flex-wrap gap-4 text-sm font-semibold text-school-primary">
+        {(isAdmin || role === "EXAM_STAFF") && user?.permissions?.includes("results.view") &&
+          <Link href={marksheetsHref}>Open marksheets and class printing</Link>}
+        {isAdmin && <><Link href={certificatesHref}>Certificates</Link><Link href={portalRoot + "/id-cards"}>ID cards</Link></>}
+      </div>
       {error && (
         <p
           role="alert"

@@ -5,6 +5,8 @@ import rateLimit from "express-rate-limit";
 import { date } from "../validators/workforce.validator";
 import { User } from "../models/user.model";
 import { annualMarksheet } from "../services/marksheet.service";
+import { readMarksheetPrintSettings } from "../services/marksheetPrintSettings.service";
+import { preprintedMarksheetPdf } from "../services/preprintedMarksheetPdf.service";
 import { AssessmentPolicy } from "../models/assessmentPolicy.model";
 import { ExamSchedule } from "../models/exam.model";
 import { AcademicSession } from "../models/academicSession.model";
@@ -353,6 +355,33 @@ const sheetQuery = z
       .optional(),
   })
   .strict();
+router.get("/marksheets/print-settings", requireUserType(...allowedRoles), requirePermission("results.view"), async (req, res, next) => {
+  try {
+    res.set("Cache-Control", "private, no-store");
+    return sendSuccess(res, await readMarksheetPrintSettings(req.user!));
+  } catch (error) { next(error); }
+});
+router.post("/marksheets/preprinted-pdf", requireUserType(...allowedRoles), requirePermission("results.view"), async (req, res, next) => {
+  try {
+    const user = req.user!;
+    if (!user.branchId) throw { statusCode: 400, message: "Select a branch before printing." };
+    const { studentIds, query } = z.object({
+      studentIds: z.array(objectId).min(1).max(500).refine(ids => new Set(ids).size === ids.length),
+      query: sheetQuery.extend({ view: z.enum(["EXAM", "ANNUAL"]) }),
+    }).strict().parse(req.body);
+    if (query.view === "EXAM" && !query.examId) throw { statusCode: 400, message: "Select an examination." };
+    const settings = await readMarksheetPrintSettings(user);
+    const sheets = [];
+    for (const id of studentIds) {
+      const sheet = await annualMarksheet(user.schoolId!, id, true, { ...query, stationery: true });
+      if (!sheet.stationeryDetails?.publishedCount)
+        throw { statusCode: 422, message: "Every selected student needs a published result for this examination or annual assessment." };
+      sheets.push(sheet);
+    }
+    res.set("Cache-Control", "private, no-store");
+    return res.type("application/pdf").send(await preprintedMarksheetPdf(settings, sheets));
+  } catch (error) { next(error); }
+});
 router.get(
   "/marksheet-candidates",
   requireUserType(...allowedRoles),

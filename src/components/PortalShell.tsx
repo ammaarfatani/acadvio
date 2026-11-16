@@ -179,13 +179,23 @@ export default function PortalShell({
   useEffect(() => {
     if (!user?.id || billingOnly || (role === "PARENT" && !parentChild)) return;
     let live = true;
-    apiFetch(notificationEndpoint)
-      .then((response) => {
-        if (live) setNotifications(response.data);
-      })
-      .catch(() => {});
+    const refresh = () => {
+      if (document.visibilityState !== "visible") return;
+      apiFetch(notificationEndpoint)
+        .then((response) => {
+          if (live) setNotifications(response.data);
+        })
+        .catch(() => {});
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 60_000);
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
     return () => {
       live = false;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
     };
   }, [user?.id, billingOnly, notificationEndpoint, parentChild, role]);
   async function openNotifications() {

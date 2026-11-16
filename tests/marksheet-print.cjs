@@ -50,7 +50,7 @@ const fixture = (id, count = 8) => ({
   })),
 });
 (async () => {
-  const out = "artifacts/print-regression";
+  const out = process.env.MARKSHEET_TEST_OUTPUT || "artifacts/print-regression";
   fs.mkdirSync(out, { recursive: true });
   const single = await marksheetPdf(fixture(1));
   assert.equal(single.subarray(0, 5).toString(), "%PDF-");

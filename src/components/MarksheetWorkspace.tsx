@@ -5,6 +5,8 @@ import { PhotoRecordPicker } from "./PhotoRecordPicker";
 import { useEffect, useState, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
 import AnnualMarksheet from "./AnnualMarksheet";
+import { MarksheetPdfPreview } from "./MarksheetPrintOptions";
+import { defaultMarksheetPrintSettings } from "@/lib/marksheet-print-settings";
 import { useAuth } from "@/lib/auth-context";
 const input =
   "mt-2 min-h-11 w-full min-w-0 rounded-md border border-zinc-300 bg-white p-3 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100";
@@ -31,6 +33,16 @@ export default function MarksheetWorkspace() {
     [absence, setAbsence] = useState("ZERO_FAIL"),
     [components, setComponents] = useState<Record<string, number>>({});
   const canManage = user?.permissions?.includes("exams.manage");
+  const [printSettings, setPrintSettings] = useState(defaultMarksheetPrintSettings);
+  useEffect(() => {
+    let active = true;
+    setPrintSettings(defaultMarksheetPrintSettings);
+    setSheet(null);
+    apiFetch("/exams/marksheets/print-settings").then(({ data }) => {
+      if (active) setPrintSettings(data);
+    }).catch(error => { if (active) setError(error.message); });
+    return () => { active = false; };
+  }, [user?.branchId]);
   useEffect(() => {
     let live = true;
     Promise.all([
@@ -128,9 +140,12 @@ export default function MarksheetWorkspace() {
     };
   }, [classId, session, section, search]);
   useEffect(() => {
-    setExam(scopedExams[0]?._id || "");
+    const preferred = printSettings.format === "preprinted" ? scopedExams.find(e => e._id === printSettings.exam) : undefined;
+    setExam(preferred?._id || scopedExams[0]?._id || "");
+    if (printSettings.format === "preprinted" && printSettings.exam === "annual") setView("ANNUAL");
+    else if (preferred) setView("EXAM");
     setSheet(null);
-  }, [scopedExams]); // Exam lists are reset when their owning context changes.
+  }, [scopedExams, printSettings]);
   const generate = async () => {
     setBusy(true);
     setError("");
@@ -441,8 +456,20 @@ export default function MarksheetWorkspace() {
         section={section}
         exam={exam}
         view={view}
+        format={printSettings.format}
+        paper={printSettings.paper}
+        orientation={printSettings.orientation}
+        customPaper={printSettings.customPaper}
+        pageWidth={printSettings.pageWidth}
+        pageHeight={printSettings.pageHeight}
       />}
-      {sheet && (
+      {workflow === "generate" && sheet && printSettings.format === "preprinted" && <MarksheetPdfPreview auto
+        endpoint="/exams/marksheets/preprinted-pdf" paper={printSettings.paper}
+        orientation={printSettings.orientation} customPaper={printSettings.customPaper}
+        pageWidth={printSettings.pageWidth} pageHeight={printSettings.pageHeight}
+        payload={JSON.stringify({ studentIds: [sheet.student._id], query: { academicSessionId: session, classId, view, ...(exam ? { examId: exam } : {}) } })}
+      />}
+      {sheet && printSettings.format === "default" && (
         <AnnualMarksheet data={sheet} inline onClose={() => setSheet(null)} />
       )}
     </div>

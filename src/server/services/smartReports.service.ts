@@ -396,7 +396,7 @@ export const reportDefinitions: Record<string, Definition> = {
     note: "Real workforce attendance only. Biometric simulator punches are in a separate collection and are excluded. Legacy teacher registers are not merged into this report.",
   },
   collections: {
-    title: "Fee collections",
+    title: "Detailed Collection Transactions",
     category: "Finance",
     permission: "fees.view",
     model: FeePayment,

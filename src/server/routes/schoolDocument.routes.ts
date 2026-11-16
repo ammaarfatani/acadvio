@@ -1,5 +1,9 @@
 import {studentLookup} from "../services/studentLookup.service";
 import { challanTemplateSchema } from "../../lib/challan-template";
+import { marksheetPrintSettingsSchema } from "../../lib/marksheet-print-settings";
+import { readMarksheetPrintSettings } from "../services/marksheetPrintSettings.service";
+import { preprintedMarksheetPdf, sampleMarksheet } from "../services/preprintedMarksheetPdf.service";
+import { Branch } from "../models/branch.model";
 import { ChallanPdfService } from "../services/challanPdf.service";
 import { SchoolService } from "../services/school.service";
 import { ClassModel, SectionModel } from "../models/classSection.model";
@@ -36,6 +40,43 @@ import { DOCUMENT_TYPES } from "../../lib/document-templates";
 import { sendSuccess } from "../utils/response.util";
 const router = Router();
 router.use(authenticate, enforceSchoolTenant);
+const marksheetAdmin = requireExactUserType(UserType.SCHOOL_ADMIN);
+router.get("/marksheet-settings", marksheetAdmin, requirePermission("settings.view"), async (req, res, next) => {
+  try {
+    const user = req.user!;
+    res.set("Cache-Control", "private, no-store");
+    const exams = user.branchId ? await ExamSchedule.find({ schoolId: user.schoolId })
+      .sort({ startDate: -1 }).select("title term academicSessionId").lean() : [];
+    return sendSuccess(res, { settings: await readMarksheetPrintSettings(user), exams, canSave: !!user.branchId });
+  } catch (error) { next(error); }
+});
+router.put("/marksheet-settings", marksheetAdmin, requirePermission("settings.update"), async (req, res, next) => {
+  try {
+    const user = req.user!;
+    if (!user.branchId) throw { statusCode: 400, message: "Select a branch before saving." };
+    const settings = marksheetPrintSettingsSchema.parse(req.body);
+    if (!["selected", "annual"].includes(settings.exam) &&
+        !await ExamSchedule.exists({ _id: settings.exam, schoolId: user.schoolId }))
+      throw { statusCode: 400, message: "Choose an examination available in this branch." };
+    const branch = await Branch.findOneAndUpdate({ _id: user.branchId, organizationId: user.schoolId },
+      { $set: { marksheetPrintSettings: settings } });
+    if (!branch) throw { statusCode: 404, message: "Branch not found." };
+    await AuditLog.create({ schoolId: user.schoolId, actorUserId: user.userId, actorEmail: user.email, actorRole: user.userType,
+      action: "MARKSHEET_PRINT_SETTINGS_UPDATED", resource: "Branch", entityId: user.branchId, details: JSON.stringify(settings) });
+    return sendSuccess(res, settings);
+  } catch (error) { next(error); }
+});
+router.post("/marksheet-settings/test-pdf", marksheetAdmin, requirePermission("settings.view"), async (req, res, next) => {
+  try {
+    const settings = marksheetPrintSettingsSchema.parse(req.body);
+    const user = req.user!;
+    const exam: any = ["selected", "annual"].includes(settings.exam) || !user.branchId ? null :
+      await ExamSchedule.findOne({ _id: settings.exam, schoolId: user.schoolId }).select("title").lean();
+    const sheet = sampleMarksheet(exam?.title || (settings.exam === "annual" ? "Annual marksheet" : "Sample examination"));
+    res.set("Cache-Control", "private, no-store");
+    return res.type("application/pdf").send(await preprintedMarksheetPdf(settings, [sheet], true));
+  } catch (error) { next(error); }
+});
 router.get(
   "/style",
   requireExactUserType(

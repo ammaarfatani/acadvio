@@ -31,6 +31,7 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
+    ".next-aie-audit/types/**/*.ts",
     ".next-aie-final/types/**/*.ts",
     ".next-biometric-practice/types/**/*.ts",
     ".next-certificate-management/types/**/*.ts",

@@ -50,6 +50,8 @@ import { StaffEmployment } from "../models/workforce.model";
 import { Subject } from "../models/subject.model";
 import { ClassCategory } from "../models/classCategory.model";
 import { feeCollectionExcel, feeCollectionPdf, feeCollectionReport } from "../services/feeCollectionReport.service";
+import { feeCollectionMatrixExcel, feeCollectionMatrixPdf, feeCollectionMatrixReport } from "../services/feeCollectionMatrixReport.service";
+import { feeCollectionMatrixFiltersSchema, feeCollectionMatrixRequestSchema } from "../../lib/fee-collection-matrix-request";
 const router = Router(),
   id = z.string().regex(/^[a-f0-9]{24}$/i);
 const handle =
@@ -130,6 +132,28 @@ const feeCollectionExportInput = feeCollectionInput.extend({ format: z.enum(["pr
   if (v.period === "month" && !v.month) ctx.addIssue({ code: "custom", path: ["month"], message: "Select a reporting month." });
   if (v.period === "range" && (!v.fromMonth || !v.toMonth)) ctx.addIssue({ code: "custom", path: ["fromMonth"], message: "Select both range months." });
 });
+router.get("/fee-collection/matrix-filters", handle(async (req, res) => {
+  if (!req.user.permissions.includes("fees.view")) throw { statusCode: 403, message: "Fee report permission is required." };
+  const input = feeCollectionMatrixFiltersSchema.parse(req.query);
+  const [branches, categories, classes, sections] = await Promise.all([
+    Branch.find({ organizationId: req.user.schoolId }).sort({ name: 1 }).select("name").lean(),
+    ClassCategory.find({ schoolId: req.user.schoolId }).sort({ displayOrder: 1, name: 1 }).select("name displayOrder").lean(),
+    ClassModel.find({ schoolId: req.user.schoolId, ...(input.classCategoryId ? { classCategoryId: input.classCategoryId } : {}) }).sort({ name: 1 }).select("name classCategoryId").lean(),
+    SectionModel.find({ schoolId: req.user.schoolId, ...(input.classId ? { classId: input.classId } : {}) }).sort({ name: 1 }).select("name classId").lean(),
+  ]);
+  return sendSuccess(res, { branches, categories, classes, sections, branchLocked: !!branchContext.getStore()?.branchId, branchId: branchContext.getStore()?.branchId || "" });
+}));
+router.post("/fee-collection/matrix", handle(async (req, res) => {
+  if (!req.user.permissions.includes("fees.view")) throw { statusCode: 403, message: "Fee report permission is required." };
+  const input = feeCollectionMatrixRequestSchema.parse(req.body);
+  const report = await feeCollectionMatrixReport(req.user, input);
+  await audit(req.user, input.format === "preview" ? "FEE_COLLECTION_MATRIX_PREVIEW" : "FEE_COLLECTION_MATRIX_EXPORT", { session: input.academicSessionId, fromDate: input.fromDate, toDate: input.toDate, branchId: input.branchId || "CURRENT_AUTHORIZED_SCOPE", format: input.format });
+  if (input.format === "preview") return sendSuccess(res, { report });
+  const data = input.format === "pdf" ? await feeCollectionMatrixPdf(report) : await feeCollectionMatrixExcel(report);
+  res.set("Content-Type", input.format === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  res.set("Content-Disposition", `attachment; filename="fee-collection-monthly-matrix-${input.fromDate}-${input.toDate}.${input.format}"`);
+  return res.send(data);
+}));
 router.get("/fee-collection/sessions", handle(async (req, res) => {
   if (!req.user.permissions.includes("fees.view")) throw { statusCode: 403, message: "Fee report permission is required." };
   const rows = await AcademicSession.find({ schoolId: req.user.schoolId }).sort({ startDate: -1 }).select("name startDate endDate isCurrent").lean();

@@ -30,6 +30,7 @@ export type MarksheetOptions = {
   classId?: string;
   examId?: string;
   view?: "ANNUAL" | "EXAM";
+  stationery?: boolean;
 };
 export async function annualMarksheet(
   schoolId: string,
@@ -44,7 +45,7 @@ export async function annualMarksheet(
     .lean();
   if (!student) throw { statusCode: 404, message: "Student not found." };
   const config = await documentSettings(schoolId);
-  const photo = student.photoStorageId
+  const photo = !options.stationery && student.photoStorageId
     ? await readStudentPhoto(student).catch((error) => {
         if (error?.statusCode === 404) return undefined;
         throw error;
@@ -310,6 +311,18 @@ export async function annualMarksheet(
       mid: byTerm("MID_TERM")?.title,
       final: byTerm("FINAL_TERM")?.title,
     },
+    ...(options.stationery && {
+      stationeryDetails: {
+        publishedCount: results.filter((record: any) => record.isPublished && !record.needsProcessing).length,
+        componentTotals: Object.fromEntries(results.filter((record: any) =>
+          record.isPublished && !record.needsProcessing && record.status !== "PENDING").map((record: any) =>
+          [String(record.examId), { obtained: record.totalObtainedMarks, max: record.totalMaxMarks, status: record.status }])),
+        ...(single && (() => {
+          const source = results.find((record: any) => record.isPublished && !record.needsProcessing && String(record.examId) === options.examId);
+          return { rank: source?.rank, attendancePercentage: source?.attendancePercentage, teacherRemarks: source?.teacherRemarks };
+        })()),
+      },
+    }),
   };
   return {
     ...result,

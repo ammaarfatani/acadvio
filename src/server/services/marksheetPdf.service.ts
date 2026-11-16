@@ -58,6 +58,7 @@ export async function marksheetPdf(data: any, sharedDoc?: any) {
     width = doc.page.width - margin * 2,
     bottom = doc.page.height - margin - 24;
   const panels = Math.max(1, Math.ceil(data.components.length / 3));
+  const rowPadding = style.spacing === "comfortable" ? 16 : 12;
   for (let panel = 0; panel < panels; panel++) {
     const start = panel * 3,
       components = data.components.slice(start, start + 3),
@@ -97,7 +98,7 @@ export async function marksheetPdf(data: any, sharedDoc?: any) {
       doc
         .font(bold)
         .fontSize(16)
-        .fillColor("#20232a")
+        .fillColor(brand)
         .text(
           data.school?.name || "School",
           logo ? margin + 54 : margin,
@@ -135,12 +136,13 @@ export async function marksheetPdf(data: any, sharedDoc?: any) {
         { width: metadataWidth() },
       );
       const top = Math.max(doc.y + 14, photo ? margin + 70 + photoH + 12 : 0);
-      doc.rect(margin, top, width, 35).fill("#f1f2f3");
+      doc.save().opacity(0.12).rect(margin, top, width, 35).fill(brand).restore();
+      doc.rect(margin, top, width, 35).strokeColor(brand).lineWidth(0.6).stroke();
       columns.forEach((c, i) =>
         doc
           .font(bold)
           .fontSize(8)
-          .fillColor("#20232a")
+          .fillColor(brand)
           .text(c, margin + 5 + i * colWidth, top + 5, {
             width: colWidth - 10,
             height: 27,
@@ -167,8 +169,8 @@ export async function marksheetPdf(data: any, sharedDoc?: any) {
       doc.font(regular).fontSize(9);
       const height = Math.max(
         26,
-        ...values.map(
-          (v) => doc.heightOfString(String(v), { width: colWidth - 10 }) + 12,
+          ...values.map(
+          (v) => doc.heightOfString(String(v), { width: colWidth - 10 }) + rowPadding,
         ),
       );
       if (height > 200)

@@ -14,12 +14,14 @@ import SchoolLogoEditor from "./SchoolLogoEditor";
 import { useAuth } from "@/lib/auth-context";
 import ChallanTemplateEditor from "./ChallanTemplateEditor";
 import StaffCertificateTemplateManager from "./StaffCertificateTemplateManager";
+import MarksheetPrintSettingsForm from "./MarksheetPrintSettingsForm";
 export default function DocumentTemplateManager() {
   const { user } = useAuth();
   const [templateCategory, setTemplateCategory] = useState<"school" | "staff" | "challan">("school");
   const drafts = useRef<Record<string, any>>({}),
     canvas = useRef<HTMLDivElement>(null);
   const [notice, setNotice] = useState("");
+  const [marksheetFormat, setMarksheetFormat] = useState<"default" | "preprinted" | null>(null);
   const [profile, setProfile] = useState<any>(null);
   const [type, setType] = useState<DocumentType>("admission"),
     [settings, setSettings] = useState<any>(null),
@@ -95,6 +97,7 @@ export default function DocumentTemplateManager() {
   }
   function category(value: DocumentType) {
     drafts.current[type] = style;
+    if (value === "report-card") setMarksheetFormat(null);
     setType(value);
     setStyle(drafts.current[value] || settings.templates[value]);
   }
@@ -255,7 +258,7 @@ export default function DocumentTemplateManager() {
             marked and is never issued.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        {(type !== "report-card" || marksheetFormat === "default") && <div className="flex flex-wrap gap-2">
           <button
             disabled={busy || imageBusy}
             onClick={() =>
@@ -274,8 +277,16 @@ export default function DocumentTemplateManager() {
           >
             {busy ? "Saving…" : "Save changes"}
           </button>
-        </div>
+        </div>}
       </header>
+      <label className="grid max-w-sm gap-2 text-sm font-semibold">
+        Document category
+        <select value={type} onChange={e => category(e.target.value as DocumentType)} className="rounded border bg-white p-2">
+          {DOCUMENT_TYPES.map(t => <option key={t} value={t}>{t === "report-card" ? "Marksheet / Report Card" : DOCUMENT_LABELS[t]}</option>)}
+        </select>
+      </label>
+      {type === "report-card" && <MarksheetPrintSettingsForm key={user?.branchId} canEdit={!!user?.permissions?.includes("settings.update")} onFormatChange={setMarksheetFormat} />}
+      {(type !== "report-card" || marksheetFormat === "default") && <>
       {notice && (
         <p
           role="status"
@@ -284,7 +295,6 @@ export default function DocumentTemplateManager() {
           {notice}
         </p>
       )}
-      {type === "report-card" && <p className="text-xs text-zinc-500">This saved style is shared by marksheets, report cards and school-report PDFs. Previously issued records retain their archived design.</p>}
       {error && (
         <p
           role="alert"
@@ -298,20 +308,6 @@ export default function DocumentTemplateManager() {
         className="grid min-w-0 items-start gap-6 xl:grid-cols-[340px_1fr]"
       >
         <aside className="space-y-5 rounded-lg border bg-white p-5">
-          <label className="grid gap-2 text-sm font-semibold">
-            Document category
-            <select
-              value={type}
-              onChange={(e) => category(e.target.value as DocumentType)}
-              className="rounded border p-2"
-            >
-              {DOCUMENT_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {DOCUMENT_LABELS[t]}
-                </option>
-              ))}
-            </select>
-          </label>
           <div className="grid gap-3">
             {DOCUMENT_FAMILIES.map((f) => (
               <button
@@ -631,6 +627,7 @@ export default function DocumentTemplateManager() {
           </section>
         </div>
       </fieldset>
+      </>}
     </main>
   );
 }

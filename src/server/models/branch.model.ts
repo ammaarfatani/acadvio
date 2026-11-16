@@ -1,5 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 const BranchSchema = new Schema({
+  marksheetPrintSettings: Schema.Types.Mixed,
   organizationId: { type: Schema.Types.ObjectId, ref: "School", required: true },
   name: { type: String, trim: true, required: true }, code: { type: String, trim: true, lowercase: true, required: true },
   address: { type: String, trim: true, required: true }, phone: { type: String, trim: true, required: true }, email: { type: String, trim: true, lowercase: true },

@@ -64,7 +64,7 @@ const report = {
   ok(fees.some((row) => row[0] === "SCHOOL TOTAL" && row[2] === 300 && row[4] === 10800 && row[6] === 9000), "Excel fee totals remain numeric and reconcile");
   const pdf = await feeCollectionPdf(report);
   eq(pdf.subarray(0, 4).toString(), "%PDF", "sample PDF is a valid PDF");
-  const out = path.resolve("output/pdf/students-fee-collection-sample.pdf");
+  const out = path.resolve(process.env.FEE_COLLECTION_REPORT_TEST_OUTPUT || "output/pdf/students-fee-collection-sample.pdf");
   fs.mkdirSync(path.dirname(out), { recursive: true });
   fs.writeFileSync(out, pdf);
   const fourCategoryPdf = await feeCollectionPdf({ ...report, categories: [...categories, { ...categories[2], id: "4", name: "Higher Secondary" }] });
