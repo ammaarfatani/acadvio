@@ -59,6 +59,16 @@ function encodeStudentCursor(value:Record<string,unknown>) {
 function decodeStudentCursor(token:string,expected:Record<string,unknown>) {
   try {const [body,sig]=token.split("."),secret=process.env.JWT_ACCESS_SECRET;if(!body||!sig||!secret)throw 0;const actual=createHmac("sha256",secret).update(body).digest();const supplied=Buffer.from(sig,"base64url");if(actual.length!==supplied.length||!timingSafeEqual(actual,supplied))throw 0;const payload=JSON.parse(Buffer.from(body,"base64url").toString("utf8"));if(payload.exp<Date.now()||Object.entries(expected).some(([k,v])=>payload[k]!==v)||typeof payload.name!=="string"||typeof payload.admissionNumber!=="string")throw 0;return payload;}catch{throw {statusCode:400,message:"The student search cursor is invalid or expired. Start the search again."};}
 }
+// Permit common Romanized spelling variants (repeated letters and vowel
+// transliterations such as Muhammad/Mohammad) inside the authorized CRM query.
+function studentNameRegex(value:string) {
+  const normalized=value.normalize("NFKC").trim();
+  const escaped=normalized.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+  const tolerant=/^[\p{L} .'-]+$/u.test(normalized) && /^[\x00-\x7F]*$/.test(normalized)
+    ? normalized.split(/( +)/).map(part=>/^ +$/.test(part)?"\\s+":Array.from(part).map(char=>/[aeiou]/i.test(char)?"[aeiou]+":/[A-Za-z]/.test(char)?`${char}+`:char.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("")).join("")
+    : escaped;
+  return new RegExp(tolerant,"i");
+}
 
 export async function executeBridgeTool(actor:AuthenticatedUser, input:z.infer<typeof bridgeInput>) {
   const context=bridgeContextFor(actor);
@@ -86,10 +96,10 @@ export async function executeBridgeTool(actor:AuthenticatedUser, input:z.infer<t
   const aggregate=(model:any,pipeline:any[])=>model.aggregate(pipeline).option({maxTimeMS:8000});
   if(input.tool === "students" && input.lookupMode === "find") {
     if(!input.studentName&&!input.admissionNumber&&!input.studentIdentifier&&!input.classLevel) return {kind:"student_search",students:[],totalMatches:0,matchCount:0,needsName:true,note:"Ask the user for a student name before searching."};
-    const escaped=input.studentName?.normalize("NFKC").trim().replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+    const namePattern=input.studentName?studentNameRegex(input.studentName):undefined;
     const identifier=input.studentIdentifier||input.admissionNumber;
     const exact=identifier?new RegExp(`^${identifier.replace(/[.*+?^${}()|[\\]\\]/g,"\\$&")}$`,"i"):undefined;
-    const filter:any={...scope,...(identifier?{$or:[{rollNumber:exact},{admissionNumber:exact},{studentId:exact}]}:{}),...(escaped?{$or:[...(identifier?[{rollNumber:exact},{admissionNumber:exact},{studentId:exact}]:[]),{name:{$regex:escaped,$options:"i"}},{nameUrdu:{$regex:escaped,$options:"i"}}]}:{})};
+    const filter:any={...scope,...(identifier?{$or:[{rollNumber:exact},{admissionNumber:exact},{studentId:exact}]}:{}),...(namePattern?{$or:[...(identifier?[{rollNumber:exact},{admissionNumber:exact},{studentId:exact}]:[]),{name:{$regex:namePattern}},{nameUrdu:{$regex:namePattern}}]}:{})};
     const totalMatches=await Student.countDocuments(filter).maxTimeMS(8000);
     const pageSize=25;
     const cursorScope={schoolId:String(actor.schoolId),branchId:String(actor.branchId||""),filter:JSON.stringify([input.studentName?.normalize("NFKC").trim().toLowerCase()||"",identifier?.toLowerCase()||"",input.classLevel||null,input.section?.toLowerCase()||""])};
@@ -104,8 +114,9 @@ export async function executeBridgeTool(actor:AuthenticatedUser, input:z.infer<t
   if(input.tool === "student_history") {
     if(actor.userType!=="SCHOOL_ADMIN" || !actor.permissions?.includes("students.view")) throw {statusCode:403,message:"Student history is not available for this account."};
     const identifier=input.studentIdentifier||input.admissionNumber;
-    const escaped=input.studentName?.normalize("NFKC").trim().replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
-    const filter:any={...scope,...(identifier?{$or:[{rollNumber:new RegExp(`^${identifier.replace(/[.*+?^${}()|[\\]\\]/g,"\\$&")}$`,"i")},{admissionNumber:new RegExp(`^${identifier.replace(/[.*+?^${}()|[\\]\\]/g,"\\$&")}$`,"i")},{studentId:new RegExp(`^${identifier.replace(/[.*+?^${}()|[\\]\\]/g,"\\$&")}$`,"i")}]}:{}),...(escaped?{$or:[{name:{$regex:escaped,$options:"i"}},{nameUrdu:{$regex:escaped,$options:"i"}}]}:{})};
+    const namePattern=input.studentName?studentNameRegex(input.studentName):undefined;
+    const safeIdentifier=identifier?.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+    const filter:any={...scope,...(identifier?{$or:[{rollNumber:new RegExp(`^${safeIdentifier}$`,"i")},{admissionNumber:new RegExp(`^${safeIdentifier}$`,"i")},{studentId:new RegExp(`^${safeIdentifier}$`,"i")}]}:{}),...(namePattern?{$or:[...(identifier?[{rollNumber:new RegExp(`^${safeIdentifier}$`,"i")},{admissionNumber:new RegExp(`^${safeIdentifier}$`,"i")},{studentId:new RegExp(`^${safeIdentifier}$`,"i")}]:[]),{name:{$regex:namePattern}},{nameUrdu:{$regex:namePattern}}]}:{})};
     const matches=await Student.find(filter).select("_id name studentId admissionNumber rollNumber className sectionName status academicSessionName admissionDate").limit(2).maxTimeMS(8000).lean();
     if(matches.length!==1) return {kind:"student_search",students:matches.map((s:any)=>({name:s.name,studentCode:s.studentId,admissionNumber:s.admissionNumber,rollNumber:s.rollNumber,className:s.className,sectionName:s.sectionName,status:s.status})),totalMatches:matches.length,needsName:matches.length===0,ambiguous:matches.length>1,note:matches.length>1?"Several students match; refine the name or use an exact identifier.":"No authorized student matches this history request."};
     const s:any=matches[0], sid=String(s._id);

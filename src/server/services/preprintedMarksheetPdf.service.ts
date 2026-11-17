@@ -97,6 +97,110 @@ export async function preprintedMarksheetPdf(settings: MarksheetPrintSettings, s
     if (image) doc.image(Buffer.from(image.split(",")[1], "base64"), box.x, box.y, { fit: [box.width, box.height], align: box.config.align });
   };
 
+  const renderCompleteTable = async (sheet: any, titles: string[]) => {
+    const marginX = mm(14 + settings.offsetX), marginY = mm(14 + settings.offsetY);
+    const width = pageWidth - marginX * 2, bottom = pageHeight - marginY;
+    if (marginX < mm(2) || marginY < mm(2) || width < mm(50) || bottom < mm(40))
+      throw { statusCode: 422, message: "The alignment offset leaves too little printable area. Reduce the offset or use Values Only calibration." };
+    let y = marginY;
+    const student = sheet.student || {}, overall = sheet.overall || {}, details = sheet.stationeryDetails || {};
+    const examHeading = titles.join(" / ") || "Examination Results";
+    const header = (continued = false) => {
+      doc.font("Helvetica-Bold").fontSize(15).fillColor("#18181b").text(examHeading + (continued ? " · Continued" : ""), marginX, y, { width, align: "center" });
+      y = doc.y + mm(2);
+      doc.font("Helvetica").fontSize(9).fillColor("#27272a").text(`Academic Session: ${student.academicSessionName || "—"}`, marginX, y, { width, align: "center" });
+      y = doc.y + mm(5);
+      const detailsRows = [[`Name: ${student.name || "—"}`, `Father's Name: ${student.parentInfo?.fatherName || "—"}`],
+        [`Class: ${student.className || "—"}`, `Section: ${student.sectionName || "—"}`, `G.R. No: ${student.admissionNumber || student.studentId || "—"}`]];
+      for (const row of detailsRows) {
+        const colWidth = width / row.length;
+        row.forEach((value, index) => {
+          const x = marginX + colWidth * index;
+          doc.lineWidth(0.55).rect(x, y, colWidth, mm(9)).strokeColor("#3f3f46").stroke();
+          doc.font("Helvetica").fontSize(8).fillColor("#18181b").text(value, x + mm(2), y + mm(2), { width: colWidth - mm(4), height: mm(5), ellipsis: true });
+        });
+        y += mm(9);
+      }
+      y += mm(4);
+    };
+    const columns: { label: string; key: string; componentIndex?: number; width: number }[] = [
+      { label: "Subject", key: "subject", width: width * 0.27 },
+      ...titles.flatMap((title, componentIndex) => [
+        { label: `${title} Max`, key: "max", componentIndex, width: 0 },
+        { label: `${title} Obtained`, key: "obtained", componentIndex, width: 0 },
+      ]),
+      { label: "Grand Max", key: "grandMax", width: 0 }, { label: "Grand Obtained", key: "grandObtained", width: 0 },
+      { label: "Status", key: "status", width: 0 },
+    ];
+    const restWidth = width * 0.73 / (columns.length - 1);
+    columns.forEach((column, index) => { if (index > 0) column.width = restWidth; });
+    const row = (cells: unknown[], isHeader = false, minHeight = mm(8)) => {
+      const fontSize = isHeader ? (columns.length > 8 ? 6 : 8) : (columns.length > 8 ? 7 : 8);
+      doc.font(isHeader ? "Helvetica-Bold" : "Helvetica").fontSize(fontSize);
+      const heights = cells.map((value, index) => doc.heightOfString(String(value ?? ""), { width: columns[index].width - mm(3) }));
+      const rowHeight = Math.max(minHeight, ...heights.map(value => value + mm(2)));
+      if (y + rowHeight > bottom) return false;
+      let x = marginX;
+      cells.forEach((value, index) => {
+        const column = columns[index];
+        doc.lineWidth(0.5).rect(x, y, column.width, rowHeight).strokeColor("#52525b").stroke();
+        doc.font(isHeader ? "Helvetica-Bold" : "Helvetica").fontSize(fontSize).fillColor("#18181b")
+          .text(String(value ?? ""), x + mm(1.5), y + mm(1), { width: column.width - mm(3), height: rowHeight - mm(2), align: index === 0 ? "left" : "center", ellipsis: true });
+        x += column.width;
+      });
+      y += rowHeight;
+      return true;
+    };
+    const headings = columns.map(column => column.label);
+    header();
+    row(headings, true, mm(11));
+    const rows: any[] = sheet.rows || [];
+    for (const mark of rows) {
+      const cells: unknown[] = [mark.name];
+      titles.forEach((_, index) => {
+        const score = mark.scores?.[index];
+        cells.push(score?.max ?? "", score?.isAbsent ? "A" : score?.obtained ?? "");
+      });
+      cells.push(mark.max ?? "", mark.total ?? "", mark.status || "");
+      const estimatedHeight = mm(8);
+      if (y + estimatedHeight > bottom) {
+        doc.addPage({ size: [pageWidth, pageHeight], margin: 0 }); y = marginY; header(true); row(headings, true, mm(11));
+      }
+      row(cells, false, mm(8));
+    }
+    if (y + mm(33) > bottom) { doc.addPage({ size: [pageWidth, pageHeight], margin: 0 }); y = marginY; header(true); }
+    const summary = [`Total Marks: ${overall.max ?? "—"}`, `Obtained Marks: ${overall.obtained ?? "—"}`, `Percentage: ${percent(overall.percentage) || "—"}`,
+      `Grade: ${overall.grade || "—"}`, `Rank: ${details.rank ?? "—"}`, `Attendance: ${percent(details.attendancePercentage) || "—"}`];
+    const summaryColWidth = width / 3;
+    for (let i = 0; i < summary.length; i += 3) {
+      const at = y;
+      summary.slice(i, i + 3).forEach((value, index) => {
+        const x = marginX + index * summaryColWidth;
+        doc.lineWidth(0.45).rect(x, at, summaryColWidth, mm(8)).strokeColor("#71717a").stroke();
+        doc.font("Helvetica").fontSize(8).fillColor("#18181b").text(value, x + mm(2), at + mm(2), { width: summaryColWidth - mm(4), height: mm(5), ellipsis: true });
+      });
+      y += mm(8);
+    }
+    if (settings.teacherComments && details.teacherRemarks) {
+      y += mm(3); doc.font("Helvetica-Bold").fontSize(8).text("Teacher Comments", marginX, y, { width });
+      doc.font("Helvetica").fontSize(8).text(String(details.teacherRemarks), marginX, doc.y + mm(1), { width, height: mm(18), ellipsis: true }); y = doc.y + mm(4);
+    }
+    if (settings.signatures) {
+      if (y + mm(26) > bottom) { doc.addPage({ size: [pageWidth, pageHeight], margin: 0 }); y = marginY; }
+      const signatureY = y + mm(17), labels = ["Sign of Class Teacher", "Sign of Principal"];
+      for (let i = 0; i < 2; i++) {
+        const x = marginX + i * width / 2, colWidth = width / 2;
+        const imageValue = i === 0 ? (sheet.school?.teacherSignature || sheet.school?.staffSignature) : sheet.school?.signature;
+        const image = await normalizeCardImage(imageValue);
+        if (image) doc.image(Buffer.from(image.split(",")[1], "base64"), x + colWidth / 2 - mm(12), signatureY - mm(14), { fit: [mm(24), mm(13)] });
+        doc.moveTo(x + mm(12), signatureY).lineTo(x + colWidth - mm(12), signatureY).lineWidth(0.5).strokeColor("#52525b").stroke();
+        doc.font("Helvetica").fontSize(8).fillColor("#18181b").text(labels[i], x, signatureY + mm(2), { width: colWidth, align: "center" });
+      }
+      const stamp = await normalizeCardImage(sheet.school?.stamp);
+      if (stamp) doc.image(Buffer.from(stamp.split(",")[1], "base64"), pageWidth / 2 - mm(10), signatureY - mm(12), { fit: [mm(20), mm(20)] });
+    }
+  };
+
   for (const sheet of sheets) {
     const components: any[] = sheet.components || [];
     const rows: any[] = sheet.rows || [];
@@ -105,7 +209,7 @@ export async function preprintedMarksheetPdf(settings: MarksheetPrintSettings, s
     const titles = components.slice(0, 4).map(component => String(component.title || ""));
     const rowFieldHeight = Math.max(...[...rowFields].map(field => pos(field)?.height || 0));
     const rowEnd = settings.rowStartY + Math.max(0, rows.length - 1) * settings.rowHeight + rowFieldHeight;
-    if (settings.marksTable && rowEnd + settings.offsetY > pageHeightMm)
+    if (settings.mode === "values" && settings.marksTable && rowEnd + settings.offsetY > pageHeightMm)
       throw { statusCode: 422, message: "The configured subject rows do not fit on this stationery. Reduce row spacing or use a larger paper size." };
     doc.addPage({ size: [pageWidth, pageHeight], margin: 0 });
 
@@ -116,6 +220,11 @@ export async function preprintedMarksheetPdf(settings: MarksheetPrintSettings, s
       };
       marker(5, 5); marker(pageWidthMm - 5, 5); marker(5, pageHeightMm - 5); marker(pageWidthMm - 5, pageHeightMm - 5);
       marker(pageWidthMm / 2, pageHeightMm / 2);
+    }
+
+    if (settings.mode === "table") {
+      await renderCompleteTable(sheet, titles);
+      continue;
     }
 
     if (settings.studentDetails) {

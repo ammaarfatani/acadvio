@@ -59,23 +59,11 @@ export default function MarksheetAlignmentEditor({ settings, onChange }: Props) 
       orientation: template.orientation, customPaper: template.customPaper, pageWidth: template.pageWidth,
       pageHeight: template.pageHeight, activeTemplateId: id });
   };
-  const uploadBackground = (file?: File) => {
-    if (!file) return;
-    if (!/^image\/(png|jpeg|webp)$/.test(file.type) || file.size > 500_000) {
-      window.alert("Choose a PNG, JPG or WebP flat scan under 500 KB.");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => onChange({ backgroundImage: String(reader.result) });
-    reader.readAsDataURL(file);
-  };
-
   return <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
     <section className="space-y-3 rounded border bg-zinc-50 p-3" aria-label="Stationery alignment preview">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <label className="text-sm">Stationery scan (editor only)<input className="ml-2 max-w-[220px] text-xs" type="file" accept="image/png,image/jpeg,image/webp" onChange={event => uploadBackground(event.target.files?.[0])} /></label>
-        <div className="flex items-center gap-2"><label className="text-xs">Zoom<select className="ml-1 rounded border bg-white p-1" value={zoom} onChange={event => setZoom(Number(event.target.value))}><option value={0.5}>50%</option><option value={0.72}>72%</option><option value={1}>100%</option><option value={1.25}>125%</option></select></label>
-          {settings.backgroundImage && <button type="button" className="text-xs underline" onClick={() => onChange({ backgroundImage: undefined })}>Remove scan</button>}</div>
+        <p className="text-sm font-medium">Optional scan calibration</p>
+        <label className="text-xs">Zoom<select className="ml-1 rounded border bg-white p-1" value={zoom} onChange={event => setZoom(Number(event.target.value))}><option value={0.5}>50%</option><option value={0.72}>72%</option><option value={1}>100%</option><option value={1.25}>125%</option></select></label>
       </div>
       <p className="text-xs text-zinc-600">Drag any field to move it. The scan and guides are for calibration only and are never embedded in the print PDF. Calibrate against a flat scan and confirm with an alignment test print.</p>
       <div className="max-h-[75vh] overflow-auto rounded border bg-[#d8dadd] p-4">

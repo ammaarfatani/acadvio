@@ -45,8 +45,12 @@ router.get("/marksheet-settings", marksheetAdmin, requirePermission("settings.vi
   try {
     const user = req.user!;
     res.set("Cache-Control", "private, no-store");
-    const exams = user.branchId ? await ExamSchedule.find({ schoolId: user.schoolId })
-      .sort({ startDate: -1 }).select("title term academicSessionId").lean() : [];
+    const exams = user.branchId ? (await ExamSchedule.find({ schoolId: user.schoolId })
+      .sort({ startDate: -1 }).select("title term academicSessionId").populate("academicSessionId", "name").lean()).map((exam: any) => ({
+        _id: String(exam._id), title: exam.title, term: exam.term,
+        academicSessionId: String(exam.academicSessionId?._id || exam.academicSessionId || ""),
+        academicSessionName: exam.academicSessionId?.name || "",
+      })) : [];
     return sendSuccess(res, { settings: await readMarksheetPrintSettings(user), exams, canSave: !!user.branchId });
   } catch (error) { next(error); }
 });
