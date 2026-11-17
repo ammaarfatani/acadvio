@@ -68,7 +68,11 @@ export default function SchoolReportCenter({
     [actions, setActions] = useState<any[]>([]),
     [settings, setSettings] = useState({
       lowAttendance: 80,
+      lowFeeRecovery: 80,
+      highOutstandingPercent: 20,
+      highFailureRate: 20,
       expenseIncrease: 20,
+      enrollmentDecline: 20,
       staleAdmissionDays: 7,
     });
   const run = async (title: string, fn: () => Promise<void>) => {
@@ -78,7 +82,8 @@ export default function SchoolReportCenter({
     try {
       await fn();
     } catch (e: any) {
-      setError(e.message || "Request failed. Please try again.");
+      const detail = e.message || "Please try again.";
+      setError(/analysis|insight|school performance/i.test(title) ? `Analysis failed. ${detail}` : detail);
     } finally {
       setBusy("");
     }
@@ -419,10 +424,14 @@ export default function SchoolReportCenter({
             <p className="mt-1 text-xs text-zinc-500">
               Practical defaults for review, not official education standards.
             </p>
-            <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {[
                 ["lowAttendance", "Attendance below (%)"],
+                ["lowFeeRecovery", "Fee recovery below (%)"],
+                ["highOutstandingPercent", "Outstanding share at or above (%)"],
+                ["highFailureRate", "Published failure rate at or above (%)"],
                 ["expenseIncrease", "Expense increase (%)"],
+                ["enrollmentDecline", "Admissions decline at or above (%)"],
                 ["staleAdmissionDays", "Open application age (days)"],
               ].map(([key, title]) => (
                 <label className="text-sm" key={key}>
@@ -459,6 +468,22 @@ export default function SchoolReportCenter({
                 Previous equal-length period: {dashboard.previous.from} —{" "}
                 {dashboard.previous.to}
               </p>
+              <section className="rounded-lg border border-zinc-200 bg-white p-4" aria-live="polite">
+                <h2 className="font-semibold">Assessment status</h2>
+                <p className="mt-1 text-sm text-zinc-700">
+                  {dashboard.analysisState === "NO_DATA_AVAILABLE" ? "No permitted intelligence domains are available." :
+                   dashboard.analysisState === "INSUFFICIENT_DATA" ? "Insufficient recorded data in the assessed domains for this period." :
+                   dashboard.analysisState === "NO_THRESHOLDS_EXCEEDED" ? "Data is available; no configured risk threshold was exceeded." :
+                   `${dashboard.insights.filter((item: any) => item.kind === "ATTENTION").length} evidence-based finding(s) need review.`}
+                </p>
+                <ul className="mt-3 flex flex-wrap gap-2 text-xs">
+                  {Object.entries(dashboard.dataStatus || {}).map(([key, status]: [string, any]) => (
+                    <li key={key} className={`rounded-full border px-3 py-1 ${status === "AVAILABLE" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-900"}`}>
+                      {key.replace(/[A-Z]/g, (letter) => " " + letter).replace(/^./, (s) => s.toUpperCase())}: {status === "NO_DATA" ? "No records" : status === "UNAVAILABLE" ? "Not permitted" : "Records available"}
+                    </li>
+                  ))}
+                </ul>
+              </section>
               <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {dashboard.metrics.map((m: any) => (
                   <article
@@ -478,6 +503,10 @@ export default function SchoolReportCenter({
                         ? "No comparable baseline"
                         : `${m.change >= 0 ? "+" : ""}${m.change.toLocaleString()} / ${m.percent.toFixed(1)}% vs previous period`}
                     </p>
+                    {(() => {
+                      const source = ({ attendance: "attendance", "staff-attendance": "staffAttendance", "fee-recovery": "invoices", outstanding: "invoices", collections: "collections", expenses: "expenses", "active-students": "students", students: "students", "unassigned-sections": "students", "active-teachers": "staff", net: "expenses" } as Record<string, string>)[m.key];
+                      return source ? <a href={`${typeof window !== "undefined" ? window.location.pathname.replace(/\/intelligence$/, "/reports") : "/school-admin/reports"}?report=${source}&from=${dashboard.filters.from}&to=${dashboard.filters.to}`} className="mt-2 inline-block text-xs font-semibold text-red-700">View source report →</a> : null;
+                    })()}
                   </article>
                 ))}
               </section>
@@ -502,20 +531,17 @@ export default function SchoolReportCenter({
                   </div>
                 ))}
               </section>
-              <section className="rounded-lg border border-amber-200 bg-amber-50 p-5">
-                <h2 className="font-semibold">Data quality & limitations</h2>
+              <details className="rounded-lg border border-amber-200 bg-amber-50 p-5">
+                <summary className="cursor-pointer font-semibold">Data Quality & Limitations</summary>
                 <ul className="mt-3 list-disc space-y-2 pl-5 text-sm">
-                  {dashboard.quality.map((q: string) => (
-                    <li key={q}>{q}</li>
-                  ))}
+                  {dashboard.quality.map((q: string) => <li key={q}>{q}</li>)}
                 </ul>
-              </section>
+              </details>
               <section className="space-y-4">
-                <h2 className="text-xl font-semibold">Improvement review</h2>
+                <h2 className="text-xl font-semibold">Areas Needing Attention</h2>
                 {!dashboard.insights.length && (
                   <p className="text-sm text-zinc-500">
-                    No rule was triggered by the available evidence. This does
-                    not mean every area has been assessed.
+                    {dashboard.analysisState === "INSUFFICIENT_DATA" ? "No records were available in the permitted domains for this period. Review the status above and choose another period if appropriate." : dashboard.analysisState === "NO_DATA_AVAILABLE" ? "No intelligence metrics are available to this account." : "Data is available and no configured risk threshold was exceeded. Routine monitoring is recommended; see the deterministic summary below."}
                   </p>
                 )}
                 {[
@@ -539,36 +565,35 @@ export default function SchoolReportCenter({
                         "Recalculate insights for the relevant period before closing the review.",
                     })),
                 ].map((insight: any) => (
-                  <ActionReview
-                    key={insight.rule}
-                    insight={insight}
-                    saved={actions.find((a) => a.rule === insight.rule)}
-                    disabled={!!busy}
-                    onSave={(value) =>
-                      run("Saving review…", async () => {
-                        const r = await apiFetch(
-                          "/smart-reports/actions/" + insight.rule,
-                          { method: "PUT", body: JSON.stringify(value) },
-                        );
-                        setActions([
-                          ...actions.filter((a) => a.rule !== insight.rule),
-                          r.data,
-                        ]);
-                      })
-                    }
-                  />
+                  <article key={insight.rule} className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <h3 className="font-semibold">{insight.title}</h3>
+                      <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-bold uppercase text-red-800">{insight.priority}</span>
+                    </div>
+                    <p className="text-sm text-zinc-700"><b>Evidence:</b> {insight.evidence}</p>
+                    <p className="mt-2 text-xs text-zinc-500">Period: {insight.period?.from || dashboard.filters.from} — {insight.period?.to || dashboard.filters.to}{insight.affected ? ` · ${insight.affected}` : ""}{insight.branchScope ? ` · ${insight.branchScope}` : ""}</p>
+                    <div className="mt-3"><ActionReview
+                      insight={insight}
+                      saved={actions.find((a) => a.rule === insight.rule)}
+                      disabled={!!busy}
+                      onSave={(value) => run("Saving review…", async () => {
+                        const r = await apiFetch("/smart-reports/actions/" + insight.rule, { method: "PUT", body: JSON.stringify(value) });
+                        setActions([...actions.filter((a) => a.rule !== insight.rule), r.data]);
+                      })}
+                    /></div>
+                    <a href={`${typeof window !== "undefined" ? window.location.pathname.replace(/\/intelligence$/, "/reports") : "/school-admin/reports"}?report=${insight.report || "reports"}&from=${dashboard.filters.from}&to=${dashboard.filters.to}`} className="mt-3 inline-block text-sm font-semibold text-red-700">Open source report →</a>
+                  </article>
                 ))}
               </section>
               <section className="rounded-lg border bg-white p-5">
-                <h2 className="font-semibold">AI interpretation</h2>
+                <h2 className="font-semibold">School Improvement Analysis</h2>
                 <p className="mt-2 text-sm text-zinc-600">
-                  Only aggregated evidence is sent to the configured provider.
-                  Review all suggestions before acting.
+                  Deterministic CRM rules analyze authorized aggregate data. No language model or external AI provider is used for this summary.
                 </p>
                 <button
-                  disabled={!!busy || !dashboard.aiAvailable}
+                  disabled={!!busy}
                   onClick={() =>
-                    run("Interpreting aggregate evidence…", async () => {
+                    run("Refreshing school improvement analysis…", async () => {
                       setAi(
                         (
                           await apiFetch(
@@ -584,12 +609,11 @@ export default function SchoolReportCenter({
                   }
                   className={button + " mt-4"}
                 >
-                  {dashboard.aiAvailable
-                    ? "Generate interpretation"
-                    : "AI provider is not configured"}
+                  Refresh analysis
                 </button>
                 {ai && (
                   <div className="mt-4 space-y-3 text-sm">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Deterministic rules · no LLM</p>
                     <p>{ai.summary}</p>
                     {ai.recommendations.map((r: any, i: number) => (
                       <article key={i} className="border-t pt-3">

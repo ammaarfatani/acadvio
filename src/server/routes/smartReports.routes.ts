@@ -32,7 +32,7 @@ import {
 import {
   intelligenceDashboard,
   intelligenceSettings,
-  interpretIntelligence,
+  deterministicIntelligenceSummary,
 } from "../services/schoolIntelligence.service";
 import {
   ReportPreset,
@@ -616,21 +616,21 @@ router.post(
         input.settings,
       );
     try {
-      const result = await interpretIntelligence(req.user, dashboard);
-      await audit(req.user, "INTELLIGENCE_AI_INTERPRETATION", {
+      const result = deterministicIntelligenceSummary(req.user, dashboard);
+      await audit(req.user, "INTELLIGENCE_RULE_ANALYSIS", {
         filters: input.filters,
         outcome: "SUCCESS",
       });
       return sendSuccess(res, result);
     } catch (e: any) {
-      await audit(req.user, "INTELLIGENCE_AI_INTERPRETATION", {
+      await audit(req.user, "INTELLIGENCE_RULE_ANALYSIS", {
         filters: input.filters,
         outcome: "FAILED",
       });
       return sendError(
         res,
-        "AI interpretation is unavailable or invalid. Your calculated metrics and rule-based insights remain available.",
-        e?.statusCode === 503 ? 503 : 502,
+        "School improvement analysis failed. Calculated metrics and rule-based findings remain available.",
+        e?.statusCode === 400 || e?.statusCode === 403 ? e.statusCode : 500,
       );
     }
   }),

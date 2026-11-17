@@ -165,8 +165,7 @@ export async function executeBridgeTool(actor:AuthenticatedUser, input:z.infer<t
   if(input.tool === "intelligence") {
     authorizeReports(actor);
     const date=(d:Date)=>new Date(d.getTime()+5*3600000).toISOString().slice(0,10);
-    const {aiAvailable: _legacyProviderAvailable,...dashboard}=await intelligenceDashboard(actor,reportFilters.parse({from:date(start),to:date(new Date(end.getTime()-1))}),intelligenceSettings.parse({}));
-    return dashboard;
+    return intelligenceDashboard(actor,reportFilters.parse({from:date(start),to:date(new Date(end.getTime()-1))}),intelligenceSettings.parse({}));
   }
   return fetchAuthorizedReport(actor,{report:input.tool as any});
 }

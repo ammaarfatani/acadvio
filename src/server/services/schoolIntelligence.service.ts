@@ -1,4 +1,3 @@
-import { createHash } from "crypto";
 import { z } from "zod";
 import { AuthenticatedUser } from "../middlewares/auth.middleware";
 import {
@@ -8,15 +7,19 @@ import {
   periodBounds,
   Filters,
 } from "./smartReports.service";
-import { assistantConfigured, configuredCompletion } from "./assistant.service";
 import { branchContext } from "../utils/branchScope";
 import { Student } from "../models/student.model";
 import { User } from "../models/user.model";
+import { buildSupplementalFindings, improvementAnalysisState } from "./schoolIntelligence.rules";
 
 export const intelligenceSettings = z
   .object({
     lowAttendance: z.number().min(1).max(100).default(80),
+    lowFeeRecovery: z.number().min(1).max(100).default(80),
+    highOutstandingPercent: z.number().min(1).max(100).default(20),
+    highFailureRate: z.number().min(1).max(100).default(20),
     expenseIncrease: z.number().min(1).max(500).default(20),
+    enrollmentDecline: z.number().min(1).max(100).default(20),
     staleAdmissionDays: z.number().int().min(1).max(90).default(7),
   })
   .strict();
@@ -67,7 +70,7 @@ export async function intelligenceDashboard(
     ]);
     return rows[0]?.value || 0;
   };
-  const metrics: any[] = [];
+  const metrics: any[] = [], supplementalEvidence: any = {};
   if (available("students")) {
     const scope = { schoolId: actor.schoolId },
       [active, unassigned] = await Promise.all([
@@ -181,6 +184,22 @@ export async function intelligenceDashboard(
     "$amountPKR",
   );
   await groupChart("results", "Published result status", "status");
+  if (available("attendance")) {
+    const rows = await aggregate("attendance", filters, [
+      { $group: { _id: "$className", total: { $sum: 1 }, attended: { $sum: { $cond: [{ $in: ["$records.status", ["PRESENT", "LATE"]] }, 1, 0] } } } },
+      { $sort: { _id: 1 } }, { $limit: 100 },
+    ]);
+    supplementalEvidence.classAttendance = rows.map((row: any) => ({ className: String(row._id || "Unspecified class"), total: row.total, attended: row.attended }));
+    charts.push({ title: "Recorded attendance by class", kind: "bar", unit: "%", data: rows.filter((row: any) => row.total > 0).map((row: any) => ({ label: String(row._id || "Unspecified class"), value: Math.round(row.attended / row.total * 1000) / 10, entries: row.total, attended: row.attended })), description: "Present and late entries count as attended. Only recorded entries are included; missing registers are not treated as absences.", report: "attendance" });
+  }
+  if (available("staffAttendance")) {
+    const rows = await aggregate("staffAttendance", filters, [
+      { $group: { _id: "$status", count: { $sum: 1 } } }, { $sort: { _id: 1 } },
+    ]);
+    const total = rows.reduce((sum: number, row: any) => sum + row.count, 0), attended = rows.filter((row: any) => ["PRESENT", "LATE"].includes(row._id)).reduce((sum: number, row: any) => sum + row.count, 0);
+    supplementalEvidence.staffAttendance = { total, attended };
+    metrics.push({ key: "staff-attendance", label: "Recorded staff attendance", current: total ? Math.round(attended / total * 1000) / 10 : null, baseline: null, percent: null, unit: "%" });
+  }
   if (available("results")) {
     const rows = await aggregate("results", filters, [
       { $unwind: "$subjectScores" },
@@ -220,6 +239,32 @@ export async function intelligenceDashboard(
         "Numeric scores from processed published results. This is a cross-sectional average, not a progress comparison.",
       report: "results",
     });
+  }
+  if (available("invoices")) {
+    const rows = await aggregate("invoices", filters, [
+      { $group: { _id: null, count: { $sum: 1 }, billed: { $sum: "$totalAmountPKR" }, paid: { $sum: "$paidAmountPKR" }, outstanding: { $sum: "$remainingAmountPKR" } } },
+    ]);
+    const invoices = rows[0] || { count: 0, billed: 0, paid: 0, outstanding: 0 };
+    supplementalEvidence.invoiceCohort = invoices;
+    metrics.push({ key: "fee-recovery", label: "Current recovery on invoices created in period", current: invoices.billed > 0 ? Math.round(invoices.paid / invoices.billed * 1000) / 10 : null, baseline: null, percent: null, unit: "%" });
+  }
+  if (available("results")) {
+    const rows = await aggregate("results", filters, [
+      { $group: { _id: { exam: "$examTitle", class: "$className" }, count: { $sum: 1 }, failed: { $sum: { $cond: [{ $eq: ["$status", "FAILED"] }, 1, 0] } }, average: { $avg: "$percentage" } } },
+      { $sort: { "_id.exam": 1, "_id.class": 1 } }, { $limit: 100 },
+    ]);
+    const count = rows.reduce((sum: number, row: any) => sum + row.count, 0), failed = rows.reduce((sum: number, row: any) => sum + row.failed, 0), weightedAverage = count ? rows.reduce((sum: number, row: any) => sum + row.average * row.count, 0) / count : null;
+    supplementalEvidence.publishedResults = { count, failed, average: weightedAverage };
+    charts.push({ title: "Published result averages by exam and class", kind: "bar", unit: "%", data: rows.map((row: any) => ({ label: `${row._id.exam} · ${row._id.class}`, value: Math.round(row.average * 10) / 10, count: row.count, failed: row.failed })), description: "Published, processed numeric results only. Different examinations are not treated as a trend.", report: "results" });
+  }
+  if (available("subjectResults")) {
+    const rows = await aggregate("subjectResults", filters, [
+      { $match: { "subjectScores.grade": { $type: "string", $nin: ["", "PENDING", "WITHHELD", "EXEMPT"] } } },
+      { $group: { _id: "$subjectScores.subjectName", total: { $sum: 1 }, failed: { $sum: { $cond: [{ $eq: [{ $toUpper: "$subjectScores.grade" }, "F"] }, 1, 0] } } } },
+      { $sort: { failed: -1, _id: 1 } }, { $limit: 100 },
+    ]);
+    supplementalEvidence.subjectResults = rows.map((row: any) => ({ subjectName: String(row._id || "Unspecified subject"), total: row.total, failed: row.failed }));
+    charts.push({ title: "Published subject failure rates", kind: "bar", unit: "%", data: rows.filter((row: any) => row.total > 0).map((row: any) => ({ label: row._id || "Unspecified subject", value: Math.round(row.failed / row.total * 1000) / 10, entries: row.total, failed: row.failed })), description: "Failure counts use the school's configured F grade from published subject scores; pending, withheld and exempt entries are excluded.", report: "subjectResults" });
   }
   if (available("attendance")) {
     const rows = await aggregate("attendance", filters, [
@@ -322,13 +367,11 @@ export async function intelligenceDashboard(
       });
   }
   if (available("invoices")) {
-    const rows = await aggregate("invoices", filters, [
-      { $group: { _id: null, value: { $sum: "$remainingAmountPKR" } } },
-    ]);
+    const invoices = supplementalEvidence.invoiceCohort || { count: 0, outstanding: 0 };
     metrics.push({
       key: "outstanding",
-      label: "Current balance on selected invoices",
-      current: rows[0]?.value || 0,
+      label: "Outstanding on invoices created in period (current balance)",
+      current: invoices.outstanding,
       baseline: null,
       percent: null,
       unit: "PKR",
@@ -360,21 +403,12 @@ export async function intelligenceDashboard(
         expectedOutcome: "Reduce unresolved inquiries.",
         measurement: "Review the open application count next week.",
       });
+    supplementalEvidence.admissions = { current: metrics.find((m) => m.key === "students")?.current || 0, baseline: metrics.find((m) => m.key === "students")?.baseline || 0 };
   }
   const expense = metrics.find((m) => m.key === "expenses");
-  if (expense?.percent >= settings.expenseIncrease)
-    insights.push({
-      rule: "expense-increase",
-      title: "Review the increase in recorded expenses",
-      priority: "MEDIUM",
-      kind: "ATTENTION",
-      evidence: `Recorded expenses rose ${expense.percent.toFixed(1)}% over the equal-length preceding period.`,
-      action:
-        "Compare expense categories and check for one-off payments. The cause has not been established.",
-      expectedOutcome: "Understand the recorded cost change.",
-      measurement:
-        "Review category totals and budget notes before the next period.",
-    });
+  supplementalEvidence.expenses = expense && { current: expense.current, baseline: expense.baseline };
+  supplementalEvidence.admissions ||= { current: metrics.find((m) => m.key === "students")?.current || 0, baseline: metrics.find((m) => m.key === "students")?.baseline || 0 };
+  insights.push(...buildSupplementalFindings(supplementalEvidence, settings, filters));
   const collected = metrics.find((m) => m.key === "collections");
   if (collected && expense)
     metrics.push({
@@ -391,16 +425,40 @@ export async function intelligenceDashboard(
     "Academic trend comparisons require explicitly comparable exams; no decline is inferred across different exams.",
     "Transport operations, inventory, historical capacity and missing-document requirements are unavailable to this center.",
   );
+  const attendanceEntries = (supplementalEvidence.classAttendance || []).reduce((sum: number, row: any) => sum + row.total, 0);
+  const staffEntries = Number(supplementalEvidence.staffAttendance?.total || 0);
+  const resultEntries = Number(supplementalEvidence.publishedResults?.count || 0);
+  const subjectEntries = (supplementalEvidence.subjectResults || []).reduce((sum: number, row: any) => sum + Number(row.total || 0), 0);
+  const invoiceCount = Number(supplementalEvidence.invoiceCohort?.count || 0);
+  const admissionsCount = Number(supplementalEvidence.admissions?.current || 0) + Number(supplementalEvidence.admissions?.baseline || 0);
+  const dataStatus = {
+    studentAttendance: !available("attendance") ? "UNAVAILABLE" : attendanceEntries ? "AVAILABLE" : "NO_DATA",
+    staffAttendance: !available("staffAttendance") ? "UNAVAILABLE" : staffEntries ? "AVAILABLE" : "NO_DATA",
+    fees: !available("invoices") ? "UNAVAILABLE" : invoiceCount ? "AVAILABLE" : "NO_DATA",
+    examinationResults: !available("results") ? "UNAVAILABLE" : resultEntries ? "AVAILABLE" : "NO_DATA",
+    subjectResults: !available("subjectResults") ? "UNAVAILABLE" : subjectEntries ? "AVAILABLE" : "NO_DATA",
+    admissions: !available("students") ? "UNAVAILABLE" : admissionsCount ? "AVAILABLE" : "NO_DATA",
+  };
+  const baseState = improvementAnalysisState(dataStatus);
+  const analysisState = baseState === "DATA_AVAILABLE"
+    ? insights.some((finding) => finding.kind === "ATTENTION") ? "FINDINGS_DETECTED" : "NO_THRESHOLDS_EXCEEDED"
+    : baseState;
   return {
     metrics,
     charts,
     quality,
-    insights: insights.map((i) => ({
+    insights: insights.map((i) => {
+      const report = i.report || (i.rule?.includes("attendance") ? "attendance" : i.rule?.includes("fee") || i.rule?.includes("outstanding") ? "invoices" : i.rule?.includes("exam") || i.rule?.includes("subject") ? "results" : i.rule?.includes("admission") ? "admissions" : i.rule?.includes("expense") ? "expenses" : "reports");
+      return {
       ...i,
+      period: i.period || { from: filters.from, to: filters.to },
+      report,
+      affected: i.affected || `School-wide · ${report}`,
+      branchScope: branchContext.getStore()?.branchId ? `Selected branch ${branchContext.getStore()?.branchId}` : "Current authorized branch scope",
       reviewDate: new Date(Date.now() + 14 * 86400000 + 5 * 3600000)
         .toISOString()
         .slice(0, 10),
-    })),
+    };}),
     filters,
     previous: {
       from: previous.from,
@@ -410,85 +468,38 @@ export async function intelligenceDashboard(
     },
     evaluated: { fromInstant: start, toExclusive: end },
     settings,
+    dataStatus,
+    analysisState,
     generatedAt: new Date(),
     timezone: "Asia/Karachi",
-    aiAvailable: assistantConfigured(),
   };
 }
-const responseSchema = z
-  .object({
-    summary: z.string().max(1200),
-    recommendations: z
-      .array(
-        z
-          .object({
-            priority: z.enum(["HIGH", "MEDIUM", "LOW"]),
-            evidence: z.string().max(600),
-            hypothesis: z.string().max(600),
-            action: z.string().max(600),
-            measurement: z.string().max(600),
-          })
-          .strict(),
-      )
-      .max(5),
-  })
-  .strict();
-const cache = new Map<string, { expires: number; data: any }>();
-export async function interpretIntelligence(
-  actor: AuthenticatedUser,
+export function deterministicIntelligenceSummary(
+  _actor: AuthenticatedUser,
   dashboard: Awaited<ReturnType<typeof intelligenceDashboard>>,
 ) {
-  // Provider receives computed aggregates and fixed rule descriptions only, never row-level records or actor details.
-  const payload = {
-    metrics: dashboard.metrics,
-    quality: dashboard.quality,
-    insights: dashboard.insights,
-  };
-  const key = createHash("sha256")
-    .update(
-      JSON.stringify({
-        school: actor.schoolId,
-        branch: branchContext.getStore()?.branchId,
-        filters: dashboard.filters,
-        payload,
-      }),
-    )
-    .digest("hex");
-  const cached = cache.get(key);
-  if (cached && cached.expires > Date.now())
-    return { ...cached.data, cached: true };
-  const result = await configuredCompletion(
-    [
-      {
-        role: "system",
-        content:
-          'Interpret only the supplied school aggregate evidence. Do not invent numbers, people, facts, causality or promises. Distinguish hypotheses from evidence. Return JSON only: {"summary":string,"recommendations":[{"priority":"HIGH"|"MEDIUM"|"LOW","evidence":string,"hypothesis":string,"action":string,"measurement":string}]}. You are advisory and cannot change records.',
-      },
-      { role: "user", content: JSON.stringify(payload) },
-    ],
-    { response_format: { type: "json_object" } },
-  );
-  let parsed: any;
-  try {
-    parsed = responseSchema.parse(JSON.parse(result.content));
-  } catch {
-    throw {
-      statusCode: 502,
-      message:
-        "AI returned an invalid interpretation. Deterministic school insights remain available.",
-    };
-  }
-  const numbers = (value: string) =>
-    (value.match(/\b\d+(?:\.\d+)?\b/g) || []).map(Number);
-  const allowedNumbers = new Set(numbers(JSON.stringify(payload)));
-  if (numbers(JSON.stringify(parsed)).some((n) => !allowedNumbers.has(n)))
-    throw {
-      statusCode: 502,
-      message:
-        "AI supplied unsupported numeric evidence. Use the calculated school insights instead.",
-    };
-  if (cache.size >= 100) cache.delete(cache.keys().next().value!);
-  const data = { ...parsed, generatedAt: new Date(), advisory: true };
-  cache.set(key, { expires: Date.now() + 5 * 60000, data });
-  return data;
+  const attention = dashboard.insights.filter((finding: any) => finding.kind === "ATTENTION");
+  const metrics = dashboard.metrics.filter((metric: any) => typeof metric.current === "number" && Number.isFinite(metric.current));
+  const dataAvailable = Object.values(dashboard.dataStatus).some((state: any) => state === "AVAILABLE");
+  const summary = dashboard.analysisState === "NO_DATA_AVAILABLE"
+    ? "No intelligence domains are available for this account. Check report permissions and subscription access."
+    : dashboard.analysisState === "INSUFFICIENT_DATA"
+      ? "The authorized domains have no recorded entries in this reporting period. Choose a period with data or review register and ledger coverage."
+      : attention.length
+        ? `${attention.length} evidence-based area${attention.length === 1 ? "" : "s"} need review for ${dashboard.filters.from} to ${dashboard.filters.to}. Findings below use CRM aggregates and configured thresholds.`
+        : `No configured risk threshold was exceeded in the assessed data for ${dashboard.filters.from} to ${dashboard.filters.to}. Continue routine register, ledger and published-result reviews. ${metrics.length} available metrics were assessed.`;
+  const recommendations = attention.slice(0, 5).map((finding: any) => ({
+    priority: finding.priority, evidence: finding.evidence,
+    hypothesis: "This is a recorded observation; it does not establish a cause.",
+    action: finding.action, measurement: finding.measurement,
+    report: finding.report, period: finding.period || dashboard.filters,
+  }));
+  if (!recommendations.length && dataAvailable) recommendations.push({
+    priority: "LOW", evidence: `No configured risk threshold was exceeded in the assessed CRM data for ${dashboard.filters.from} to ${dashboard.filters.to}.`,
+    hypothesis: "Available evidence supports routine monitoring; unmeasured domains are not assessed.",
+    action: "Continue scheduled attendance, fee ledger and published-results reviews; complete any registers marked as missing.",
+    measurement: "Refresh this analysis for the next comparable reporting period.",
+    report: "reports", period: dashboard.filters,
+  });
+  return { mode: "deterministic_rules", provider: null, summary, recommendations, analysisState: dashboard.analysisState, dataStatus: dashboard.dataStatus, quality: dashboard.quality, generatedAt: new Date(), advisory: true };
 }
